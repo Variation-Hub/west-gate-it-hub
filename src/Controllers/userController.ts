@@ -2,6 +2,8 @@ import { Request, Response } from "express"
 import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
+import { generatePass } from "../Util/contant"
+import { emailHelper } from "../Util/nodemailer"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -158,40 +160,36 @@ export const userPasswordChange = async (req: Request, res: Response) => {
     }
 }
 
-// const forgetPassword = async (req: Request, res: Response) => {
-//     try {
-//         const { email } = req.body;
+export const userForgotPassword = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
 
-//         const user = await userModel.findById(id);
+        const user = await userModel.findOne({email});
 
-//         if (!user) {
-//             return res.status(404).json({
-//                 message: "User not found",
-//                 status: false,
-//                 data: null
-//             })
-//         }
-//         if (!(await comparepassword(oldPassword, user.password))) {
-//             return res.status(400).json({
-//                 message: "please enter valid old password",
-//                 status: false,
-//                 data: null
-//             })
-//         }
-//         user.password = newPassword;
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
 
-//         await user.save();
+        const newPassword = generatePass();
+        user.password = newPassword;
 
-//         return res.status(200).json({
-//             message: "User password update success",
-//             status: true,
-//             data: null
-//         });
-//     } catch (err : any) {
-//         return res.status(500).json({
-//             message: err.message,
-//             status: false,
-//             data: null
-//         });
-//     }
-// }
+        await user.save();
+        emailHelper(email, newPassword).then(data => console.log(data)).catch(err => console.log(err));
+
+        return res.status(200).json({
+            message: "Email sent successfully",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
