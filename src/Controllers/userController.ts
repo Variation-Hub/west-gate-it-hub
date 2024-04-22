@@ -7,7 +7,7 @@ import { emailHelper } from "../Util/nodemailer"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
-        const { email, name, password } = req.body
+        const { email, name, password, role } = req.body
         const user = await userModel.findOne({ email })
 
         if (user) {
@@ -18,9 +18,9 @@ export const createUser = async (req: Request, res: Response) => {
             })
         }
 
-        const newUser = await userModel.create({ email, name, password })
+        const newUser = await userModel.create({ email, name, password, role })
 
-        const token = generateToken({ email: newUser.email, name: newUser.name })
+        const token = generateToken({ id: newUser._id, email: newUser.email, name: newUser.name, role: role })
         return res.status(200).json({
             message: "User create success",
             status: true,
@@ -56,7 +56,7 @@ export const loginUser = async (req: Request, res: Response) => {
             })
         }
 
-        const token = generateToken({ id: user._id, email: user.email, name: user.name })
+        const token = generateToken({ id: user._id, email: user.email, name: user.name, role: user.role })
         return res.status(200).json({
             message: "User login success",
             status: true,
@@ -164,7 +164,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
     try {
         const { email } = req.body;
 
-        const user = await userModel.findOne({email});
+        const user = await userModel.findOne({ email });
 
         if (!user) {
             return res.status(404).json({

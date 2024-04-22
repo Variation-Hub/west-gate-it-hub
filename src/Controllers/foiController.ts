@@ -19,7 +19,8 @@ export const createFOI = async (req: Request, res: Response) => {
             link = await uploadToS3(req.file, "foi")
         }
         const FOI = await foiModel.create({ name, link, projectId })
-
+        project.timeDue = null;
+        project.save()
         return res.status(200).json({
             message: "FOI create success",
             status: true,

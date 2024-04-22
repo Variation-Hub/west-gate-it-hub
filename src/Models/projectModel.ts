@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import mailScreenshotModel from "./mailScreenshotModel";
 
 const projectModel = new mongoose.Schema({
     projectName: {
@@ -25,6 +26,7 @@ const projectModel = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
+        unique: true,
     },
     publishDate: {
         type: Date,
@@ -71,10 +73,6 @@ const projectModel = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    },
     clientType: {
         type: String,
         required: true,
@@ -84,6 +82,42 @@ const projectModel = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
+    },
+    status: {
+        type: String,
+        enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'AwardedOrNotAwarded'],
+        default: 'InProgress',
+    },
+    shortListUserId: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: [],
+        required: true
+    },
+    applyUserId: {
+        type: [mongoose.Schema.Types.ObjectId],
+        default: [],
+        required: true
+    },
+    clientDocument: {
+        type: [mongoose.Schema.Types.Mixed],
+        required: true,
+        default: []
+    },
+    westGetDocument: {
+        type: [mongoose.Schema.Types.Mixed],
+        required: true,
+        default: []
+    },
+    userChatList: {
+        type: [mongoose.Schema.Types.ObjectId],
+        required: false,
+    },
+    timeDue: {
+        type: Date
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
     },
     updatedAt: {
         type: Date,

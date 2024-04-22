@@ -70,7 +70,10 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
     try {
-        const { keyword } = req.query
+        let { keyword, category, industry, projectType } = req.query as any
+        category = category?.split(',');
+        industry = industry?.split(',');
+        projectType = projectType?.split(',');
 
         let filter = {}
         if (keyword) {
@@ -81,6 +84,45 @@ export const getProjects = async (req: Request, res: Response) => {
                 ]
             };
         }
+        if (category) {
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { category: { $in: category } }
+                    ]
+                };
+            } else {
+                filter = { category: { $in: category } };
+            }
+        }
+
+        if (industry) {
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { industry: { $in: industry } }
+                    ]
+                };
+            } else {
+                filter = { industry: { $in: industry } };
+            }
+        }
+
+        if (projectType) {
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { projectType: { $in: projectType } }
+                    ]
+                };
+            } else {
+                filter = { projectType: { $in: projectType } };
+            }
+        }
+
         const projects = await projectModel.find(filter);
 
         return res.status(200).json({
@@ -165,6 +207,70 @@ export const deleteProject = async (req: Request, res: Response) => {
             message: "User delete success",
             status: true,
             data: deleteproject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const sortList = async (req: Request, res: Response) => {
+    try {
+        const { userId, projectId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!project.shortListUserId.includes(userId)) {
+            project.shortListUserId = [...project.shortListUserId, userId];
+        }
+        project.save();
+
+        return res.status(200).json({
+            message: "Project sortlist successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const applyProject = async (req: Request, res: Response) => {
+    try {
+        const { userId, projectId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!project.applyUserId.includes(userId)) {
+            project.applyUserId = [...project.applyUserId, userId];
+        }
+        project.save();
+
+        return res.status(200).json({
+            message: "Project apply successfully",
+            status: true
         });
     } catch (err: any) {
         return res.status(500).json({

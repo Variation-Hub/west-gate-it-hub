@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { deleteFromS3, uploadToS3 } from "../Util/aws";
 import mailScreenshotModel from "../Models/mailScreenshotModel";
 import { ImagesType, isValidType } from "../Util/contant";
-import { CustomRequest } from "../Util/types/expressInterface";
+import projectModel from "../Models/projectModel";
 
 export const createScreenShot = async (req: Request, res: Response) => {
     try {
@@ -13,6 +13,13 @@ export const createScreenShot = async (req: Request, res: Response) => {
         }
 
         const mailScreenShot = await mailScreenshotModel.create({ projectName, BOSId, emailId, link })
+
+        const project = await projectModel.findOne({ BOSID: BOSId })
+        if (project) {
+            project.timeDue = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
+            project.save()
+        }
+        // project?.timeDue.setDate(project?.timeDue + 20);
 
         return res.status(200).json({
             message: "Mail ScreenShot create success",

@@ -23,6 +23,38 @@ const userModel = new mongoose.Schema({
         required: true,
         minlength: 6
     },
+    role: {
+        type: String,
+        enum: ['BOS', 'SupplierAdmin'],
+        required: true
+    },
+    companyName: {
+        type: String,
+    },
+    designation: {
+        type: String,
+    },
+    doj: {
+        type: Date,
+    },
+    linkedInLink: {
+        type: String,
+    },
+    cv: {
+        type: mongoose.Schema.Types.Mixed,
+    },
+    avatar: {
+        type: mongoose.Schema.Types.Mixed,
+    },
+    categoryList: {
+        type: [String]
+    },
+    domain: {
+        type: String,
+    },
+    department: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

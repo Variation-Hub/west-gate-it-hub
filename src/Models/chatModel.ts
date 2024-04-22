@@ -1,24 +1,28 @@
 import mongoose from "mongoose";
 
-const foiModel = new mongoose.Schema({
-    name: {
+const chatModel = new mongoose.Schema({
+    message: {
         type: String,
         required: true,
         trim: true,
-    },
-    link: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true,
     },
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
         required: true
     },
-    status: {
+    messageType: {
         type: String,
-        enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'AwardedOrNotAwarded'],
-        default: 'InProgress',
+        enum: ['text', 'file', 'audio', 'video']
+    },
+    mentionList: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User'
+    },
+    senderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
     },
     createdAt: {
         type: Date,
@@ -30,9 +34,9 @@ const foiModel = new mongoose.Schema({
     }
 }, { versionKey: false });
 
-foiModel.pre('save', async function (next) {
+chatModel.pre('save', async function (next) {
     this.updatedAt = new Date();
     next();
 });
 
-export default mongoose.model('Foi', foiModel);
+export default mongoose.model('Chat', chatModel);
