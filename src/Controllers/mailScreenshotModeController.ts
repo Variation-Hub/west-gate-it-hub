@@ -37,12 +37,25 @@ export const createScreenShot = async (req: Request, res: Response) => {
 
 export const getScreenShots = async (req: Request, res: Response) => {
     try {
-        const screenshots = await mailScreenshotModel.find();
+        console.log(req.pagination?.limit, req.pagination?.skip)
+        const count = await mailScreenshotModel.countDocuments();
+        const screenshots = await mailScreenshotModel.find()
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             message: "Mail ScreenShot fetch success",
             status: true,
-            data: screenshots
+            data: {
+                data: screenshots,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number)),
+                }
+            }
         });
     } catch (err: any) {
         return res.status(500).json({

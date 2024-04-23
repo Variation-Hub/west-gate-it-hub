@@ -74,7 +74,7 @@ export const getProjects = async (req: Request, res: Response) => {
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
-
+        console.log(req.pagination?.page, req.pagination?.limit)
         let filter = {}
         if (keyword) {
             filter = {
@@ -122,13 +122,24 @@ export const getProjects = async (req: Request, res: Response) => {
                 filter = { projectType: { $in: projectType } };
             }
         }
-
-        const projects = await projectModel.find(filter);
+        const count = await projectModel.countDocuments(filter);
+        const projects = await projectModel.find(filter)
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             message: "projects fetch success",
             status: true,
-            data: projects
+            data: {
+                data: projects,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
         });
     } catch (err: any) {
         return res.status(500).json({

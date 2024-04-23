@@ -6,12 +6,24 @@ export const caseStudyList = async (req: any, res: Response) => {
     try {
         const userId = req.user.id
 
+        const count = await caseStudyModel.countDocuments({ userId });
         const CaseStudy = await caseStudyModel.find({ userId })
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             message: "CaseStudy successfully fetched",
             status: true,
-            data: CaseStudy
+            data: {
+                data: CaseStudy,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
         });
     } catch (error: any) {
         return res.status(500).json({

@@ -37,12 +37,26 @@ export const createFOI = async (req: Request, res: Response) => {
 
 export const getFIOs = async (req: Request, res: Response) => {
     try {
-        const FOIs = await foiModel.find();
+
+        const count = await foiModel.countDocuments();
+        const FOIs = await foiModel.find()
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
+
 
         return res.status(200).json({
             message: "FOI fetch success",
             status: true,
-            data: FOIs
+            data: {
+                data: FOIs,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
         });
     } catch (err: any) {
         return res.status(500).json({
