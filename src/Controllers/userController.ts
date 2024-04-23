@@ -4,6 +4,7 @@ import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import { generatePass, userRoles } from "../Util/contant"
 import { emailHelper } from "../Util/nodemailer"
+import { deleteFromS3, uploadToS3 } from "../Util/aws"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -20,7 +21,13 @@ export const createUser = async (req: Request, res: Response) => {
 
         const newUser = await userModel.create(req.body)
 
-        const token = generateToken({ id: newUser._id, email: newUser.email, name: newUser.name, role: newUser.role })
+        const token = generateToken({
+            id: newUser._id,
+            email: newUser.email,
+            name: newUser.name,
+            role: newUser.role,
+            userName: newUser.userName
+        })
         return res.status(200).json({
             message: "User create success",
             status: true,
@@ -245,7 +252,99 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
     try {
 
         const supplierId = req.user.id;
-        const user = await userModel.find({ role: userRoles.SupplierUser, supplierId }, { password: 0, categoryList: 0, supplierId: 0 });
+        const count = await userModel.countDocuments(
+            { role: userRoles.SupplierUser, supplierId },
+            { password: 0, categoryList: 0, supplierId: 0 })
+
+        const user = await userModel.find(
+            { role: userRoles.SupplierUser, supplierId },
+            { password: 0, categoryList: 0, supplierId: 0 })
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number);
+
+
+        return res.status(200).json({
+            message: "User update success",
+            status: true,
+            data: {
+                data: user,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+export const updateAvatar = async (req: any, res: Response) => {
+    try {
+
+        const userId = req.user.id;
+
+        const user = await userModel.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (req.file) {
+            // if (user.avatar) {
+            //     deleteFromS3(user.avatar)
+            // }
+            user.avatar = await uploadToS3(req.file, "cv") as any
+        }
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "User update success",
+            status: true,
+            data: user
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateSuplierAdmin = async (req: any, res: Response) => {
+    try {
+
+        const supplierId = req.user.id;
+
+        const user = await userModel.findById(supplierId);
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (req.file) {
+            // if (user.cv) {
+            //     deleteFromS3(user.cv)
+            // }
+            user.cv = await uploadToS3(req.file, "cv") as any
+        }
+
+        await user.save();
 
         return res.status(200).json({
             message: "User update success",

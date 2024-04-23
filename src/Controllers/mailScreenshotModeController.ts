@@ -88,7 +88,7 @@ export const updateScreenShot = async (req: Request, res: Response) => {
             })
         }
         if (req.file) {
-            deleteFromS3(screenshot.link)
+            // deleteFromS3(screenshot.link)
             screenshot.link = await uploadToS3(req.file, "screenshot")
         }
         screenshot.projectName = projectName || screenshot.projectName;

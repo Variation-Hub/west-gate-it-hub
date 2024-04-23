@@ -91,7 +91,7 @@ export const updateFOI = async (req: Request, res: Response) => {
         }
 
         if (req.file) {
-            deleteFromS3(FOI.link)
+            // deleteFromS3(FOI.link)
             FOI.link = await uploadToS3(req.file, "foi")
         }
         FOI.name = name || FOI.name;
@@ -126,9 +126,9 @@ export const deleteFOI = async (req: Request, res: Response) => {
                 data: null
             })
         }
-        if (FOI.link) {
-            deleteFromS3(FOI.link)
-        }
+        // if (FOI.link) {
+        //     deleteFromS3(FOI.link)
+        // }
 
         const deleteFOI = await foiModel.findByIdAndDelete(id);
 
