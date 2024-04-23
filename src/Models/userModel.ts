@@ -10,7 +10,6 @@ interface UserDocument extends Document {
 const userModel = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
         trim: true,
     },
     email: {
@@ -25,7 +24,7 @@ const userModel = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['BOS', 'SupplierAdmin'],
+        enum: ['BOS', 'SupplierAdmin', 'SupplierUser'],
         required: true
     },
     companyName: {
@@ -36,6 +35,7 @@ const userModel = new mongoose.Schema({
     },
     doj: {
         type: Date,
+        default: Date.now
     },
     linkedInLink: {
         type: String,
@@ -49,11 +49,22 @@ const userModel = new mongoose.Schema({
     categoryList: {
         type: [String]
     },
+    userName:{
+        type: String,
+        trim: true,
+        unique: true,
+        required: true
+    },
     domain: {
         type: String,
+        trim:true
     },
     department: {
-        type: String
+        type: String,
+        trim: true
+    },
+    supplierId:{
+        type: mongoose.Schema.Types.ObjectId,
     },
     createdAt: {
         type: Date,

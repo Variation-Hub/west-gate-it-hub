@@ -35,5 +35,6 @@ export const projectStatus = {
 
 export const userRoles = {
     BOS: 'BOS',
-    SupplierAdmin: 'SupplierAdmin'
+    SupplierAdmin: 'SupplierAdmin',
+    SupplierUser: 'SupplierUser'
 }

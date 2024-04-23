@@ -2,29 +2,77 @@ import { Request, Response } from "express"
 import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
-import { generatePass } from "../Util/contant"
+import { generatePass, userRoles } from "../Util/contant"
 import { emailHelper } from "../Util/nodemailer"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
-        const { email, name, password, role } = req.body
-        const user = await userModel.findOne({ email })
+        const { email, userName } = req.body
+        const user = await userModel.findOne({ $or: [{ email }, { userName }] })
 
         if (user) {
             return res.status(400).json({
-                message: "Email already exists",
+                message: "User already exists",
                 status: false,
                 data: null
             })
         }
 
-        const newUser = await userModel.create({ email, name, password, role })
+        const newUser = await userModel.create(req.body)
 
-        const token = generateToken({ id: newUser._id, email: newUser.email, name: newUser.name, role: role })
+        const token = generateToken({ id: newUser._id, email: newUser.email, name: newUser.name, role: newUser.role })
         return res.status(200).json({
             message: "User create success",
             status: true,
             data: { token }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const createSuplierUser = async (req: any, res: Response) => {
+    try {
+        const { userName, email, domain, department } = req.body
+        const userId = req.user.id;
+
+        const user = await userModel.findOne({
+            $or: [{ email }, { userName }]
+        });
+
+        if (user) {
+            return res.status(400).json({
+                message: "User already exists",
+                status: false,
+                data: null
+            })
+        }
+
+        const password = generatePass();
+        const newUser = await userModel.create({ userName, email, domain, department, password, role: userRoles.SupplierUser, supplierId: userId })
+        emailHelper(email, password).then(data => console.log(data)).catch(err => console.log(err));
+
+        const responseData = {
+            email: newUser.email,
+            role: newUser.role,
+            userName: newUser.userName,
+            domain: newUser.domain,
+            department: newUser.department,
+            supplierId: newUser.supplierId,
+            _id: newUser._id,
+            doj: newUser.doj,
+            createdAt: newUser.createdAt,
+            updatedAt: newUser.updatedAt,
+        };
+
+        return res.status(200).json({
+            message: "User create success",
+            status: true,
+            data: responseData
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -95,9 +143,9 @@ export const deleteUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
 
-        const user = await userModel.findById(id);
+        const deleteUser = await userModel.findByIdAndDelete(id);
 
-        if (!user) {
+        if (!deleteUser) {
             return res.status(404).json({
                 message: "User not found",
                 status: false,
@@ -105,7 +153,6 @@ export const deleteUser = async (req: Request, res: Response) => {
             })
         }
 
-        const deleteUser = await userModel.findByIdAndDelete(id);
 
         return res.status(200).json({
             message: "User delete success",
@@ -184,6 +231,26 @@ export const userForgotPassword = async (req: Request, res: Response) => {
             message: "Email sent successfully",
             status: true,
             data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const fetchSuplierUser = async (req: any, res: Response) => {
+    try {
+
+        const supplierId = req.user.id;
+        const user = await userModel.find({ role: userRoles.SupplierUser, supplierId }, { password: 0, categoryList: 0, supplierId: 0 });
+
+        return res.status(200).json({
+            message: "User update success",
+            status: true,
+            data: user
         });
     } catch (err: any) {
         return res.status(500).json({
