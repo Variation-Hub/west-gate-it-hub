@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose from "mongoose";
+import foiModel from "../Models/foiModel";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -49,15 +50,28 @@ export const getProject = async (req: Request, res: Response) => {
                     foreignField: 'BOSId',
                     as: 'mailScreenshots'
                 }
+            },
+            {
+                $lookup: {
+                    from: 'summaryquestions',
+                    localField: '_id',
+                    foreignField: 'projectId',
+                    as: 'summaryQuestion',
+                }
+            },
+            {
+                $project: {
+                    applyUserId: 0,
+                    shortListUserId: 0,
+                    'summaryQuestion.projectId': 0
+                }
             }
         ]);
-
-
 
         return res.status(200).json({
             message: "project fetch success",
             status: true,
-            data: project
+            data: project[0]
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -70,12 +84,12 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: Request, res: Response) => {
     try {
-        let { keyword, category, industry, projectType } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
         console.log(req.pagination?.page, req.pagination?.limit)
-        let filter = {}
+        let filter: any = {}
         if (keyword) {
             filter = {
                 $or: [
@@ -122,11 +136,29 @@ export const getProjects = async (req: Request, res: Response) => {
                 filter = { projectType: { $in: projectType } };
             }
         }
+        if (foiNotUploaded) {
+            const projectId = (await foiModel.find()).map(foi => foi.projectId)
+            console.log(projectId)
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { _id: { $nin: projectId } }
+                    ]
+                };
+            } else {
+                filter = { _id: { $nin: projectId } };
+            }
+        }
+
+        console.log(filter);
         const count = await projectModel.countDocuments(filter);
         const projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
+
+        console.log(projects.map(project => project._id));
 
         return res.status(200).json({
             message: "projects fetch success",

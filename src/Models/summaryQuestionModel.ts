@@ -39,7 +39,7 @@ const QuestionModel = new mongoose.Schema({
         required: false,
     },
     response: {
-        type: [mongoose.Schema.Types.Mixed], // {type : string , message: string, date: Date}
+        type: [mongoose.Schema.Types.Mixed], // {type : string , message: string, date: Date} type enum : ["reply","review"]
         required: true,
         default: [],
     },
