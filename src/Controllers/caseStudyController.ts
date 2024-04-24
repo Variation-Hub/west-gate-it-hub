@@ -5,9 +5,16 @@ import { uploadToS3 } from "../Util/aws"
 export const caseStudyList = async (req: any, res: Response) => {
     try {
         const userId = req.user.id
+        let { category } = req.query;
+        category = category?.split(',');
 
-        const count = await caseStudyModel.countDocuments({ userId });
-        const CaseStudy = await caseStudyModel.find({ userId })
+        let filter: any = { userId: userId }
+        if (category) {
+            filter = { ...filter, category: { $in: category } }
+        }
+
+        const count = await caseStudyModel.countDocuments(filter);
+        const CaseStudy = await caseStudyModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose from "mongoose";
 import foiModel from "../Models/foiModel";
-import { userRoles } from "../Util/contant";
+import { projectStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 
@@ -176,28 +176,6 @@ export const getProjects = async (req: any, res: Response) => {
             }
         }
 
-        if (req.user.role === userRoles.SupplierAdmin) {
-            const categorygroup = await caseStudy.aggregate([
-                {
-                    $match: {
-                        userId: new mongoose.Types.ObjectId(req.user.id),
-                        verify: { $eq: true }
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$category",
-                        count: { $sum: 1 }
-                    }
-                }
-            ]);
-            const transformedData = categorygroup.reduce((acc, item) => {
-                acc[item._id] = item.count;
-                return acc;
-            }, {});
-
-        }
-
         const count = await projectModel.countDocuments(filter);
         const projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
@@ -358,7 +336,8 @@ export const applyProject = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: "Project apply successfully",
-            status: true
+            status: true,
+            data: null
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -373,50 +352,64 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
     try {
         const userId = req.user.id
         const user = await userModel.findById(userId)
-        const project = await projectModel.find({ category: { $in: user?.categoryList } })
-        console.log(userId, "userId", project, project.length)
-        const data = await projectModel.aggregate([
-            {
-                $lookup: {
-                    from: "users",
-                    let: { userId: userId },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $eq: ["$_id", "$$userId"]
-                                }
-                            }
-                        }
-                    ],
-                    as: "userDetails"
-                }
-            },
-            {
-                $unwind: "$userDetails"
-            },
-            {
-                $addFields: {
-                    commonCategories: {
-                        $setIntersection: ["$userDetails.categoryList", ["$category"]]
-                    }
-                }
-            },
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const categorygroup = (await caseStudy.aggregate([
             {
                 $match: {
-                    commonCategories: { $ne: [] }
+                    userId: new mongoose.Types.ObjectId(req.user.id),
+                    verify: { $eq: true }
                 }
             },
             {
-                $count: "matchedProjectsCount"
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
             }
-        ]);
+        ])).reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+        }, {});;
 
+        console.log(categorygroup)
+        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const responseData = {
+            totalProjects: projects.length,
+            matchedProjects: 0,
+            totalSubmit: 0,
+            totalAwarded: 0,
+            totalNotAwarded: 0
+        }
 
+        projects.forEach(project => {
+            if (Object.keys(categorygroup).includes(project.category)) {
+                if (project.caseStudyRequired <= categorygroup[project.category]) {
+                    responseData.matchedProjects++;
+                }
+            }
+            if (project.status === projectStatus.Submitted) {
+                responseData.totalSubmit++;
+            }
+
+            if (project.status === projectStatus.Awarded) {
+                responseData.totalAwarded++;
+            }
+            if (project.status === projectStatus.NotAwarded) {
+                responseData.totalNotAwarded++;
+            }
+        })
         return res.status(200).json({
             message: "Dashboard data fetch success",
             status: true,
-            data: data
+            data: responseData
         });
     } catch (err: any) {
         return res.status(500).json({

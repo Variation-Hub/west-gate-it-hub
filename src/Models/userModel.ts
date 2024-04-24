@@ -47,9 +47,10 @@ const userModel = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
     },
     categoryList: {
-        type: [String]
+        type: [String],
+        default: []
     },
-    userName:{
+    userName: {
         type: String,
         trim: true,
         unique: true,
@@ -57,13 +58,13 @@ const userModel = new mongoose.Schema({
     },
     domain: {
         type: String,
-        trim:true
+        trim: true
     },
     department: {
         type: String,
         trim: true
     },
-    supplierId:{
+    supplierId: {
         type: mongoose.Schema.Types.ObjectId,
     },
     createdAt: {

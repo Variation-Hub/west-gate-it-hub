@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import mailScreenshotModel from "./mailScreenshotModel";
+import caseStudy from "./caseStudy";
 
 const projectModel = new mongoose.Schema({
     projectName: {
@@ -85,7 +86,7 @@ const projectModel = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'AwardedOrNotAwarded'],
+        enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'Awarded', 'NotAwarded', 'Submitted'],
         default: 'InProgress',
     },
     sortListUserId: {
@@ -114,6 +115,10 @@ const projectModel = new mongoose.Schema({
     },
     timeDue: {
         type: Date
+    },
+    caseStudyRequired: {
+        type: Number,
+        default: 0
     },
     createdAt: {
         type: Date,

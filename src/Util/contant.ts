@@ -30,7 +30,9 @@ export const projectStatus = {
     InReviewBidWritingCompany: 'InReviewBidWritingCompany',
     ReSolution: 'ReSolution',
     UnderSubmission: 'UnderSubmission',
-    AwardedOrNotAwarded: 'AwardedOrNotAwarded'
+    Awarded: 'Awarded',
+    NotAwarded: 'NotAwarded',
+    Submitted: 'Submitted'
 }
 
 export const userRoles = {
