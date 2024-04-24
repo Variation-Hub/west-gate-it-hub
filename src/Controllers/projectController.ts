@@ -10,11 +10,9 @@ import userModel from "../Models/userModel";
 export const createProject = async (req: Request, res: Response) => {
     try {
 
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName } = req.body
         const { data } = req.body;
 
         const newProjects = await projectModel.insertMany(data)
-        // const newProject = await projectModel.create({ projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName })
 
         return res.status(200).json({
             message: "Projects create success",
@@ -87,7 +85,7 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -102,6 +100,7 @@ export const getProjects = async (req: any, res: Response) => {
                 ]
             };
         }
+
         if (category) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -114,6 +113,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter = { category: { $in: category } };
             }
         }
+
         if (industry) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -126,6 +126,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter = { industry: { $in: industry } };
             }
         }
+
         if (projectType) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -138,6 +139,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter = { projectType: { $in: projectType } };
             }
         }
+
         if (foiNotUploaded) {
             const projectId = (await foiModel.find()).map(foi => foi.projectId)
             if (Object.keys(filter).length > 0) {
@@ -151,6 +153,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter = { _id: { $nin: projectId } };
             }
         }
+
         if (sortlist) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -163,6 +166,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter = { sortListUserId: req.user.id };
             }
         }
+
         if (applied) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -173,6 +177,61 @@ export const getProjects = async (req: any, res: Response) => {
                 };
             } else {
                 filter = { applyUserId: req.user.id };
+            }
+        }
+
+        if (match) {
+            const categorygroup = (await caseStudy.aggregate([
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(req.user.id),
+                        verify: true
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$category",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]))
+
+            let filters = [];
+            if (match === "perfect") {
+                filters = categorygroup.map(item => {
+                    const category = item._id; 
+                    const count = item.count;
+
+                    return {
+                        $and: [
+                            { category },
+                            { caseStudyRequired: { $lte: count } }
+                        ]
+                    };
+                });
+            } else {
+                filters = categorygroup.map(item => {
+                    const category = item._id;
+                    const count = item.count;
+
+                    return {
+                        $and: [
+                            { category: category },
+                            { caseStudyRequired: { $gt: count } }
+                        ]
+                    };
+                });
+            }
+
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { $or: filters }
+                    ]
+                };
+            } else {
+                filter = { $or: filters };
             }
         }
 
@@ -377,7 +436,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         ])).reduce((acc, item) => {
             acc[item._id] = item.count;
             return acc;
-        }, {});;
+        }, {});
 
         console.log(categorygroup)
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
