@@ -13,7 +13,7 @@ const chatModel = new mongoose.Schema({
     },
     messageType: {
         type: String,
-        enum: ['text', 'file', 'audio', 'video']
+        enum: ['text', 'file', 'audio', 'video', 'join', 'leave']
     },
     mentionList: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -22,7 +22,11 @@ const chatModel = new mongoose.Schema({
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: false
+    },
+    file: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     createdAt: {
         type: Date,

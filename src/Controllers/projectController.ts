@@ -424,7 +424,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             {
                 $match: {
                     userId: new mongoose.Types.ObjectId(req.user.id),
-                    verify: { $eq: true }
+                    verify: true
                 }
             },
             {

@@ -112,6 +112,7 @@ const projectModel = new mongoose.Schema({
     userChatList: {
         type: [mongoose.Schema.Types.ObjectId],
         required: false,
+        default: []
     },
     timeDue: {
         type: Date
