@@ -6,13 +6,13 @@ import { userRoles } from '../Util/contant';
 
 const projectRoutes = express.Router();
 
-projectRoutes.post("/create", createProject);
+projectRoutes.post("/create", authorizeRoles(), createProject);
 projectRoutes.get("/list", authorizeRoles(), paginationMiddleware, getProjects);
-projectRoutes.get("/get/:id", getProject);
-projectRoutes.patch("/update/:id", updateProject);
-projectRoutes.delete("/delete/:id", deleteProject);
-projectRoutes.patch("/sortlist", sortList);
-projectRoutes.patch("/apply", applyProject);
+projectRoutes.get("/get/:id", authorizeRoles(), getProject);
+projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);
+projectRoutes.delete("/delete/:id", authorizeRoles(), deleteProject);
+projectRoutes.patch("/sortlist", authorizeRoles(), sortList);
+projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 
 // SupplierAdmin routes
 projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin), getDashboardDataSupplierAdmin);

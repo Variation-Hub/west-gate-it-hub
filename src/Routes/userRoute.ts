@@ -21,9 +21,9 @@ const userRoutes = express.Router();
 
 userRoutes.post("/register", createUser);
 userRoutes.post("/login", loginUser);
-userRoutes.patch("/update/:id", updateUser);
-userRoutes.delete("/delete/:id", deleteUser);
-userRoutes.patch("/change-password/:id", userPasswordChange);
+userRoutes.patch("/update/:id", authorizeRoles(), updateUser);
+userRoutes.delete("/delete/:id", authorizeRoles(), deleteUser);
+userRoutes.patch("/change-password/:id", authorizeRoles(),userPasswordChange);
 userRoutes.post("/forgot", userForgotPassword);
 userRoutes.patch("/avatar-upload", authorizeRoles(), singleFileUpload("avatar"), updateAvatar);
 userRoutes.get("/get", authorizeRoles(), getUserDetails);
