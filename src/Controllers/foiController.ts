@@ -86,7 +86,7 @@ export const updateFOI = async (req: Request, res: Response) => {
             return res.status(404).json({
                 message: "Project not found",
                 status: true,
-                data: FOI
+                data: null
             });
         }
 

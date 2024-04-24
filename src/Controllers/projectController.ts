@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose from "mongoose";
 import foiModel from "../Models/foiModel";
+import { userRoles } from "../Util/contant";
+import caseStudy from "../Models/caseStudy";
+import userModel from "../Models/userModel";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -62,7 +65,7 @@ export const getProject = async (req: Request, res: Response) => {
             {
                 $project: {
                     applyUserId: 0,
-                    shortListUserId: 0,
+                    sortListUserId: 0,
                     'summaryQuestion.projectId': 0
                 }
             }
@@ -82,14 +85,15 @@ export const getProject = async (req: Request, res: Response) => {
     }
 }
 
-export const getProjects = async (req: Request, res: Response) => {
+export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
-        console.log(req.pagination?.page, req.pagination?.limit)
+
         let filter: any = {}
+
         if (keyword) {
             filter = {
                 $or: [
@@ -110,7 +114,6 @@ export const getProjects = async (req: Request, res: Response) => {
                 filter = { category: { $in: category } };
             }
         }
-
         if (industry) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -123,7 +126,6 @@ export const getProjects = async (req: Request, res: Response) => {
                 filter = { industry: { $in: industry } };
             }
         }
-
         if (projectType) {
             if (Object.keys(filter).length > 0) {
                 filter = {
@@ -138,7 +140,6 @@ export const getProjects = async (req: Request, res: Response) => {
         }
         if (foiNotUploaded) {
             const projectId = (await foiModel.find()).map(foi => foi.projectId)
-            console.log(projectId)
             if (Object.keys(filter).length > 0) {
                 filter = {
                     $and: [
@@ -150,15 +151,59 @@ export const getProjects = async (req: Request, res: Response) => {
                 filter = { _id: { $nin: projectId } };
             }
         }
+        if (sortlist) {
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { sortListUserId: req.user.id }
+                    ]
+                };
+            } else {
+                filter = { sortListUserId: req.user.id };
+            }
+        }
+        if (applied) {
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { applyUserId: req.user.id }
+                    ]
+                };
+            } else {
+                filter = { applyUserId: req.user.id };
+            }
+        }
 
-        console.log(filter);
+        if (req.user.role === userRoles.SupplierAdmin) {
+            const categorygroup = await caseStudy.aggregate([
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(req.user.id),
+                        verify: { $eq: true }
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$category",
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+            const transformedData = categorygroup.reduce((acc, item) => {
+                acc[item._id] = item.count;
+                return acc;
+            }, {});
+
+        }
+
         const count = await projectModel.countDocuments(filter);
         const projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
 
-        console.log(projects.map(project => project._id));
 
         return res.status(200).json({
             message: "projects fetch success",
@@ -274,8 +319,8 @@ export const sortList = async (req: Request, res: Response) => {
             })
         }
 
-        if (!project.shortListUserId.includes(userId)) {
-            project.shortListUserId = [...project.shortListUserId, userId];
+        if (!project.sortListUserId.includes(userId)) {
+            project.sortListUserId = [...project.sortListUserId, userId];
         }
         project.save();
 
@@ -314,6 +359,64 @@ export const applyProject = async (req: Request, res: Response) => {
         return res.status(200).json({
             message: "Project apply successfully",
             status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id
+        const user = await userModel.findById(userId)
+        const project = await projectModel.find({ category: { $in: user?.categoryList } })
+        console.log(userId, "userId", project, project.length)
+        const data = await projectModel.aggregate([
+            {
+                $lookup: {
+                    from: "users",
+                    let: { userId: userId },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $eq: ["$_id", "$$userId"]
+                                }
+                            }
+                        }
+                    ],
+                    as: "userDetails"
+                }
+            },
+            {
+                $unwind: "$userDetails"
+            },
+            {
+                $addFields: {
+                    commonCategories: {
+                        $setIntersection: ["$userDetails.categoryList", ["$category"]]
+                    }
+                }
+            },
+            {
+                $match: {
+                    commonCategories: { $ne: [] }
+                }
+            },
+            {
+                $count: "matchedProjectsCount"
+            }
+        ]);
+
+
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: data
         });
     } catch (err: any) {
         return res.status(500).json({

@@ -88,7 +88,7 @@ const projectModel = new mongoose.Schema({
         enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'AwardedOrNotAwarded'],
         default: 'InProgress',
     },
-    shortListUserId: {
+    sortListUserId: {
         type: [mongoose.Schema.Types.ObjectId],
         default: [],
         required: true
