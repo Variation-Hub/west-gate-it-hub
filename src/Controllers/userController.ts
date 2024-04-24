@@ -111,7 +111,7 @@ export const loginUser = async (req: Request, res: Response) => {
             })
         }
 
-        const token = generateToken({ id: user._id, email: user.email, name: user.name, role: user.role })
+        const token = generateToken({ id: user._id, email: user.email, name: user.name, role: user.role, userName: user.userName})
         return res.status(200).json({
             message: "User login success",
             status: true,
@@ -300,9 +300,9 @@ export const updateAvatar = async (req: any, res: Response) => {
         }
 
         if (req.file) {
-            // if (user.avatar) {
-            //     deleteFromS3(user.avatar)
-            // }
+            if (user.avatar) {
+                deleteFromS3(user.avatar)
+            }
             user.avatar = await uploadToS3(req.file, "cv") as any
         }
 
@@ -338,9 +338,9 @@ export const updateSuplierAdmin = async (req: any, res: Response) => {
         }
 
         if (req.file) {
-            // if (user.cv) {
-            //     deleteFromS3(user.cv)
-            // }
+            if (user.cv) {
+                deleteFromS3(user.cv)
+            }
             user.cv = await uploadToS3(req.file, "cv") as any
         }
 
