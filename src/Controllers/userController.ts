@@ -92,8 +92,8 @@ export const createSuplierUser = async (req: any, res: Response) => {
 
 export const loginUser = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body
-        const user = await userModel.findOne({ email })
+        const { email, password, role } = req.body
+        const user = await userModel.findOne({ email, role })
 
         if (!user) {
             return res.status(404).json({
