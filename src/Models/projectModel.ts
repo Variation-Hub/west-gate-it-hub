@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import mailScreenshotModel from "./mailScreenshotModel";
 import caseStudy from "./caseStudy";
+import { projectStatus } from "../Util/contant";
 
 const projectModel = new mongoose.Schema({
     projectName: {
@@ -86,8 +87,18 @@ const projectModel = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['InProgress', 'InSolution', 'InReviewWestGate', 'InReview', 'InReviewBidWritingCompany', 'ReSolution', 'UnderSubmission', 'Awarded', 'NotAwarded', 'Submitted'],
-        default: 'InProgress',
+        enum: projectStatus,
+        default: projectStatus.Awaiting,
+    },
+    statusComment: {
+        type: String,
+    },
+    failStatusImage: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    failStatusReason: {
+        type: [String],
+        enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints']
     },
     sortListUserId: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -120,6 +131,30 @@ const projectModel = new mongoose.Schema({
     caseStudyRequired: {
         type: Number,
         default: 0
+    },
+    subContracting: {
+        type: Boolean,
+    },
+    subContractingfile: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    economicalPartnershipQueryFile: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    economicalPartnershipResponceFile: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    FeasibilityOtherDocuments: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    loginDetail: {
+        type: [mongoose.Schema.Types.Mixed]
+    },
+    certifications: {
+        type: String
+    },
+    policy: {
+        type: String,
     },
     createdAt: {
         type: Date,

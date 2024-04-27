@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { summaryQuestionFor } from "../Util/contant";
 
 const QuestionModel = new mongoose.Schema({
     questionName: {
@@ -46,6 +47,11 @@ const QuestionModel = new mongoose.Schema({
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Project"
+    },
+    summaryQuestionFor: {
+        type: String,
+        enum: summaryQuestionFor,
+        required: true,
     },
     createdAt: {
         type: Date,

@@ -23,7 +23,8 @@ export const generatePass = () => {
 }
 
 export const projectStatus = {
-    Inprogres: 'InProgress',
+    Awaiting: 'Awaiting',
+    Inprogress: 'InProgress',
     InSolution: 'InSolution',
     InReviewWestGate: 'InReviewWestGate',
     InReview: 'InReview',
@@ -38,5 +39,12 @@ export const projectStatus = {
 export const userRoles = {
     BOS: 'BOS',
     SupplierAdmin: 'SupplierAdmin',
-    SupplierUser: 'SupplierUser'
+    SupplierUser: 'SupplierUser',
+    FeasibilityAdmin: 'FeasibilityAdmin',
+    FeasibilityUser: 'FeasibilityUser',
+}
+
+export const summaryQuestionFor = {
+    Supplier: 'Supplier',
+    UKWriter: 'UKWriter',
 }

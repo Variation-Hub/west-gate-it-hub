@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { userRoles } from "../Util/contant";
 
 interface UserDocument extends Document {
     password: string;
@@ -24,7 +25,7 @@ const userModel = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['BOS', 'SupplierAdmin', 'SupplierUser'],
+        enum: userRoles,
         required: true
     },
     companyName: {

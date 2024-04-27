@@ -5,6 +5,7 @@ import foiModel from "../Models/foiModel";
 import { projectStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
+import { deleteFromS3, deleteMultipleFromS3, uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -85,7 +86,7 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -199,7 +200,7 @@ export const getProjects = async (req: any, res: Response) => {
             let filters = [];
             if (match === "perfect") {
                 filters = categorygroup.map(item => {
-                    const category = item._id; 
+                    const category = item._id;
                     const count = item.count;
 
                     return {
@@ -232,6 +233,19 @@ export const getProjects = async (req: any, res: Response) => {
                 };
             } else {
                 filter = { $or: filters };
+            }
+        }
+
+        if (valueRange) {
+            const [startValue, endValue] = valueRange.split('-');
+            console.log(startValue, endValue);
+            if (Object.keys(filter).length > 0) {
+                filter.$and = [
+                    filter,
+                    { value: { $gte: startValue, $lte: endValue } }
+                ];
+            } else {
+                filter.value = { $gte: startValue, $lte: endValue };
             }
         }
 
@@ -469,6 +483,101 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             message: "Dashboard data fetch success",
             status: true,
             data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateProjectForFeasibility = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { category, industry, value, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason } = req.body
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        project.category = category || project.category;
+        project.industry = industry || project.industry;
+        project.value = value || project.value;
+        project.clientDocument = clientDocument || project.clientDocument;
+        project.status = status || project.status;
+        project.statusComment = statusComment || project.statusComment;
+        project.failStatusImage = failStatusImage || project.failStatusImage;
+        project.subContracting = subContracting || project.subContracting;
+        project.subContractingfile = subContractingfile || project.subContractingfile;
+        project.economicalPartnershipQueryFile = economicalPartnershipQueryFile || project.economicalPartnershipQueryFile;
+        project.economicalPartnershipResponceFile = economicalPartnershipResponceFile || project.economicalPartnershipResponceFile;
+        project.FeasibilityOtherDocuments = FeasibilityOtherDocuments || project.FeasibilityOtherDocuments;
+        project.loginDetail = loginDetail || project.loginDetail;
+        project.caseStudyRequired = caseStudyRequired || project.caseStudyRequired;
+        project.certifications = certifications || project.certifications;
+        project.policy = policy || project.policy;
+        project.failStatusReason = failStatusReason || project.failStatusReason;
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const uploadFile = async (req: any, res: Response) => {
+    try {
+        let file
+        if (req.files?.length === 1) {
+            file = await uploadToS3(req.files[0], "files")
+        } else if (req.files?.length > 1) {
+            file = await uploadMultipleFilesToS3(req.files, "files")
+        }
+
+        return res.status(200).json({
+            message: "file uploaded successfully",
+            status: true,
+            data: file
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteFiles = async (req: Request, res: Response) => {
+    try {
+
+        let { files } = req.body
+
+        files.forEach(async (file: { key: string }) => {
+            console.log(file.key)
+            await deleteFromS3(file)
+        });
+        // files = await deleteMultipleFromS3(files.map((file: { key: string }) => file.key))
+        return res.status(200).json({
+            message: "file deleted successfully",
+            status: true,
+            // data: files
         });
     } catch (err: any) {
         return res.status(500).json({
