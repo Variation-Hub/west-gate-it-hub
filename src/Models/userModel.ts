@@ -5,6 +5,7 @@ import { userRoles } from "../Util/contant";
 interface UserDocument extends Document {
     password: string;
     updatedAt?: Date;
+    email?: string;
     isModified: any;
 }
 
@@ -88,6 +89,8 @@ userModel.pre('save', async function (this: UserDocument, next) {
     try {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(this.password, salt);
+
+        this.email = this.email?.toLowerCase();
         this.password = hashedPassword;
         next();
     } catch (error: any) {
@@ -103,6 +106,9 @@ userModel.pre('findOneAndUpdate', async function (this: any, next) {
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(update.password, salt);
             this.setUpdate({ ...update, password: hashedPassword });
+
+            this.email = this.email?.toLowerCase();
+
             next();
         } catch (error: any) {
             next(error);
