@@ -181,8 +181,9 @@ export const getProjects = async (req: any, res: Response) => {
             }
         }
 
+        let categorygroup
         if (match) {
-            const categorygroup = (await caseStudy.aggregate([
+            categorygroup = (await caseStudy.aggregate([
                 {
                     $match: {
                         userId: new mongoose.Types.ObjectId(req.user.id),
@@ -197,7 +198,9 @@ export const getProjects = async (req: any, res: Response) => {
                 }
             ]))
 
-            let filters = [];
+            console.log(categorygroup);
+
+            let filters: any[] = [];
             if (match === "perfect") {
                 filters = categorygroup.map(item => {
                     const category = item._id;
@@ -210,7 +213,7 @@ export const getProjects = async (req: any, res: Response) => {
                         ]
                     };
                 });
-            } else {
+            } else if (match === "partial") {
                 filters = categorygroup.map(item => {
                     const category = item._id;
                     const count = item.count;
@@ -250,11 +253,24 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         const count = await projectModel.countDocuments(filter);
-        const projects = await projectModel.find(filter)
+        let projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
 
+        if (categorygroup) {
+            projects = projects.map((project: any) => {
+                const data = categorygroup.find((item: any) => item._id === project.category)
+                if (data) {
+                    const result = project
+                    result._doc.matchedCaseStudy = data.count
+
+                    return result
+                } else {
+                    return project
+                }
+            })
+        }
 
         return res.status(200).json({
             message: "projects fetch success",
