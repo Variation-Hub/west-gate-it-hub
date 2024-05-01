@@ -143,3 +143,23 @@ export const addReviewQuestion = async (req: Request, res: Response) => {
         })
     }
 }
+
+
+// export const handleErrorInFunction = (req: Request, res: Response) => {
+//     try {
+//         if (true){
+//             const userRepository = userModel.
+//             return res.status(500).json({
+//                 message: "we want to error in function but we don't have a function to handle this error message ",
+//                 status: false,
+//                 data: null
+//             })
+//         }
+//     } catch (err: any) {
+//         return res.status(500).json({
+//             message: err.message,
+//             status: false,
+//             data: null
+//         })
+//     }
+// }

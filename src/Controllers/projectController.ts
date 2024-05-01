@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose from "mongoose";
 import foiModel from "../Models/foiModel";
-import { projectStatus, userRoles } from "../Util/contant";
+import { projectStatus } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
-import { deleteFromS3, deleteMultipleFromS3, uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws";
+import { deleteFromS3, uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -86,10 +86,12 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
+        website = website?.split(',');
+        status = status?.split(',');
 
         let filter: any = {}
 
@@ -103,42 +105,15 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (category) {
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { category: { $in: category } }
-                    ]
-                };
-            } else {
-                filter = { category: { $in: category } };
-            }
+            filter.category = { $in: category };
         }
 
         if (industry) {
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { industry: { $in: industry } }
-                    ]
-                };
-            } else {
-                filter = { industry: { $in: industry } };
-            }
+            filter.industry = { $in: industry };
         }
 
         if (projectType) {
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { projectType: { $in: projectType } }
-                    ]
-                };
-            } else {
-                filter = { projectType: { $in: projectType } };
-            }
+            filter.projectType = { $in: projectType };
         }
 
         if (foiNotUploaded) {
@@ -156,29 +131,11 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (sortlist) {
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { sortListUserId: req.user.id }
-                    ]
-                };
-            } else {
-                filter = { sortListUserId: req.user.id };
-            }
+            filter.sortListUserId = req.user.id;
         }
 
         if (applied) {
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { applyUserId: req.user.id }
-                    ]
-                };
-            } else {
-                filter = { applyUserId: req.user.id };
-            }
+            filter.applyUserId = req.user.id;
         }
 
         let categorygroup
@@ -198,7 +155,6 @@ export const getProjects = async (req: any, res: Response) => {
                 }
             ]))
 
-            console.log(categorygroup);
 
             let filters: any[] = [];
             if (match === "perfect") {
@@ -241,15 +197,43 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (valueRange) {
             const [startValue, endValue] = valueRange.split('-');
-            console.log(startValue, endValue);
-            if (Object.keys(filter).length > 0) {
-                filter.$and = [
-                    filter,
-                    { value: { $gte: startValue, $lte: endValue } }
-                ];
-            } else {
-                filter.value = { $gte: startValue, $lte: endValue };
-            }
+
+            filter.value = { $gte: startValue, $lte: endValue };
+        }
+
+        if (website) {
+            filter.website = { $in: website }
+        }
+
+        if (createdDate) {
+            const date = new Date(createdDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.createdAt = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (publishDate) {
+            const date = new Date(publishDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.publishDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (dueDate) {
+            const date = new Date(dueDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (status) {
+            filter.status = { $in: status };
         }
 
         const count = await projectModel.countDocuments(filter);
@@ -468,7 +452,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             return acc;
         }, {});
 
-        console.log(categorygroup)
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
             totalProjects: projects.length,
@@ -509,6 +492,76 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
     }
 }
 
+export const getDashboardDataProjectManager = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+        const categorygroup = (await caseStudy.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(req.user.id),
+                    verify: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
+            }
+        ])).reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+        }, {});
+
+        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const responseData = {
+            totalProjects: projects.length,
+            matchedProjects: 0,
+            totalSubmit: 0,
+            totalAwarded: 0,
+            totalNotAwarded: 0
+        }
+
+        projects.forEach(project => {
+            if (Object.keys(categorygroup).includes(project.category)) {
+                if (project.caseStudyRequired <= categorygroup[project.category]) {
+                    responseData.matchedProjects++;
+                }
+            }
+            if (project.status === projectStatus.Submitted) {
+                responseData.totalSubmit++;
+            }
+
+            if (project.status === projectStatus.Awarded) {
+                responseData.totalAwarded++;
+            }
+            if (project.status === projectStatus.NotAwarded) {
+                responseData.totalNotAwarded++;
+            }
+        })
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
@@ -586,7 +639,6 @@ export const deleteFiles = async (req: Request, res: Response) => {
         let { files } = req.body
 
         files.forEach(async (file: { key: string }) => {
-            console.log(file.key)
             await deleteFromS3(file)
         });
         // files = await deleteMultipleFromS3(files.map((file: { key: string }) => file.key))

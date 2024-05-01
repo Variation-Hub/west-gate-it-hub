@@ -1,6 +1,5 @@
 import jwt from 'jsonwebtoken';
 import { Response, NextFunction } from "express";
-import { CustomRequest } from '../Util/types/expressInterface';
 
 const secret = process.env.SECRET_KEY as string;
 

@@ -1,9 +1,9 @@
 import * as express from 'express';
-import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataSupplierAdmin, getProject, getProjects, sortList, updateProject, updateProjectForFeasibility, uploadFile } from '../Controllers/projectController';
+import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getProject, getProjects, sortList, updateProject, updateProjectForFeasibility, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Middleware/pagination';
 import { authorizeRoles } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
-import { multipleFileUpload, singleFileUpload } from '../Util/multer';
+import { multipleFileUpload } from '../Util/multer';
 
 const projectRoutes = express.Router();
 
@@ -21,6 +21,9 @@ projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 
 // SupplierAdmin routes
 projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin), getDashboardDataSupplierAdmin);
+
+// ProjectManager routes
+projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager), getDashboardDataProjectManager);
 
 // FeasibilityUser routes
 projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser), updateProjectForFeasibility);

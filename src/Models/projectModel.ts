@@ -1,6 +1,4 @@
 import mongoose from "mongoose";
-import mailScreenshotModel from "./mailScreenshotModel";
-import caseStudy from "./caseStudy";
 import { projectStatus } from "../Util/contant";
 
 const projectModel = new mongoose.Schema({

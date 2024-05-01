@@ -1,15 +1,13 @@
 const nodemailer = require('nodemailer');
 
-const { SENDGRID_KEY } = process.env;
-
 const transporter = nodemailer.createTransport({
     host: "live.smtp.mailtrap.io",
     port: 587,
     auth: {
-      user: "api",
-      pass: "b8c3571b2e58a51a9ddfc53c768cf1ae"
+        user: "api",
+        pass: "b8c3571b2e58a51a9ddfc53c768cf1ae"
     }
-  });
+});
 
 export async function emailHelper(reciverEmail: string, password: string) {
     try {
