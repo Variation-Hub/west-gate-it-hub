@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getProject, getProjects, sortList, updateProject, updateProjectForFeasibility, uploadFile } from '../Controllers/projectController';
+import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getProject, getProjects, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Middleware/pagination';
 import { authorizeRoles } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -24,6 +24,9 @@ projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin), getDash
 
 // ProjectManager routes
 projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager), getDashboardDataProjectManager);
+projectRoutes.get("/supplier-admin/list/:projectId", authorizeRoles(userRoles.ProjectManager), getSupplierAdminList);
+projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager), updateProjectForProjectManager);
+
 
 // FeasibilityUser routes
 projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser), updateProjectForFeasibility);

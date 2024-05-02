@@ -562,6 +562,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
         });
     }
 }
+
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
@@ -646,6 +647,123 @@ export const deleteFiles = async (req: Request, res: Response) => {
             message: "file deleted successfully",
             status: true,
             // data: files
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getSupplierAdminList = async (req: any, res: Response) => {
+    try {
+
+        const projectId = req.params.projectId;
+        const { supplierId } = req.query;
+
+        const project = await projectModel.findById(projectId, { category: 1, caseStudyRequired: 1 });
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const groupedData = await caseStudy.aggregate([
+            { $match: { category: project.category } },
+            { $group: { _id: "$userId", caseStudies: { $push: "$$ROOT" } } }
+        ]);
+
+        let userIds: any = []
+        groupedData.forEach(user => {
+            if (user.caseStudies.length > project.caseStudyRequired) {
+                userIds.push(user._id);
+            }
+        })
+
+        if (supplierId) {
+            const supplierObjectId = new mongoose.Types.ObjectId(supplierId);
+
+            if (userIds.some((id: any) => id.equals(supplierObjectId))) {
+                userIds = [supplierObjectId];
+            } else {
+                userIds = [];
+            }
+        }
+
+        let users = await userModel.find({ _id: { $in: userIds } }).select({ password: 0 });
+
+        users = users.map((user: any) => {
+            return { ...user._doc, caseStudy: (groupedData.find(c => user._id.equals(c._id))).caseStudies }
+        })
+
+        return res.status(200).json({
+            message: "projects fetch success",
+            status: true,
+            data: users
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateProjectForProjectManager = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { select, finalizedId, dropUser } = req.body
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (select) {
+            let { supplierId, companySelect, handoverCall } = select
+            if (!supplierId || !companySelect || !handoverCall) {
+                return res.status(401).json({
+                    message: "All field required",
+                    status: true,
+                    data: null
+                });
+            }
+
+            supplierId = new mongoose.Types.ObjectId(supplierId)
+            if (!(project.select.some((select: any) => select.supplierId.equals(supplierId)))) {
+                project.select.push({ supplierId, companySelect, handoverCall: new Date(handoverCall) });
+            }
+        }
+        if (finalizedId) {
+            project.finalizedId = finalizedId
+
+            project.status = projectStatus.Closed
+            project.closedDate = new Date()
+        }
+        if (dropUser) {
+            let { userId, reason } = dropUser
+            userId = new mongoose.Types.ObjectId(userId)
+            if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
+                project.dropUser.push({ userId, reason });
+            }
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
         });
     } catch (err: any) {
         return res.status(500).json({

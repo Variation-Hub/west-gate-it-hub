@@ -33,7 +33,8 @@ export const projectStatus = {
     UnderSubmission: 'UnderSubmission',
     Awarded: 'Awarded',
     NotAwarded: 'NotAwarded',
-    Submitted: 'Submitted'
+    Submitted: 'Submitted',
+    Closed: "Closed"
 }
 
 export const userRoles = {

@@ -387,3 +387,24 @@ export const getUserDetails = async (req: any, res: Response) => {
         });
     }
 }
+
+export const getUserList = async (req: any, res: Response) => {
+    try {
+
+        const userRoles = (req.query.userRoles).split(",");
+
+        const users = await userModel.find({ role: { $in: userRoles } }).select({ password: 0 });
+
+        return res.status(200).json({
+            message: "User list fetch success",
+            status: true,
+            data: users
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}

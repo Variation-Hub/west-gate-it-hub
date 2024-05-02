@@ -154,6 +154,21 @@ const projectModel = new mongoose.Schema({
     policy: {
         type: String,
     },
+    select: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
+    finalizedId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null
+    },
+    closedDate: {
+        type: Date
+    },
+    dropUser: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now

@@ -21,6 +21,27 @@ export const summaryQuestionList = async (req: any, res: Response) => {
     }
 }
 
+export const summaryQuestionListByUser = async (req: any, res: Response) => {
+    try {
+        const userId = req.params.userId
+
+        const summaryQuestion = await summaryQuestionModel.find({ assignTo: userId })
+
+        return res.status(200).json({
+            message: "Summary Question successfully fetched",
+            status: true,
+            data: summaryQuestion
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+
 export const createSummaryQuestion = async (req: any, res: Response) => {
     try {
         let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, projectId, summaryQuestionFor } = req.body
@@ -44,7 +65,7 @@ export const createSummaryQuestion = async (req: any, res: Response) => {
 export const updateSummaryQuestion = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, verify, summaryQuestionFor } = req.body
+        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, verify, summaryQuestionFor, assignTo } = req.body
         const summaryQuestion: any = await summaryQuestionModel.findById(id);
 
         if (!summaryQuestion) {
@@ -63,6 +84,7 @@ export const updateSummaryQuestion = async (req: Request, res: Response) => {
         summaryQuestion.comment = comment || summaryQuestion.comment;
         summaryQuestion.verify = verify || summaryQuestion.verify;
         summaryQuestion.summaryQuestionFor = summaryQuestionFor || summaryQuestion.summaryQuestionFor;
+        summaryQuestion.assignTo = assignTo || summaryQuestion.assignTo;
 
         await summaryQuestion.save();
 

@@ -53,6 +53,10 @@ const QuestionModel = new mongoose.Schema({
         enum: summaryQuestionFor,
         required: true,
     },
+    assignTo: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+    },
     createdAt: {
         type: Date,
         default: Date.now

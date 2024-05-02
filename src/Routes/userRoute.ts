@@ -10,7 +10,8 @@ import {
     fetchSuplierUser,
     updateSuplierAdmin,
     updateAvatar,
-    getUserDetails
+    getUserDetails,
+    getUserList
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -27,7 +28,7 @@ userRoutes.patch("/change-password/:id", authorizeRoles(), userPasswordChange);
 userRoutes.post("/forgot", userForgotPassword);
 userRoutes.patch("/avatar-upload", authorizeRoles(), singleFileUpload("avatar"), updateAvatar);
 userRoutes.get("/get", authorizeRoles(), getUserDetails);
-
+userRoutes.get("/list", authorizeRoles(), getUserList);
 
 // Supplier APIs
 userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin), createSuplierUser);
