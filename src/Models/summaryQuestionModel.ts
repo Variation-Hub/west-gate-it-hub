@@ -57,6 +57,9 @@ const QuestionModel = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
+    document: {
+        type: mongoose.Schema.Types.Mixed
+    },
     createdAt: {
         type: Date,
         default: Date.now

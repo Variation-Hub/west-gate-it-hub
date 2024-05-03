@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import summaryQuestionModel from "../Models/summaryQuestionModel"
+import { uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws"
 
 export const summaryQuestionList = async (req: any, res: Response) => {
     try {
@@ -85,6 +86,43 @@ export const updateSummaryQuestion = async (req: Request, res: Response) => {
         summaryQuestion.verify = verify || summaryQuestion.verify;
         summaryQuestion.summaryQuestionFor = summaryQuestionFor || summaryQuestion.summaryQuestionFor;
         summaryQuestion.assignTo = assignTo || summaryQuestion.assignTo;
+
+        await summaryQuestion.save();
+
+        return res.send({
+            message: "Summary Question updated successfully",
+            status: true,
+            data: summaryQuestion
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const uploadSummaryQuestionDocument = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+        if (!req.file) {
+            return res.status(401).json({
+                message: "Please attach document",
+                status: false,
+                data: null
+            })
+        }
+        const summaryQuestion: any = await summaryQuestionModel.findById(id);
+
+        if (!summaryQuestion) {
+            return res.status(404).json({
+                message: "Summary Question not found",
+                status: false,
+                data: null
+            });
+        }
+        summaryQuestion.document = await uploadToS3(req.file, "documents");
 
         await summaryQuestion.save();
 

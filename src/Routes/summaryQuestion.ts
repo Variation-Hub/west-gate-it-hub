@@ -1,6 +1,8 @@
 import * as express from 'express';
-import { addReviewQuestion, createSummaryQuestion, deleteSummaryQuestion, summaryQuestionList, summaryQuestionListByUser, updateSummaryQuestion } from '../Controllers/summaryQuestionController';
+import { addReviewQuestion, createSummaryQuestion, deleteSummaryQuestion, summaryQuestionList, summaryQuestionListByUser, updateSummaryQuestion, uploadSummaryQuestionDocument } from '../Controllers/summaryQuestionController';
 import { authorizeRoles } from '../Middleware/verifyToken';
+import { userRoles } from '../Util/contant';
+import { singleFileUpload } from '../Util/multer';
 
 const summaryQuestionRouter = express.Router();
 
@@ -10,5 +12,8 @@ summaryQuestionRouter.post("/create", authorizeRoles(), createSummaryQuestion);
 summaryQuestionRouter.patch("/update/:id", authorizeRoles(), updateSummaryQuestion);
 summaryQuestionRouter.delete("/delete/:id", authorizeRoles(), deleteSummaryQuestion);
 summaryQuestionRouter.patch("/add-review/:id", authorizeRoles(), addReviewQuestion);
+
+//UKWriter Routes
+summaryQuestionRouter.patch("/uk-writer/update/:id", authorizeRoles(userRoles.UKWriter), singleFileUpload("document"), uploadSummaryQuestionDocument);
 
 export default summaryQuestionRouter;

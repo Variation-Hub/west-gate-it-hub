@@ -6,6 +6,7 @@ import { projectStatus } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromS3, uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws";
+import summaryQuestionModel from "../Models/summaryQuestionModel";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -86,7 +87,7 @@ export const getProject = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -236,6 +237,32 @@ export const getProjects = async (req: any, res: Response) => {
             filter.status = { $in: status };
         }
 
+        if (UKWriten) {
+            let projectIds = await summaryQuestionModel.aggregate([
+                {
+                    $match: {
+                        summaryQuestionFor: "UKWriter"
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$projectId",
+                        projectIds: { $addToSet: "$projectId" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        projectIds: 1
+                    }
+                }
+            ]);
+            projectIds = projectIds.flatMap((item: any) => item.projectIds);
+            projectIds = [...new Set(projectIds)];
+
+            filter._id = { $in: projectIds }
+            console.log(projectIds)
+        }
         const count = await projectModel.countDocuments(filter);
         let projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
@@ -717,6 +744,11 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
         if (finalizedId) {
             project.finalizedId = finalizedId
             project.finalizedById = req.user.id
+            // project.finalized = {
+            //     finalizedId,
+
+            // }
+
 
             project.status = projectStatus.Closed
             project.closedDate = new Date()
@@ -747,30 +779,34 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
 
 export const getDashboardDataUKWriter = async (req: any, res: Response) => {
     try {
-        const userId = req.user.id
 
-        const user = await userModel.findById(userId)
+        let projectIds = await summaryQuestionModel.aggregate([
+            {
+                $match: {
+                    summaryQuestionFor: "UKWriter"
+                }
+            },
+            {
+                $group: {
+                    _id: "$projectId",
+                    projectIds: { $addToSet: "$projectId" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    projectIds: 1
+                }
+            }
+        ]);
+        projectIds = projectIds.flatMap((item: any) => item.projectIds);
+        projectIds = [...new Set(projectIds)];
 
-        if (!user) {
-            return res.status(404).json({
-                message: "User not found",
-                status: false,
-                data: null
-            })
-        }
-
-        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const projects = await projectModel.find({ _id: { $in: projectIds } })
         const responseData = {
             totalProjectsReviewed: projects.length,
         }
 
-        // projects.forEach(project => {
-        //     const userId = new mongoose.Types.ObjectId(req.user.id);
-        //     if (project?.finalizedById?.equals(userId)) {
-        //         responseData.totalProjectsFinalized++;
-        //     }
-
-        // })
         return res.status(200).json({
             message: "Dashboard data fetch success",
             status: true,
