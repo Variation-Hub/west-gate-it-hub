@@ -162,6 +162,10 @@ const projectModel = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         default: null
     },
+    finalizedById: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null
+    },
     closedDate: {
         type: Date
     },

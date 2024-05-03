@@ -525,29 +525,16 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
-            totalProjects: projects.length,
-            matchedProjects: 0,
-            totalSubmit: 0,
-            totalAwarded: 0,
-            totalNotAwarded: 0
+            totalProjectsMatched: projects.length,
+            totalProjectsFinalized: 0,
         }
 
         projects.forEach(project => {
-            if (Object.keys(categorygroup).includes(project.category)) {
-                if (project.caseStudyRequired <= categorygroup[project.category]) {
-                    responseData.matchedProjects++;
-                }
-            }
-            if (project.status === projectStatus.Submitted) {
-                responseData.totalSubmit++;
+            const userId = new mongoose.Types.ObjectId(req.user.id);
+            if (project?.finalizedById?.equals(userId)) {
+                responseData.totalProjectsFinalized++;
             }
 
-            if (project.status === projectStatus.Awarded) {
-                responseData.totalAwarded++;
-            }
-            if (project.status === projectStatus.NotAwarded) {
-                responseData.totalNotAwarded++;
-            }
         })
         return res.status(200).json({
             message: "Dashboard data fetch success",
@@ -715,7 +702,7 @@ export const getSupplierAdminList = async (req: any, res: Response) => {
     }
 }
 
-export const updateProjectForProjectManager = async (req: Request, res: Response) => {
+export const updateProjectForProjectManager = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const { select, finalizedId, dropUser } = req.body
@@ -746,6 +733,7 @@ export const updateProjectForProjectManager = async (req: Request, res: Response
         }
         if (finalizedId) {
             project.finalizedId = finalizedId
+            project.finalizedById = req.user.id
 
             project.status = projectStatus.Closed
             project.closedDate = new Date()
