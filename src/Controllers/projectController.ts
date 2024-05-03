@@ -505,23 +505,6 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
                 data: null
             })
         }
-        const categorygroup = (await caseStudy.aggregate([
-            {
-                $match: {
-                    userId: new mongoose.Types.ObjectId(req.user.id),
-                    verify: true
-                }
-            },
-            {
-                $group: {
-                    _id: "$category",
-                    count: { $sum: 1 }
-                }
-            }
-        ])).reduce((acc, item) => {
-            acc[item._id] = item.count;
-            return acc;
-        }, {});
 
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
@@ -752,6 +735,46 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             message: "Project update success",
             status: true,
             data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataUKWriter = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const responseData = {
+            totalProjectsReviewed: projects.length,
+        }
+
+        // projects.forEach(project => {
+        //     const userId = new mongoose.Types.ObjectId(req.user.id);
+        //     if (project?.finalizedById?.equals(userId)) {
+        //         responseData.totalProjectsFinalized++;
+        //     }
+
+        // })
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
         });
     } catch (err: any) {
         return res.status(500).json({
