@@ -6,6 +6,7 @@ import mailScreenShotModeRoutes from './mailScreenshotModeRoute';
 import caseStudyRouter from './caseStudy';
 import summaryQuestionRouter from './summaryQuestion';
 import chatRouter from './chatRoute';
+import notificationRouter from './notificationRoute';
 
 const Routes = express.Router();
 
@@ -16,5 +17,6 @@ Routes.use("/mail-screenshot", mailScreenShotModeRoutes);
 Routes.use("/case-study", caseStudyRouter);
 Routes.use("/summary-question", summaryQuestionRouter);
 Routes.use("/chat", chatRouter);
+Routes.use("/notification", notificationRouter);
 
 export default Routes; 
