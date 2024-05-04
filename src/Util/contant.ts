@@ -34,7 +34,9 @@ export const projectStatus = {
     Awarded: 'Awarded',
     NotAwarded: 'NotAwarded',
     Submitted: 'Submitted',
-    Closed: "Closed"
+    Closed: "Closed",
+    InSubmition: "InSubmition",
+    Expired: "Expired",
 }
 
 export const userRoles = {
@@ -50,4 +52,9 @@ export const userRoles = {
 export const summaryQuestionFor = {
     Supplier: 'Supplier',
     UKWriter: 'UKWriter',
+}
+
+export const summaryQuestionType = {
+    Text: 'Text',
+    File: 'File',
 }

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { summaryQuestionFor } from "../Util/contant";
+import { summaryQuestionFor, summaryQuestionType } from "../Util/contant";
 
 const QuestionModel = new mongoose.Schema({
     questionName: {
@@ -57,8 +57,16 @@ const QuestionModel = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "User"
     },
-    document: {
+    sampleFile: {
         type: mongoose.Schema.Types.Mixed
+    },
+    responseFile: {
+        type: mongoose.Schema.Types.Mixed
+    },
+    type: {
+        type: String,
+        enum: summaryQuestionType,
+        default: summaryQuestionType.Text
     },
     createdAt: {
         type: Date,

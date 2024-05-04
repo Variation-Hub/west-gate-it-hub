@@ -479,30 +479,64 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             return acc;
         }, {});
 
+        const totalProjectValue = await projectModel.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: "$value" }
+                }
+            }
+        ]);
+
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
             totalProjects: projects.length,
             matchedProjects: 0,
             totalSubmit: 0,
             totalAwarded: 0,
-            totalNotAwarded: 0
+            totalNotAwarded: 0,
+            totalInSubmition: 0,
+            totalInSolution: 0,
+            totalInReview: 0,
+            totalExpired: 0,
+            totalProjectValue: totalProjectValue[0].totalValue,
+            matchedProjectsValue: 0,
+            totalSubmitValue: 0,
+            totalAwardedValue: 0,
+            totalNotAwardedValue: 0,
         }
 
         projects.forEach(project => {
             if (Object.keys(categorygroup).includes(project.category)) {
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
                     responseData.matchedProjects++;
+                    responseData.matchedProjectsValue += project.value;
                 }
             }
             if (project.status === projectStatus.Submitted) {
                 responseData.totalSubmit++;
+                responseData.totalSubmitValue += project.value;
             }
 
             if (project.status === projectStatus.Awarded) {
                 responseData.totalAwarded++;
+                responseData.totalAwardedValue += project.value;
             }
             if (project.status === projectStatus.NotAwarded) {
                 responseData.totalNotAwarded++;
+                responseData.totalNotAwardedValue += project.value;
+            }
+            if (project.status === projectStatus.InSubmition) {
+                responseData.totalInSubmition++;
+            }
+            if (project.status === projectStatus.InSolution) {
+                responseData.totalInSolution++;
+            }
+            if (project.status === projectStatus.InReview) {
+                responseData.totalInReview++;
+            }
+            if (project.status === projectStatus.Expired) {
+                responseData.totalExpired++;
             }
         })
         return res.status(200).json({

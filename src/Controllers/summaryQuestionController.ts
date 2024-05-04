@@ -45,9 +45,9 @@ export const summaryQuestionListByUser = async (req: any, res: Response) => {
 
 export const createSummaryQuestion = async (req: any, res: Response) => {
     try {
-        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, projectId, summaryQuestionFor } = req.body
+        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, projectId, summaryQuestionFor, type, sampleFile } = req.body
 
-        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, instructions, refrenceDocument, weightage, deadline, comment, projectId, summaryQuestionFor })
+        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, instructions, refrenceDocument, weightage, deadline, comment, projectId, summaryQuestionFor, type, sampleFile })
 
         return res.status(200).json({
             message: "Summary Question create success",
@@ -66,7 +66,7 @@ export const createSummaryQuestion = async (req: any, res: Response) => {
 export const updateSummaryQuestion = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, verify, summaryQuestionFor, assignTo } = req.body
+        let { questionName, question, instructions, refrenceDocument, weightage, deadline, comment, verify, summaryQuestionFor, assignTo, type, sampleFile } = req.body
         const summaryQuestion: any = await summaryQuestionModel.findById(id);
 
         if (!summaryQuestion) {
@@ -86,6 +86,8 @@ export const updateSummaryQuestion = async (req: Request, res: Response) => {
         summaryQuestion.verify = verify || summaryQuestion.verify;
         summaryQuestion.summaryQuestionFor = summaryQuestionFor || summaryQuestion.summaryQuestionFor;
         summaryQuestion.assignTo = assignTo || summaryQuestion.assignTo;
+        summaryQuestion.type = type || summaryQuestion.type;
+        summaryQuestion.sampleFile = sampleFile || summaryQuestion.sampleFile;
 
         await summaryQuestion.save();
 
@@ -122,7 +124,7 @@ export const uploadSummaryQuestionDocument = async (req: Request, res: Response)
                 data: null
             });
         }
-        summaryQuestion.document = await uploadToS3(req.file, "documents");
+        summaryQuestion.responseFile = await uploadToS3(req.file, "documents");
 
         await summaryQuestion.save();
 
