@@ -854,3 +854,48 @@ export const getDashboardDataUKWriter = async (req: any, res: Response) => {
         });
     }
 }
+
+export const getSelectedUserDataUKWriter = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+        const { search } = req.query;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(40).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        let userData: any[] = [];
+
+        for (const pro of project?.select) {
+            const user = await userModel.findById(pro.supplierId).select({ password: 0, avatar: 0 });
+            userData.push({ ...pro, supplierId: user });
+        }
+
+        if (search) {
+            userData = userData.filter(user => {
+                if (user?.supplierId?._id.toString() === search || user?.supplierId?.name?.includes(search)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+        }
+        return res.status(200).json({
+            message: "user data fetch success",
+            status: true,
+            data: userData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
