@@ -47,6 +47,7 @@ export const userRoles = {
     FeasibilityUser: 'FeasibilityUser',
     ProjectManager: 'ProjectManager',
     UKWriter: 'UKWriter',
+    BIDSubmition: 'BIDSubmition',
 }
 
 export const summaryQuestionFor = {
