@@ -37,6 +37,7 @@ export const projectStatus = {
     Closed: "Closed",
     InSubmition: "InSubmition",
     Expired: "Expired",
+    WaitingForResult: "WaitingForResult",
 }
 
 export const userRoles = {
