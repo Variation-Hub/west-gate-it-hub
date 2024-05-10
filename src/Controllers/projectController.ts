@@ -85,6 +85,47 @@ export const getProject = async (req: Request, res: Response) => {
     }
 }
 
+export const getProjectSelectUser = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.projectId;
+        const { supplierId } = req.query
+
+        const project = await projectModel.findById(new mongoose.Types.ObjectId(id));
+
+        if (!project) {
+            return res.status(500).json({
+                message: "project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        let filteredUsers = project.select.filter(user => user.supplierId.equals(new mongoose.Types.ObjectId(supplierId as string)));
+        if (filteredUsers.length < 1) {
+            return res.status(404).json({
+                message: "supplier user not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const user = await userModel.findById(filteredUsers[0].supplierId).select({ name: 1 });
+        filteredUsers[0].supplierId = user
+
+        return res.status(200).json({
+            message: "data fetch success",
+            status: true,
+            data: filteredUsers[0]
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
 export const getProjects = async (req: any, res: Response) => {
     try {
         let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten } = req.query as any
