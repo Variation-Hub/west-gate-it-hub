@@ -40,6 +40,15 @@ export const projectStatus = {
     WaitingForResult: "WaitingForResult",
 }
 
+
+export const projectCategory = {
+    WebDevelopment: 'Web Development',
+    Testing: 'Testing',
+    DataBase: 'DataBase',
+    Andoid: 'Andoid',
+    ArtificialIntelligence: 'Artificial Intelligence',
+}
+
 export const userRoles = {
     BOS: 'BOS',
     SupplierAdmin: 'SupplierAdmin',
@@ -49,6 +58,7 @@ export const userRoles = {
     ProjectManager: 'ProjectManager',
     UKWriter: 'UKWriter',
     BIDSubmition: 'BIDSubmition',
+    Admin: 'Admin'
 }
 
 export const summaryQuestionFor = {
