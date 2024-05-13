@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Middleware/pagination';
 import { authorizeRoles } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -34,6 +34,9 @@ projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.Feasibil
 projectRoutes.get("/ukwriter/dashboard", authorizeRoles(userRoles.UKWriter), getDashboardDataUKWriter);
 projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(userRoles.UKWriter), getSelectedUserDataUKWriter);
 projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles.UKWriter), getProjectSelectUser);
+
+// Project Co-ordinator
+projectRoutes.get("/project-coordinator/dashboard", authorizeRoles(userRoles.ProjectCoOrdinator), getDashboardDataProjectCoOrdinator);
 
 export default projectRoutes;
 

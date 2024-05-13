@@ -173,6 +173,14 @@ const projectModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
+    supportingDocs: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
+    stages: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now

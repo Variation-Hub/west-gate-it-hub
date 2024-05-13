@@ -349,7 +349,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName, supportingDocs, stages } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -377,6 +377,17 @@ export const updateProject = async (req: Request, res: Response) => {
         project.mailID = mailID || project.mailID;
         project.clientType = clientType || project.clientType;
         project.clientName = clientName || project.clientName;
+        project.supportingDocs = supportingDocs || project.supportingDocs;
+
+        if (stages) {
+            project.stages = stages.map((obj: any) => {
+                return {
+                    text: obj.text,
+                    startDate: new Date(obj.startDate),
+                    endDate: new Date(obj.endDate)
+                }
+            });
+        }
 
         const updateProject = await project.save();
 
@@ -931,6 +942,29 @@ export const getSelectedUserDataUKWriter = async (req: any, res: Response) => {
             message: "user data fetch success",
             status: true,
             data: userData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataProjectCoOrdinator = async (req: any, res: Response) => {
+    try {
+        const projects = await projectModel.countDocuments({ status: projectStatus.Won })
+
+
+        const responseData = {
+            totalProjects: projects,
+        }
+
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
         });
     } catch (err: any) {
         return res.status(500).json({

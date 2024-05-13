@@ -38,6 +38,7 @@ export const projectStatus = {
     InSubmition: "InSubmition",
     Expired: "Expired",
     WaitingForResult: "WaitingForResult",
+    Won: "Won",
 }
 
 
@@ -58,7 +59,8 @@ export const userRoles = {
     ProjectManager: 'ProjectManager',
     UKWriter: 'UKWriter',
     BIDSubmition: 'BIDSubmition',
-    Admin: 'Admin'
+    Admin: 'Admin',
+    ProjectCoOrdinator: 'ProjectCoOrdinator'
 }
 
 export const summaryQuestionFor = {
