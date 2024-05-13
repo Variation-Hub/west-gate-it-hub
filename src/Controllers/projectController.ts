@@ -128,7 +128,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -304,6 +304,12 @@ export const getProjects = async (req: any, res: Response) => {
             filter._id = { $in: projectIds }
             console.log(projectIds)
         }
+
+        if (supplierId) {
+            console.log(supplierId)
+            filter.select = { $elemMatch: { supplierId: new mongoose.Types.ObjectId(supplierId) } }
+        }
+
         const count = await projectModel.countDocuments(filter);
         let projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
