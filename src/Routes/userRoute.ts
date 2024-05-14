@@ -33,9 +33,9 @@ userRoutes.get("/get", authorizeRoles(), getUserDetails);
 userRoutes.get("/list", authorizeRoles(), getUserList);
 
 // Supplier APIs
-userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin), createSuplierUser);
-userRoutes.get("/suplier", authorizeRoles(userRoles.SupplierAdmin), paginationMiddleware, fetchSuplierUser);
-userRoutes.patch("/suplier/cv-upload", authorizeRoles(userRoles.SupplierAdmin), singleFileUpload("cv"), updateSuplierAdmin);
+userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), createSuplierUser);
+userRoutes.get("/suplier", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), paginationMiddleware, fetchSuplierUser);
+userRoutes.patch("/suplier/cv-upload", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), singleFileUpload("cv"), updateSuplierAdmin);
 
 // Admin APIs
 userRoutes.get("/admin/dashboard", authorizeRoles(userRoles.Admin), getAdminDashboardData)

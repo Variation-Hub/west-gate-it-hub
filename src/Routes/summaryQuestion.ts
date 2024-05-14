@@ -14,6 +14,6 @@ summaryQuestionRouter.delete("/delete/:id", authorizeRoles(), deleteSummaryQuest
 summaryQuestionRouter.patch("/add-review/:id", authorizeRoles(), addReviewQuestion);
 
 //UKWriter Routes
-summaryQuestionRouter.patch("/uk-writer/update/:id", authorizeRoles(userRoles.UKWriter), singleFileUpload("document"), uploadSummaryQuestionDocument);
+summaryQuestionRouter.patch("/uk-writer/update/:id", authorizeRoles(userRoles.UKWriter, userRoles.Admin), singleFileUpload("document"), uploadSummaryQuestionDocument);
 
 export default summaryQuestionRouter;

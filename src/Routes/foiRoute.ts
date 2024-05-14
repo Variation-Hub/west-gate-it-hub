@@ -8,9 +8,9 @@ import { userRoles } from '../Util/contant';
 
 const foiRoutes = express.Router();
 
-foiRoutes.post("/create", authorizeRoles(userRoles.BOS), singleFileUpload("link"), createFOI);
-foiRoutes.get("/list", authorizeRoles(userRoles.BOS), paginationMiddleware, getFIOs);
-foiRoutes.patch("/update/:id",authorizeRoles(userRoles.BOS), singleFileUpload("link"), updateFOI);
-foiRoutes.delete("/delete/:id",authorizeRoles(userRoles.BOS), deleteFOI);
+foiRoutes.post("/create", authorizeRoles(userRoles.BOS, userRoles.Admin), singleFileUpload("link"), createFOI);
+foiRoutes.get("/list", authorizeRoles(userRoles.BOS, userRoles.Admin), paginationMiddleware, getFIOs);
+foiRoutes.patch("/update/:id", authorizeRoles(userRoles.BOS, userRoles.Admin), singleFileUpload("link"), updateFOI);
+foiRoutes.delete("/delete/:id", authorizeRoles(userRoles.BOS, userRoles.Admin), deleteFOI);
 
 export default foiRoutes;

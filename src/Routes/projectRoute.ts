@@ -20,23 +20,23 @@ projectRoutes.post("/upload", authorizeRoles(), multipleFileUpload('files', 5), 
 projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 
 // SupplierAdmin routes
-projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin), getDashboardDataSupplierAdmin);
+projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), getDashboardDataSupplierAdmin);
 
 // ProjectManager routes
-projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager), getDashboardDataProjectManager);
-projectRoutes.get("/supplier-admin/list/:projectId", authorizeRoles(userRoles.ProjectManager), getSupplierAdminList);
-projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager), updateProjectForProjectManager);
+projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getDashboardDataProjectManager);
+projectRoutes.get("/supplier-admin/list/:projectId", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getSupplierAdminList);
+projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), updateProjectForProjectManager);
 
 // FeasibilityUser routes
-projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser), updateProjectForFeasibility);
+projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser, userRoles.Admin), updateProjectForFeasibility);
 
 // UKWriter routes
-projectRoutes.get("/ukwriter/dashboard", authorizeRoles(userRoles.UKWriter), getDashboardDataUKWriter);
-projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(userRoles.UKWriter), getSelectedUserDataUKWriter);
-projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles.UKWriter), getProjectSelectUser);
+projectRoutes.get("/ukwriter/dashboard", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getDashboardDataUKWriter);
+projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getSelectedUserDataUKWriter);
+projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getProjectSelectUser);
 
 // Project Co-ordinator
-projectRoutes.get("/project-coordinator/dashboard", authorizeRoles(userRoles.ProjectCoOrdinator), getDashboardDataProjectCoOrdinator);
+projectRoutes.get("/project-coordinator/dashboard", authorizeRoles(userRoles.ProjectCoOrdinator, userRoles.Admin), getDashboardDataProjectCoOrdinator);
 
 export default projectRoutes;
 
