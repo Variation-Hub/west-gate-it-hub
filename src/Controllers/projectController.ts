@@ -63,9 +63,50 @@ export const getProject = async (req: Request, res: Response) => {
                 }
             },
             {
+                $unwind: '$select' // Unwind the select array to handle each element separately
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'select.supplierId',
+                    foreignField: '_id',
+                    as: 'select.supplierDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$select.supplierDetails',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $addFields: {
+                    'select.supplierName': '$select.supplierDetails.name'
+                }
+            },
+            {
                 $project: {
-                    applyUserId: 0,
-                    sortListUserId: 0,
+                    'select.supplierDetails': 0, // Exclude the full supplierDetails object
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    project: { $first: '$$ROOT' },
+                    select: { $push: '$select' }
+                }
+            },
+            {
+                $replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: [ '$project', { select: '$select' } ]
+                    }
+                }
+            },
+            {
+                $project: {
+                    'applyUserId': 0,
+                    'sortListUserId': 0,
                     'summaryQuestion.projectId': 0
                 }
             }
