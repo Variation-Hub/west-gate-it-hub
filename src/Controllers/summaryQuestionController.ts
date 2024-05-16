@@ -206,6 +206,33 @@ export const addReviewQuestion = async (req: Request, res: Response) => {
     }
 }
 
+export const getsinglesummaryQuestion = async (req: any, res: Response) => {
+    try {
+        const Id = req.params.id
+
+        const summaryQuestion = await summaryQuestionModel.findById(Id);
+
+        if (!summaryQuestion) {
+            return res.status(404).json({
+                message: "Summary Question not found",
+                status: false,
+                data: null
+            });
+        }
+
+        return res.status(200).json({
+            message: "Summary Question successfully fetched",
+            status: true,
+            data: summaryQuestion
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
 
 // export const handleErrorInFunction = (req: Request, res: Response) => {
 //     try {
