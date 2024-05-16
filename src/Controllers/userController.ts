@@ -394,8 +394,32 @@ export const getUserList = async (req: any, res: Response) => {
     try {
 
         const userRoles = (req.query.userRoles).split(",");
+        const projectCount = (req.query.projectCount);
 
-        const users = await userModel.find({ role: { $in: userRoles } }).select({ password: 0 });
+        let users: any = await userModel.find({ role: { $in: userRoles } }).select({ password: 0 });
+
+        if (projectCount) {
+            const result = await projectModel.aggregate([
+                { $unwind: "$select" },
+                { $group: { _id: "$select.supplierId", count: { $sum: 1 } } },
+                { $project: { _id: 0, supplierId: "$_id", projectCount: "$count" } }
+            ]);
+
+            users = users.map((user: any) => {
+                const supplierCount = result.find((item) => item.supplierId.equals(user._id));
+                if (supplierCount) {
+                    return {
+                        ...user.toObject(),
+                        projectCount: supplierCount.projectCount
+                    };
+                } else {
+                    return {
+                        ...user.toObject(),
+                        projectCount: 0
+                    };
+                }
+            });
+        }
 
         return res.status(200).json({
             message: "User list fetch success",

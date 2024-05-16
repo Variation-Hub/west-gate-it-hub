@@ -31,7 +31,7 @@ projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.Proj
 projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser, userRoles.Admin), updateProjectForFeasibility);
 
 // UKWriter routes
-projectRoutes.get("/ukwriter/dashboard", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getDashboardDataUKWriter);
+projectRoutes.get("/ukwriter/dashboard", authorizeRoles(), getDashboardDataUKWriter);
 projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getSelectedUserDataUKWriter);
 projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getProjectSelectUser);
 
