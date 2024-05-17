@@ -59,11 +59,14 @@ export const getProject = async (req: Request, res: Response) => {
                     from: 'summaryquestions',
                     localField: '_id',
                     foreignField: 'projectId',
-                    as: 'summaryQuestion',
+                    as: 'summaryQuestion'
                 }
             },
             {
-                $unwind: '$select' // Unwind the select array to handle each element separately
+                $unwind: {
+                    path: '$select',
+                    preserveNullAndEmptyArrays: true // Preserve empty arrays for projects with no select entries
+                }
             },
             {
                 $lookup: {
@@ -76,7 +79,7 @@ export const getProject = async (req: Request, res: Response) => {
             {
                 $unwind: {
                     path: '$select.supplierDetails',
-                    preserveNullAndEmptyArrays: true
+                    preserveNullAndEmptyArrays: true // Preserve null values if no supplier details are found
                 }
             },
             {
@@ -86,7 +89,7 @@ export const getProject = async (req: Request, res: Response) => {
             },
             {
                 $project: {
-                    'select.supplierDetails': 0, // Exclude the full supplierDetails object
+                    'select.supplierDetails': 0
                 }
             },
             {
@@ -99,7 +102,7 @@ export const getProject = async (req: Request, res: Response) => {
             {
                 $replaceRoot: {
                     newRoot: {
-                        $mergeObjects: [ '$project', { select: '$select' } ]
+                        $mergeObjects: ['$project', { select: '$select' }]
                     }
                 }
             },
@@ -112,6 +115,15 @@ export const getProject = async (req: Request, res: Response) => {
             }
         ]);
 
+
+        console.log(project)
+        if (project.length === 0) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
         return res.status(200).json({
             message: "project fetch success",
             status: true,

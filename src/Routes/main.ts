@@ -7,6 +7,8 @@ import caseStudyRouter from './caseStudy';
 import summaryQuestionRouter from './summaryQuestion';
 import chatRouter from './chatRoute';
 import notificationRouter from './notificationRoute';
+import categoryRouter from './categoryRoute';
+import industryRouter from './industryRoute';
 
 const Routes = express.Router();
 
@@ -18,5 +20,7 @@ Routes.use("/case-study", caseStudyRouter);
 Routes.use("/summary-question", summaryQuestionRouter);
 Routes.use("/chat", chatRouter);
 Routes.use("/notification", notificationRouter);
+Routes.use("/category", categoryRouter);
+Routes.use("/industry", industryRouter);
 
 export default Routes; 
