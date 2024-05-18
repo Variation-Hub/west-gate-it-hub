@@ -39,7 +39,7 @@ export const getCategoryList = async (req: any, res: Response) => {
 
         return res.status(200).json({
             message: "category fetched successfully",
-            status: false,
+            status: true,
             data: Category
         })
 

@@ -39,7 +39,7 @@ export const getIndustryList = async (req: any, res: Response) => {
 
         return res.status(200).json({
             message: "Industry fetched successfully",
-            status: false,
+            status: true,
             data: Industry
         })
 
