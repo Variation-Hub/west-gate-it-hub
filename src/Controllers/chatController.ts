@@ -3,6 +3,7 @@ import { deleteMultipleFromS3, uploadMultipleFilesToS3 } from "../Util/aws"
 import chatModel from "../Models/chatModel"
 import projectModel from "../Models/projectModel"
 import userModel from "../Models/userModel"
+import { sendMessageToUser } from "../socket/socketEvent"
 
 export const chatList = async (req: any, res: Response) => {
     try {
@@ -48,6 +49,16 @@ export const createChat = async (req: any, res: Response) => {
             file = await uploadMultipleFilesToS3(req.files, "chat")
         }
         const Chat = await chatModel.create({ message, projectId, messageType, mentionList, senderId, file })
+
+        const project = await projectModel.findById(projectId).select({ userChatList: 1 })
+        console.log(project)
+
+        if (project) {
+            project?.userChatList?.forEach((user) => {
+                console.log(user.toString())
+                sendMessageToUser(user.toString(), Chat)
+            })
+        }
 
         return res.status(200).json({
             message: "Chat create success",
@@ -121,7 +132,14 @@ export const addUserToChat = async (req: Request, res: Response) => {
             project.userChatList = [...project.userChatList, userId]
             project.save();
 
-            await chatModel.create({ type: 'join', message: `${user.name} is added to chat`, projectId })
+            const Chat = await chatModel.create({ type: 'join', message: `${user.name} is added to chat`, projectId })
+
+            if (project) {
+                project?.userChatList?.forEach((user: any) => {
+                    sendMessageToUser(user.toString(), Chat)
+                })
+            }
+
         } else {
             return res.status(400).json({
                 message: "already in chat",
@@ -129,7 +147,6 @@ export const addUserToChat = async (req: Request, res: Response) => {
                 data: null
             });
         }
-
 
         return res.status(200).json({
             message: "user successfully add to chat list",

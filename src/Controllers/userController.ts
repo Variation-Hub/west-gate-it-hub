@@ -7,6 +7,7 @@ import { emailHelper } from "../Util/nodemailer"
 import { deleteFromS3, uploadToS3 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
+import { connectUser } from "../socket/socketEvent"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -653,4 +654,23 @@ export const getAdminDashboardSuppliersStatistics = async (req: any, res: Respon
 function getDayName(day: any) {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     return days[day];
+}
+
+export const connectUserToSocket = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id;
+        console.log(userId);
+        connectUser(userId);
+        res.status(200).json({
+            message: 'User connected to socket',
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
 }

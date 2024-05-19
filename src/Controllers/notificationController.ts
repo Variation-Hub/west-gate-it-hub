@@ -1,12 +1,15 @@
 import { Request, Response } from "express"
 import notificationModel from "../Models/notificationModel"
 import mongoose from "mongoose"
+import { sendNotificationToUser } from "../socket/socketEvent"
 
 export const createNotification = async (req: Request, res: Response) => {
     try {
         const { title, discription, userId } = req.body
 
         const notification = await notificationModel.create({ title, discription, userId })
+
+        sendNotificationToUser(userId, notification)
 
         return res.status(200).json({
             message: "Notification send success",

@@ -72,3 +72,8 @@ export const summaryQuestionType = {
     Text: 'Text',
     File: 'File',
 }
+
+export const socketEvent = {
+    Message: 'message',
+    Notification: 'notification'
+}

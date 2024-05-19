@@ -13,7 +13,8 @@ import {
     getUserDetails,
     getUserList,
     getAdminDashboardData,
-    getAdminDashboardSuppliersStatistics
+    getAdminDashboardSuppliersStatistics,
+    connectUserToSocket
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -31,6 +32,7 @@ userRoutes.post("/forgot", userForgotPassword);
 userRoutes.patch("/avatar-upload", authorizeRoles(), singleFileUpload("avatar"), updateAvatar);
 userRoutes.get("/get", authorizeRoles(), getUserDetails);
 userRoutes.get("/list", authorizeRoles(), getUserList);
+userRoutes.post("/connect", authorizeRoles(), connectUserToSocket);
 
 // Supplier APIs
 userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), createSuplierUser);

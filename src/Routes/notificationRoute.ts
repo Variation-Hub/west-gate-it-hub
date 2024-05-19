@@ -1,7 +1,5 @@
 import * as express from 'express';
-import { multipleFileUpload } from '../Util/multer';
 import { authorizeRoles } from '../Middleware/verifyToken';
-import { addUserToChat, chatList, createChat, deleteChat, getUserChatGroup } from '../Controllers/chatController';
 import { createNotification, deleteNotification, deleteNotifications, getNotifications, markreadNotification, markreadNotifications } from '../Controllers/notificationController';
 
 const notificationRouter = express.Router();

@@ -5,6 +5,7 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import morgan from 'morgan';
 import MainRoutes from './Routes/main';
+import { initSocket } from './socket/socket';
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -24,4 +25,5 @@ app.use('/api/v1', MainRoutes);
 
 const server = app.listen(port, () => {
     console.log(`Server is running at Port :: ${port} `);
+    initSocket(server)
 });

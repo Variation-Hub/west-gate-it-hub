@@ -1,3 +1,4 @@
+import { socketEvent } from '../Util/contant';
 import { getIo } from './socket';
 
 interface UserSocketMap {
@@ -22,12 +23,22 @@ export function connectUser(userId: string): void {
         console.log(userSocketMap, 'userSocketMap')
     });
     io.emit('connect_user', userId);
+    console.log(userSocketMap, 'userSocketMap')
 }
 
-export function sendMessageToUser(userId: string, data: { title: string, message: string, domain: string }): void {
+export function sendMessageToUser(userId: string, data: any): void {
     const io = getIo();
     if (userSocketMap[userId]) {
-        io.to(userSocketMap[userId]).emit('message', data);
+        io.to(userSocketMap[userId]).emit(socketEvent.Message, data);
+    } else {
+        console.error('User not connected');
+    }
+}
+
+export function sendNotificationToUser(userId: string, data: any): void {
+    const io = getIo();
+    if (userSocketMap[userId]) {
+        io.to(userSocketMap[userId]).emit(socketEvent.Notification, data);
     } else {
         console.error('User not connected');
     }
