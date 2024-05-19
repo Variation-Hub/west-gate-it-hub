@@ -60,7 +60,8 @@ export const userRoles = {
     UKWriter: 'UKWriter',
     BIDSubmition: 'BIDSubmition',
     Admin: 'Admin',
-    ProjectCoOrdinator: 'ProjectCoOrdinator'
+    ProjectCoOrdinator: 'ProjectCoOrdinator',
+    User : 'User',
 }
 
 export const summaryQuestionFor = {

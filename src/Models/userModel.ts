@@ -27,7 +27,13 @@ const userModel = new mongoose.Schema({
     role: {
         type: String,
         enum: userRoles,
-        required: true
+        required: true,
+        default: 'User'
+    },
+    mobileNumber:{
+        type: String,
+        trim: true,
+        unique: true,
     },
     companyName: {
         type: String,
