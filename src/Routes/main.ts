@@ -9,6 +9,7 @@ import chatRouter from './chatRoute';
 import notificationRouter from './notificationRoute';
 import categoryRouter from './categoryRoute';
 import industryRouter from './industryRoute';
+import webUserRoutes from './webUserRoute';
 
 const Routes = express.Router();
 
@@ -22,5 +23,7 @@ Routes.use("/chat", chatRouter);
 Routes.use("/notification", notificationRouter);
 Routes.use("/category", categoryRouter);
 Routes.use("/industry", industryRouter);
+Routes.use("/web-user", webUserRoutes);
+
 
 export default Routes; 
