@@ -68,6 +68,54 @@ const webUserModel = new mongoose.Schema({
         type: [String],
         default: []
     },
+    plan:{
+        type: String,
+        default: "Basic"
+    },
+    registerCompany:{
+        type: Boolean,
+        default: false
+    },
+    companyActive:{
+        type: Boolean,
+        default: false
+    },
+    howLongCompanyBussiness:{
+        type: Number,
+        default: 1
+    },
+    caseStudeyPrevious:{
+        type: Boolean,
+        default: false
+    },
+    nominateAccount:{
+        type: Boolean,
+        default: false
+    },
+    supportNewBusiness:{
+        type: Boolean,
+        default: false
+    },
+    accountManagerName:{
+        type: String,
+        default: ""
+    },
+    accountManagerEmail:{
+        type: String,
+        default: ""
+    },
+    accountManagerDesignation:{
+        type: String,
+        default: ""
+    },
+    activeSince:{
+        type: String,
+        default: ""
+    },
+    accountManagerNumber:{
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now

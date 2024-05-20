@@ -5,7 +5,7 @@ import webUserModel from "../Models/webUserModel"
 
 export const registerWebUser = async (req: Request, res: Response) => {
     try {
-        const { email, name, designation, number, password, companyName, registerNumber, website, numberOfEmployees, industry, numberOfBranch, mainOfficeAddress, companyContactNumber, sector } = req.body
+        const { email } = req.body
         const user = await webUserModel.findOne({ email })
 
         if (user) {
