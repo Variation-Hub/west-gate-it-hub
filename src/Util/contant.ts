@@ -61,7 +61,7 @@ export const userRoles = {
     BIDSubmition: 'BIDSubmition',
     Admin: 'Admin',
     ProjectCoOrdinator: 'ProjectCoOrdinator',
-    User : 'User',
+    User: 'User',
 }
 
 export const summaryQuestionFor = {
@@ -76,5 +76,6 @@ export const summaryQuestionType = {
 
 export const socketEvent = {
     Message: 'message',
-    Notification: 'notification'
+    Notification: 'notification',
+    Support: 'support'
 }

@@ -35,6 +35,15 @@ export function sendMessageToUser(userId: string, data: any): void {
     }
 }
 
+export function sendSupportMessageToUser(userId: string, data: any): void {
+    const io = getIo();
+    if (userSocketMap[userId]) {
+        io.to(userSocketMap[userId]).emit(socketEvent.Support, data);
+    } else {
+        console.error('User not connected');
+    }
+}
+
 export function sendNotificationToUser(userId: string, data: any): void {
     const io = getIo();
     if (userSocketMap[userId]) {
