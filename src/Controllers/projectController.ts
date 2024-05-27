@@ -1033,3 +1033,21 @@ export const getDashboardDataProjectCoOrdinator = async (req: any, res: Response
         });
     }
 }
+
+export const getLatestProject = async (req: any, res: Response) => {
+    try {
+        const projects = await projectModel.find().sort({ createdAt: -1 }).limit(10)
+
+        return res.status(200).json({
+            message: "project fetch success",
+            status: true,
+            data: projects
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
