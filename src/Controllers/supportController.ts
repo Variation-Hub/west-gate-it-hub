@@ -3,17 +3,26 @@ import { deleteMultipleFromS3, uploadMultipleFilesToS3 } from "../Util/aws";
 import supportModel from "../Models/supportModel";
 import { sendSupportMessageToUser } from "../socket/socketEvent";
 import userModel from "../Models/userModel";
+import { userRoles } from "../Util/contant";
 
 export const createSupportMessage = async (req: any, res: Response) => {
     try {
-        let { message, messageType, senderId, receiverId, file } = req.body
+        let { message, messageType, senderId, receiverId, file, messageFor } = req.body
 
         if (req.files) {
             file = await uploadMultipleFilesToS3(req.files, "chat")
         }
-        const Chat = await supportModel.create({ message, messageType, senderId, receiverId, file })
+        const Chat = await supportModel.create({ message, messageType, senderId, receiverId, file, messageFor })
 
-        sendSupportMessageToUser(receiverId, Chat)
+        if (messageFor === "Admin") {
+            const admins = await userModel.find({ role: userRoles.Admin })
+
+            admins.forEach((admin: any) => {
+                sendSupportMessageToUser(admin._id.toString(), Chat)
+            })
+        } else {
+            sendSupportMessageToUser(receiverId, Chat)
+        }
 
         return res.status(200).json({
             message: "Support chat create success",
@@ -62,9 +71,9 @@ export const deleteSupportMessage = async (req: Request, res: Response) => {
 
 export const getSupportMessages = async (req: Request, res: Response) => {
     try {
-        const { userId1, userId2 } = req.query;
+        const { userId } = req.query;
 
-        if (!userId1 || !userId2) {
+        if (!userId) {
             return res.status(400).json({
                 message: "Missing required query parameters",
                 status: false,
@@ -72,12 +81,14 @@ export const getSupportMessages = async (req: Request, res: Response) => {
             });
         }
 
-        const messages = await supportModel.find({
+        const query = {
             $or: [
-                { senderId: userId1, receiverId: userId2 },
-                { senderId: userId2, receiverId: userId1 }
+                { senderId: userId },
+                { receiverId: userId }
             ]
-        }).sort({ createdAt: -1 });
+        }
+
+        const messages = await supportModel.find(query).sort({ createdAt: -1 });
 
         if (messages.length === 0) {
             return res.status(404).json({
@@ -104,30 +115,39 @@ export const getSupportMessages = async (req: Request, res: Response) => {
 
 export const getUsersChattedWithUser = async (req: Request, res: Response) => {
     try {
-        const { userId } = req.query;
+        const { userId, admin } = req.query;
 
-        if (!userId) {
+        if (!userId && !admin) {
             return res.status(400).json({
-                message: "Missing required query parameter: userId",
+                message: "Missing required query parameter: userId or admin",
                 status: false,
                 data: null
             });
         }
 
-        const messages = await supportModel.find({
-            $or: [
-                { senderId: userId },
-                { receiverId: userId }
-            ]
-        });
+        let query = {}
+        if (admin) {
+            query = {
+                messageFor: "Admin"
+            }
+        } else {
+            query = {
+                $or: [
+                    { senderId: userId },
+                    { receiverId: userId }
+                ]
+            }
+        }
+
+        const messages = await supportModel.find(query);
 
         const userIdsSet = new Set<string>();
-        messages.forEach(message => {
+        messages.forEach((message: any) => {
             if (message.senderId.toString() !== userId) {
                 userIdsSet.add(message.senderId.toString());
             }
-            if (message.receiverId.toString() !== userId) {
-                userIdsSet.add(message.receiverId.toString());
+            if (message?.receiverId && message?.receiverId?.toString() !== userId) {
+                userIdsSet.add((message.receiverId).toString());
             }
         });
 

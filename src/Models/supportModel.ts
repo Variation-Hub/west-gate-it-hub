@@ -10,6 +10,11 @@ const supportModel = new mongoose.Schema({
         type: String,
         enum: ['text', 'file', 'audio', 'video']
     },
+    messageFor: {
+        type: String,
+        enum: ['Admin', 'User'],
+        default: 'User'
+    },
     senderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -17,8 +22,7 @@ const supportModel = new mongoose.Schema({
     },
     receiverId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     file: {
         type: [mongoose.Schema.Types.Mixed],
