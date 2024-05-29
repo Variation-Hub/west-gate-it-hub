@@ -4,7 +4,7 @@ import { createIndustry, deleteIndustry, getIndustryList, updateIndustry } from 
 
 const industryRouter = express.Router();
 
-industryRouter.get("/list", authorizeRoles(), getIndustryList);
+industryRouter.get("/list", getIndustryList);
 industryRouter.post("/create", authorizeRoles(), createIndustry)
 industryRouter.patch("/update/:id", authorizeRoles(), updateIndustry);
 industryRouter.delete("/delete/:id", authorizeRoles(), deleteIndustry);
