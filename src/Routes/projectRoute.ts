@@ -8,7 +8,7 @@ import { multipleFileUpload } from '../Util/multer';
 const projectRoutes = express.Router();
 
 projectRoutes.post("/create", authorizeRoles(), createProject);
-projectRoutes.get("/list", authorizeRoles(), paginationMiddleware, getProjects);
+projectRoutes.get("/list", paginationMiddleware, getProjects);
 projectRoutes.get("/list/latest", getLatestProject);
 projectRoutes.get("/get/:id", authorizeRoles(), getProject);
 projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);
