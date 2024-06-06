@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
+import { transporter } from "../Util/nodemailer"
 
 export const registerWebUser = async (req: Request, res: Response) => {
     try {
@@ -63,6 +64,32 @@ export const loginWebUser = async (req: Request, res: Response) => {
             message: "User login success",
             status: true,
             data: { token }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const registerSendMail = async (req: Request, res: Response) => {
+    try {
+        const data = req.body
+
+        const template = ``
+
+        await transporter.sendMail({
+            from: 'service@uncleblock.in',
+            to: process.env.ADMIN_EMAIL,
+            subject: "Reset Password",
+            html: template,
+        });
+
+        return res.status(200).json({
+            message: "mail send successfully",
+            status: true,
         });
     } catch (err: any) {
         return res.status(500).json({
