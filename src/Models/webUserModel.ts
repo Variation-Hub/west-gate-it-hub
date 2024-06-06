@@ -48,10 +48,6 @@ const webUserModel = new mongoose.Schema({
         type: Number,
         required: true
     },
-    industry: {
-        type: String,
-        required: true
-    },
     numberOfBranch: {
         type: Number,
         required: true
@@ -68,51 +64,51 @@ const webUserModel = new mongoose.Schema({
         type: [String],
         default: []
     },
-    plan:{
+    plan: {
         type: String,
         default: "Basic"
     },
-    registerCompany:{
+    registerCompany: {
         type: Boolean,
         default: false
     },
-    companyActive:{
+    companyActive: {
         type: Boolean,
         default: false
     },
-    howLongCompanyBussiness:{
+    howLongCompanyBussiness: {
         type: Number,
         default: 1
     },
-    caseStudeyPrevious:{
+    caseStudeyPrevious: {
         type: Boolean,
         default: false
     },
-    nominateAccount:{
+    nominateAccount: {
         type: Boolean,
         default: false
     },
-    supportNewBusiness:{
+    supportNewBusiness: {
         type: Boolean,
         default: false
     },
-    accountManagerName:{
+    accountManagerName: {
         type: String,
         default: ""
     },
-    accountManagerEmail:{
+    accountManagerEmail: {
         type: String,
         default: ""
     },
-    accountManagerDesignation:{
+    accountManagerDesignation: {
         type: String,
         default: ""
     },
-    activeSince:{
+    activeSince: {
         type: String,
         default: ""
     },
-    accountManagerNumber:{
+    accountManagerNumber: {
         type: String,
         default: ""
     },
