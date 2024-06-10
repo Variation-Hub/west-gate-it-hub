@@ -181,6 +181,12 @@ const projectModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
+    noticeReference: {
+        type: String
+    },
+    CPVCodes: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now
