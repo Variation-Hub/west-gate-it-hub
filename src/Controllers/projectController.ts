@@ -621,7 +621,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             totalNotAwardedValue: 0,
         }
 
-        projects.forEach(project => {
+        projects.forEach((project: any) => {
             if (Object.keys(categorygroup).includes(project.category)) {
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
                     responseData.matchedProjects++;

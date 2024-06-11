@@ -533,7 +533,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
         const uniqueCategories = await userModel.distinct("categoryList");
 
-        projects.forEach(project => {
+        projects.forEach((project: any) => {
             data.projectsPosted.value += project.value;
             if (project.status === projectStatus.Closed) {
                 data.projectsClosed.count += 1;
