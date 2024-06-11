@@ -408,7 +408,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, value, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -439,6 +439,8 @@ export const updateProject = async (req: Request, res: Response) => {
         project.supportingDocs = supportingDocs || project.supportingDocs;
         project.noticeReference = noticeReference || project.noticeReference;
         project.CPVCodes = CPVCodes || project.CPVCodes;
+        project.minValue = minValue || project.minValue;
+        project.maxValue = maxValue || project.maxValue;
 
         if (stages) {
             project.stages = stages.map((obj: any) => {

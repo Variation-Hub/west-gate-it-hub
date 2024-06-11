@@ -187,6 +187,12 @@ const projectModel = new mongoose.Schema({
     CPVCodes: {
         type: String
     },
+    minValue: {
+        type: String
+    },
+    maxValue: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now
