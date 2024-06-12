@@ -43,10 +43,6 @@ const projectModel = new mongoose.Schema({
     dueDate: {
         type: Date,
     },
-    value: {
-        type: Number,
-        trim: true,
-    },
     projectType: {
         type: String,
         trim: true,
@@ -104,6 +100,10 @@ const projectModel = new mongoose.Schema({
     },
     timeDue: {
         type: Date
+    },
+    bidsubmissiontime: {
+        type: String,
+        default: ""
     },
     caseStudyRequired: {
         type: Number,
