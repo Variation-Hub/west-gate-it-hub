@@ -408,7 +408,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -441,6 +441,7 @@ export const updateProject = async (req: Request, res: Response) => {
         project.CPVCodes = CPVCodes || project.CPVCodes;
         project.minValue = minValue || project.minValue;
         project.maxValue = maxValue || project.maxValue;
+        project.value = value || project.value;
 
         if (stages) {
             project.stages = stages.map((obj: any) => {
@@ -712,7 +713,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason } = req.body
+        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -740,6 +741,7 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
         project.certifications = certifications || project.certifications;
         project.policy = policy || project.policy;
         project.failStatusReason = failStatusReason || project.failStatusReason;
+        project.value = value || project.value;
 
         const updateProject = await project.save();
 

@@ -43,6 +43,10 @@ const projectModel = new mongoose.Schema({
     dueDate: {
         type: Date,
     },
+    value: {
+        type: Number,
+        trim: true,
+    },
     projectType: {
         type: String,
         trim: true,
