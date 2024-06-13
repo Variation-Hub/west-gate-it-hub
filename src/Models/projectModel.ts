@@ -4,7 +4,7 @@ import { projectStatus } from "../Util/contant";
 function getCurrentISTTime() {
     const currentDate = new Date();
     const utcOffset = currentDate.getTime() + (currentDate.getTimezoneOffset() * 60000);
-    const istOffset = 11 * 3600000;
+    const istOffset = 5.5 * 3600000;
 
     return new Date(utcOffset + istOffset);
 }
