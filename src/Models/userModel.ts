@@ -75,6 +75,21 @@ const userModel = new mongoose.Schema({
     supplierId: {
         type: mongoose.Schema.Types.ObjectId,
     },
+    location:{
+        type: String,
+        default: "",
+        trim:"",
+    },
+    reportTo:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null,
+    },
+    manages:{
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: [],
+    },
     createdAt: {
         type: Date,
         default: Date.now
