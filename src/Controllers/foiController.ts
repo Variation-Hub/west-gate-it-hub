@@ -7,7 +7,7 @@ export const createFOI = async (req: Request, res: Response) => {
     try {
         let { name, link, projectId } = req.body
 
-        const project = await projectModel.findById(projectId)
+        const project: any = await projectModel.findById(projectId)
         if (!project) {
             return res.status(404).json({
                 message: "Project not found",

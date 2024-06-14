@@ -1,67 +1,95 @@
 import mongoose from "mongoose";
 import { projectStatus } from "../Util/contant";
 
+function getCurrentISTTime() {
+    const currentDate = new Date();
+    const utcOffset = currentDate.getTime() + (currentDate.getTimezoneOffset() * 60000);
+    const istOffset = 5.5 * 3600000;
+
+    return new Date(utcOffset + istOffset);
+}
+
 const projectModel = new mongoose.Schema({
     projectName: {
         type: String,
         trim: true,
+        default: ""
     },
     category: {
         type: String,
         trim: true,
+        default: ""
     },
     industry: {
         type: String,
         trim: true,
+        default: ""
     },
     description: {
         type: String,
         trim: true,
+        default: ""
     },
     BOSID: {
         type: String,
         trim: true,
         unique: true,
+        default: ""
     },
     publishDate: {
         type: Date,
-        default: Date.now,
+        default: getCurrentISTTime
     },
     submission: {
         type: Date,
+        default: null
     },
     link: {
         type: String,
         trim: true,
+        default: ""
     },
     periodOfContractStart: {
         type: Date,
+        default: null
     },
     periodOfContractEnd: {
         type: Date,
+        default: null
     },
     dueDate: {
         type: Date,
+        default: null
+    },
+    value: {
+        type: Number,
+        trim: true,
+        default: null
     },
     projectType: {
         type: String,
         trim: true,
+        default: ""
     },
     website: {
         type: String,
         trim: true,
+        default: ""
     },
     mailID: {
         type: String,
         trim: true,
+        default: ""
     },
     clientType: {
         type: String,
         trim: true,
+        default: ""
     },
     clientName: {
         type: String,
         trim: true,
+        default: ""
     },
     status: {
         type: String,
@@ -70,13 +98,16 @@ const projectModel = new mongoose.Schema({
     },
     statusComment: {
         type: String,
+        default: ""
     },
     failStatusImage: {
-        type: mongoose.Schema.Types.Mixed
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     failStatusReason: {
         type: [String],
-        enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints']
+        enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
+        default: []
     },
     sortListUserId: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -99,7 +130,8 @@ const projectModel = new mongoose.Schema({
         default: []
     },
     timeDue: {
-        type: Date
+        type: Date,
+        default: null
     },
     bidsubmissiontime: {
         type: String,
@@ -111,27 +143,35 @@ const projectModel = new mongoose.Schema({
     },
     subContracting: {
         type: Boolean,
+        default: false
     },
     subContractingfile: {
-        type: mongoose.Schema.Types.Mixed
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     economicalPartnershipQueryFile: {
-        type: mongoose.Schema.Types.Mixed
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     economicalPartnershipResponceFile: {
-        type: mongoose.Schema.Types.Mixed
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     FeasibilityOtherDocuments: {
-        type: mongoose.Schema.Types.Mixed
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
     },
     loginDetail: {
-        type: [mongoose.Schema.Types.Mixed]
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     certifications: {
-        type: String
+        type: String,
+        default: ""
     },
     policy: {
         type: String,
+        default: ""
     },
     select: {
         type: [mongoose.Schema.Types.Mixed],
@@ -146,7 +186,8 @@ const projectModel = new mongoose.Schema({
         default: null
     },
     closedDate: {
-        type: Date
+        type: Date,
+        default: null
     },
     dropUser: {
         type: [mongoose.Schema.Types.Mixed],
@@ -161,24 +202,28 @@ const projectModel = new mongoose.Schema({
         default: []
     },
     noticeReference: {
-        type: String
+        type: String,
+        default: ""
     },
     CPVCodes: {
-        type: String
+        type: String,
+        default: ""
     },
     minValue: {
-        type: String
+        type: String,
+        default: ""
     },
     maxValue: {
-        type: String
+        type: String,
+        default: ""
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: getCurrentISTTime
     },
     updatedAt: {
         type: Date,
-        default: Date.now
+        default: getCurrentISTTime
     }
 }, { versionKey: false });
 
