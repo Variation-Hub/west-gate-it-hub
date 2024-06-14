@@ -12,11 +12,6 @@ const QuestionModel = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    instructions: {
-        type: String,
-        required: true,
-        trim: true,
-    },
     refrenceDocument: {
         type: String,
         required: true,
@@ -24,10 +19,6 @@ const QuestionModel = new mongoose.Schema({
     },
     weightage: {
         type: Number,
-        required: true,
-    },
-    deadline: {
-        type: Date,
         required: true,
     },
     verify: {
