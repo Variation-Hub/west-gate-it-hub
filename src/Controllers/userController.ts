@@ -132,13 +132,35 @@ export const loginUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { name } = req.body
-        const user = await userModel.findByIdAndUpdate(id, { name }, { new: true });
+        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages } = req.body
+        const user = await userModel.findById(id);
 
+        if (!user) {
+            return res.status(404).send({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        user.name = name || user.name;
+        user.companyName = companyName || user.companyName;
+        user.designation = designation || user.designation;
+        user.doj = doj || user.doj;
+        user.linkedInLink = linkedInLink || user.linkedInLink;
+        user.categoryList = categoryList || user.categoryList;
+        user.userName = userName || user.userName;
+        user.domain = domain || user.domain;
+        user.department = department || user.department;
+        user.location = location || user.location;
+        user.reportTo = reportTo || user.reportTo;
+        user.manages = manages || user.manages;
+
+        const newUser = await user.save();
         return res.status(200).json({
             message: "User update success",
             status: true,
-            data: user
+            data: newUser
         });
     } catch (err: any) {
         return res.status(500).json({
