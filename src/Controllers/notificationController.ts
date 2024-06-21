@@ -136,3 +136,43 @@ export const deleteNotifications = async (req: any, res: Response) => {
         });
     }
 }
+
+export const getNotificationsCount = async (req: any, res: Response) => {
+    try {
+        const userId = new mongoose.Types.ObjectId(req.user.id)
+
+        const notifications = await notificationModel.aggregate([
+            { $match: { userId } },
+            {
+                $group: {
+                    _id: null,
+                    totalNotifications: { $sum: 1 },
+                    unreadNotifications: {
+                        $sum: {
+                            $cond: [{ $eq: ["$read", false] }, 1, 0]
+                        }
+                    }
+                }
+            }
+        ]);
+        console.log(notifications)
+
+        const notificationData = notifications[0] || { totalNotifications: 0, unreadNotifications: 0 };
+
+        return res.status(200).json({
+            message: "Notifications fetch success",
+            status: true,
+            data: {
+                totalNotifications: notificationData.totalNotifications,
+                unreadNotifications: notificationData.unreadNotifications
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}

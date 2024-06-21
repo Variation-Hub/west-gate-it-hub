@@ -568,7 +568,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
     try {
         const userId = req.user.id
         const user = await userModel.findById(userId)
-
+        console.log(userId)
         if (!user) {
             return res.status(404).json({
                 message: "User not found",
@@ -595,64 +595,92 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             return acc;
         }, {});
 
-        const totalProjectValue = await projectModel.aggregate([
+        const totalProjectValueAndCount = await projectModel.aggregate([
             {
                 $group: {
                     _id: null,
-                    totalValue: { $sum: "$value" }
+                    totalValue: { $sum: "$value" },
+                    projectCount: { $sum: 1 }
                 }
             }
         ]);
 
+        const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
+
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
-            totalProjects: projects.length,
-            matchedProjects: 0,
-            totalSubmit: 0,
-            totalAwarded: 0,
-            totalNotAwarded: 0,
-            totalInSubmition: 0,
-            totalInSolution: 0,
-            totalInReview: 0,
-            totalExpired: 0,
-            totalProjectValue: totalProjectValue[0].totalValue,
-            matchedProjectsValue: 0,
-            totalSubmitValue: 0,
-            totalAwardedValue: 0,
-            totalNotAwardedValue: 0,
+            projectCount: {
+                totalProjects: result.projectCount,
+                totalProjectInCategory: projects.length,
+                matchedProjects: 0,
+                totalSubmit: 0,
+                totalAwarded: 0,
+                totalNotAwarded: 0,
+                totalInSubmition: 0,
+                totalInSolution: 0,
+                totalInReview: 0,
+                totalExpired: 0,
+                //nre
+                sortListed: 0,
+                drop: 0
+            },
+            projectValue: {
+                totalProjectValue: result.totalValue,
+                matchedProjectsValue: 0,
+                totalSubmitValue: 0,
+                totalAwardedValue: 0,
+                totalNotAwardedValue: 0,
+                //new 
+                insolutionValue: 0,
+                inReviewValue: 0,
+                inSubmitionsValue: 0,
+                UKExpertWritingsValue: 0,
+                UKExpertReviewValue: 0
+            }
         }
 
         projects.forEach((project: any) => {
             if (Object.keys(categorygroup).includes(project.category)) {
+                responseData.projectCount.totalProjectInCategory
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
-                    responseData.matchedProjects++;
-                    responseData.matchedProjectsValue += project.value;
+                    responseData.projectCount.matchedProjects++;
+                    responseData.projectValue.matchedProjectsValue += project.value;
                 }
             }
             if (project.status === projectStatus.Submitted) {
-                responseData.totalSubmit++;
-                responseData.totalSubmitValue += project.value;
+                responseData.projectCount.totalSubmit++;
+                responseData.projectValue.totalSubmitValue += project.value;
             }
 
             if (project.status === projectStatus.Awarded) {
-                responseData.totalAwarded++;
-                responseData.totalAwardedValue += project.value;
+                responseData.projectCount.totalAwarded++;
+                responseData.projectValue.totalAwardedValue += project.value;
             }
             if (project.status === projectStatus.NotAwarded) {
-                responseData.totalNotAwarded++;
-                responseData.totalNotAwardedValue += project.value;
+                responseData.projectCount.totalNotAwarded++;
+                responseData.projectValue.totalNotAwardedValue += project.value;
             }
             if (project.status === projectStatus.InSubmition) {
-                responseData.totalInSubmition++;
+                responseData.projectCount.totalInSubmition++;
+                responseData.projectValue.inSubmitionsValue += project.value;
             }
             if (project.status === projectStatus.InSolution) {
-                responseData.totalInSolution++;
+                responseData.projectCount.totalInSolution++;
+                responseData.projectValue.insolutionValue += project.value;
+
             }
             if (project.status === projectStatus.InReview) {
-                responseData.totalInReview++;
+                responseData.projectCount.totalInReview++;
+                responseData.projectValue.inReviewValue += project.value;
             }
             if (project.status === projectStatus.Expired) {
-                responseData.totalExpired++;
+                responseData.projectCount.totalExpired++;
+            }
+            if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
+                responseData.projectCount.sortListed++;
+            }
+            if (project.dropUser.includes(new mongoose.Types.ObjectId(userId))) {
+                responseData.projectCount.drop++;
             }
         })
         return res.status(200).json({
