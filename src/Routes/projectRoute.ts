@@ -1,14 +1,14 @@
 import * as express from 'express';
 import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Middleware/pagination';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles, authorizeRolesWithoutError } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
 import { multipleFileUpload } from '../Util/multer';
 
 const projectRoutes = express.Router();
 
 projectRoutes.post("/create", authorizeRoles(), createProject);
-projectRoutes.get("/list", paginationMiddleware, getProjects);
+projectRoutes.get("/list", paginationMiddleware, authorizeRolesWithoutError(), getProjects);
 projectRoutes.get("/list/latest", getLatestProject);
 projectRoutes.get("/get/:id", authorizeRoles(), getProject);
 projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);

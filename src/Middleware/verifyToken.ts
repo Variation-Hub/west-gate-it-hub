@@ -53,3 +53,24 @@ export const authorizeRoles = (...roles: string[]) => {
         next();
     };
 };
+
+export const authorizeRolesWithoutError = (...roles: string[]) => {
+    return (req: any, res: Response, next: NextFunction) => {
+        const BearerToken: string | undefined = req.header('authorization');
+
+        if (BearerToken) {
+            const token = BearerToken.slice(7);
+            jwt.verify(token, secret, (err: any, decoded: any) => {
+                if (err) {
+                    return next();
+                }
+
+                req.user = decoded;
+
+                next();
+            });
+        } else {
+            next();
+        }
+    };
+};
