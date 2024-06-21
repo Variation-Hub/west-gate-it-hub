@@ -622,15 +622,20 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalExpired: 0,
                 //nre
                 sortListed: 0,
-                drop: 0
+                drop: 0,
+                UKExpertWritingsCount: 0,
+                UKExpertReviewCount: 0
             },
             projectValue: {
                 totalProjectValue: result.totalValue,
+                ProjectInCategoryValue: 0,
                 matchedProjectsValue: 0,
                 totalSubmitValue: 0,
                 totalAwardedValue: 0,
                 totalNotAwardedValue: 0,
                 //new 
+                sortListedValue: 0,
+                dropValue: 0,
                 insolutionValue: 0,
                 inReviewValue: 0,
                 inSubmitionsValue: 0,
@@ -640,6 +645,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         }
 
         projects.forEach((project: any) => {
+            responseData.projectValue.ProjectInCategoryValue += project.value;
             if (Object.keys(categorygroup).includes(project.category)) {
                 responseData.projectCount.totalProjectInCategory
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
@@ -678,9 +684,11 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             }
             if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
                 responseData.projectCount.sortListed++;
+                responseData.projectValue.sortListedValue += project.value;
             }
             if (project.dropUser.includes(new mongoose.Types.ObjectId(userId))) {
                 responseData.projectCount.drop++;
+                responseData.projectValue.dropValue += project.value;
             }
         })
         return res.status(200).json({
