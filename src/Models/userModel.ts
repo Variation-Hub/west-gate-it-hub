@@ -92,7 +92,7 @@ const userModel = new mongoose.Schema({
     },
     plan: {
         type: String,
-        enum: ["Basic", "Silver", "Gold"],
+        enum: ["Basic", "Silver", "Gold", "Premium"],
         default: "Basic"
     },
     createdAt: {
