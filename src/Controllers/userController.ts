@@ -132,7 +132,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages } = req.body
+        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages, mobileNumber } = req.body
         const user = await userModel.findById(id);
 
         if (!user) {
@@ -155,6 +155,7 @@ export const updateUser = async (req: Request, res: Response) => {
         user.location = location || user.location;
         user.reportTo = reportTo || user.reportTo;
         user.manages = manages || user.manages;
+        user.mobileNumber = mobileNumber || user.mobileNumber;
 
         const newUser = await user.save();
         return res.status(200).json({
