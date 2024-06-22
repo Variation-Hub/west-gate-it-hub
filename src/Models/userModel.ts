@@ -30,7 +30,7 @@ const userModel = new mongoose.Schema({
         required: true,
         default: 'User'
     },
-    mobileNumber:{
+    mobileNumber: {
         type: String,
         trim: true,
         unique: true,
@@ -75,20 +75,25 @@ const userModel = new mongoose.Schema({
     supplierId: {
         type: mongoose.Schema.Types.ObjectId,
     },
-    location:{
+    location: {
         type: String,
         default: "",
-        trim:"",
+        trim: "",
     },
-    reportTo:{
+    reportTo: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         default: null,
     },
-    manages:{
+    manages: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',
         default: [],
+    },
+    plan: {
+        type: String,
+        enum: ["Basic", "Silver", "Gold"],
+        default: "Basic"
     },
     createdAt: {
         type: Date,
