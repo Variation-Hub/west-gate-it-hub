@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { deleteMultipleFromS3, uploadMultipleFilesToS3 } from "../Util/aws";
+import { deleteMultipleFromAzureBlob, uploadMultipleFilesToAzureBlob } from "../Util/aws";
 import supportModel from "../Models/supportModel";
 import { sendSupportMessageToUser } from "../socket/socketEvent";
 import userModel from "../Models/userModel";
@@ -10,7 +10,7 @@ export const createSupportMessage = async (req: any, res: Response) => {
         let { message, messageType, senderId, receiverId, file, messageFor } = req.body
 
         if (req.files) {
-            file = await uploadMultipleFilesToS3(req.files, "chat")
+            file = await uploadMultipleFilesToAzureBlob(req.files, "chat")
         }
         const Chat = await supportModel.create({ message, messageType, senderId, receiverId, file, messageFor })
 
@@ -51,7 +51,7 @@ export const deleteSupportMessage = async (req: Request, res: Response) => {
         }
         if (Chat.file) {
             const keys = Chat.file.map(obj => obj.key)
-            deleteMultipleFromS3(keys);
+            deleteMultipleFromAzureBlob(keys);
         }
 
         return res.status(200).json({

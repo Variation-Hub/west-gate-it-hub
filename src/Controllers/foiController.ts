@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import foiModel from "../Models/foiModel";
-import { deleteFromS3, uploadToS3 } from "../Util/aws";
+import { deleteFromAzureBlob, uploadToAzureBlob } from "../Util/aws";
 import projectModel from "../Models/projectModel";
 
 export const createFOI = async (req: Request, res: Response) => {
@@ -16,7 +16,7 @@ export const createFOI = async (req: Request, res: Response) => {
             });
         }
         if (req.file) {
-            link = await uploadToS3(req.file, "foi")
+            link = await uploadToAzureBlob(req.file, "foi")
         }
         const FOI = await foiModel.create({ name, link, projectId })
         project.timeDue = null;
@@ -91,8 +91,8 @@ export const updateFOI = async (req: Request, res: Response) => {
         }
 
         if (req.file) {
-            deleteFromS3(FOI.link)
-            FOI.link = await uploadToS3(req.file, "foi")
+            deleteFromAzureBlob(FOI.link)
+            FOI.link = await uploadToAzureBlob(req.file, "foi")
         }
         FOI.name = name || FOI.name;
         FOI.projectId = projectId || FOI.projectId;
@@ -127,7 +127,7 @@ export const deleteFOI = async (req: Request, res: Response) => {
             })
         }
         if (FOI.link) {
-            deleteFromS3(FOI.link)
+            deleteFromAzureBlob(FOI.link)
         }
 
         const deleteFOI = await foiModel.findByIdAndDelete(id);

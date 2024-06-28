@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { deleteFromS3, uploadToS3 } from "../Util/aws";
+import { deleteFromAzureBlob, uploadToAzureBlob } from "../Util/aws";
 import mailScreenshotModel from "../Models/mailScreenshotModel";
 import { ImagesType, isValidType } from "../Util/contant";
 import projectModel from "../Models/projectModel";
@@ -9,7 +9,7 @@ export const createScreenShot = async (req: Request, res: Response) => {
         let { projectName, BOSId, emailId, link } = req.body
 
         if (req.file) {
-            link = await uploadToS3(req.file, "screenshot")
+            link = await uploadToAzureBlob(req.file, "screenshot")
         }
 
         const mailScreenShot = await mailScreenshotModel.create({ projectName, BOSId, emailId, link })
@@ -88,8 +88,8 @@ export const updateScreenShot = async (req: Request, res: Response) => {
             })
         }
         if (req.file) {
-            deleteFromS3(screenshot.link)
-            screenshot.link = await uploadToS3(req.file, "screenshot")
+            deleteFromAzureBlob(screenshot.link)
+            screenshot.link = await uploadToAzureBlob(req.file, "screenshot")
         }
         screenshot.projectName = projectName || screenshot.projectName;
         screenshot.BOSId = BOSId || screenshot.BOSId;

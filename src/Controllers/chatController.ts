@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { deleteMultipleFromS3, uploadMultipleFilesToS3 } from "../Util/aws"
+import { deleteMultipleFromAzureBlob, uploadMultipleFilesToAzureBlob } from "../Util/aws"
 import chatModel from "../Models/chatModel"
 import projectModel from "../Models/projectModel"
 import userModel from "../Models/userModel"
@@ -46,7 +46,7 @@ export const createChat = async (req: any, res: Response) => {
 
         if (req.files) {
             console.log(req.files)
-            file = await uploadMultipleFilesToS3(req.files, "chat")
+            file = await uploadMultipleFilesToAzureBlob(req.files, "chat")
         }
         const Chat = await chatModel.create({ message, projectId, messageType, mentionList, senderId, file })
 
@@ -87,7 +87,7 @@ export const deleteChat = async (req: Request, res: Response) => {
         }
         if (Chat.file) {
             const keys = Chat.file.map(obj => obj.key)
-            deleteMultipleFromS3(keys);
+            deleteMultipleFromAzureBlob(keys);
         }
 
         return res.status(200).json({

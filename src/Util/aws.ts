@@ -1,13 +1,14 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
+import { BlobServiceClient, StorageSharedKeyCredential } from "@azure/storage-blob";
+// import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import mime from "mime-types";
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
-  }
-});
+// const s3Client = new S3Client({
+//   region: process.env.AWS_REGION!,
+//   credentials: {
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!
+//   }
+// });
 
 interface FileData {
   originalname: string;
@@ -15,94 +16,204 @@ interface FileData {
 }
 
 
-export const uploadToS3 = async (fileData: FileData, folderName: string) => {
-  try {
-    const contentType = mime.lookup(fileData.originalname) || "application/octet-stream";
-    const key = `${folderName}/${Date.now()}_${fileData.originalname}`
+// export const uploadToS3 = async (fileData: FileData, folderName: string) => {
+//   try {
+//     const contentType = mime.lookup(fileData.originalname) || "application/octet-stream";
+//     const key = `${folderName}/${Date.now()}_${fileData.originalname}`
 
-    const params = {
-      Bucket: process.env.AWS_BUCKET_NAME,
-      Key: key,
-      Body: fileData.buffer,
-      ContentType: contentType,
-    };
+//     const params = {
+//       Bucket: process.env.AWS_BUCKET_NAME,
+//       Key: key,
+//       Body: fileData.buffer,
+//       ContentType: contentType,
+//     };
 
-    const uploadCommand = new PutObjectCommand(params);
-    await s3Client.send(uploadCommand);
+//     const uploadCommand = new PutObjectCommand(params);
+//     await s3Client.send(uploadCommand);
 
-    const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
+//     const s3Url = `https://${process.env.AWS_BUCKET_NAME}.s3.amazonaws.com/${key}`;
 
-    return {
-      key,
-      url: s3Url,
-    };
+//     return {
+//       key,
+//       url: s3Url,
+//     };
 
-  } catch (error) {
-    console.error("Error uploading file:", error);
-    throw error;
-  }
-};
+//   } catch (error) {
+//     console.error("Error uploading file:", error);
+//     throw error;
+//   }
+// };
 
-export const uploadMultipleFilesToS3 = async (files: FileData[], folderName: string) => {
-  try {
-    const uploadResults = [];
+// export const uploadMultipleFilesToS3 = async (files: FileData[], folderName: string) => {
+//   try {
+//     const uploadResults = [];
 
-    for (const file of files) {
-      const result = await uploadToS3(file, folderName);
-      uploadResults.push(result);
-    }
+//     for (const file of files) {
+//       const result = await uploadToS3(file, folderName);
+//       uploadResults.push(result);
+//     }
 
-    console.log("All files uploaded successfully:", uploadResults);
+//     console.log("All files uploaded successfully:", uploadResults);
 
-    return uploadResults;
-  } catch (error) {
-    console.error("Error uploading files:", error);
-    throw error;
-  }
-}
+//     return uploadResults;
+//   } catch (error) {
+//     console.error("Error uploading files:", error);
+//     throw error;
+//   }
+// }
 
 interface S3Object {
   key: string;
 }
 
 
-export const deleteFromS3 = async (obj: S3Object) => {
-  const key = obj.key
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Key: key,
-  };
+// export const deleteFromS3 = async (obj: S3Object) => {
+//   const key = obj.key
+//   const params = {
+//     Bucket: process.env.AWS_BUCKET_NAME,
+//     Key: key,
+//   };
 
+//   try {
+//     const deleteCommand = new DeleteObjectCommand(params);
+//     const response = await s3Client.send(deleteCommand);
+
+//     return response;
+//   } catch (error) {
+//     console.error("Error deleting file:", error);
+//     throw error;
+//   }
+// };
+
+// export const deleteMultipleFromS3 = async (keys: string[]) => {
+//   const objectsToDelete = keys.map((key) => ({ Key: key }));
+
+//   const params = {
+//     Bucket: process.env.AWS_BUCKET_NAME,
+//     Delete: {
+//       Objects: objectsToDelete,
+//       Quiet: false,
+//     },
+//   };
+
+//   try {
+//     const deleteCommand = new DeleteObjectsCommand(params);
+//     const response = await s3Client.send(deleteCommand);
+
+//     console.log("Files deleted successfully:", response.Deleted);
+//     return response;
+//   } catch (error) {
+//     console.error("Error deleting files:", error);
+//     throw error;
+//   }
+// };
+
+
+// Azure services
+const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME;
+const accountKey = process.env.AZURE_STORAGE_ACCOUNT_KEY;
+const containerName = process.env.AZURE_CONTAINER_NAME;
+
+export const uploadToAzureBlob = async (fileData: FileData, folderName: string) => {
   try {
-    const deleteCommand = new DeleteObjectCommand(params);
-    const response = await s3Client.send(deleteCommand);
 
-    return response;
+    if (!accountName || !accountKey || !containerName) {
+      console.log("Azure storage account name, key or container name is not set in environment variables.");
+      return
+    }
+
+    const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+    const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+
+    const contentType = mime.lookup(fileData.originalname) || "application/octet-stream";
+    const blobName = `${folderName}/${Date.now()}_${fileData.originalname}`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    const uploadBlobResponse = await blockBlobClient.upload(fileData.buffer, fileData.buffer.length, {
+      blobHTTPHeaders: { blobContentType: contentType }
+    });
+
+    const blobUrl = `https://${accountName}.blob.core.windows.net/${containerName}/${blobName}`;
+
+    return {
+      key: blobName,
+      url: blobUrl,
+    };
   } catch (error) {
-    console.error("Error deleting file:", error);
+    console.error("Error uploading file to Azure Blob Storage:", error);
+    throw false;
+  }
+};
+
+export const uploadMultipleFilesToAzureBlob = async (files: FileData[], folderName: string) => {
+  try {
+
+    if (!accountName || !accountKey || !containerName) {
+      // throw new Error("Azure storage account name, key, or container name is not set in environment variables.");
+      return
+    }
+
+    const uploadResults = [];
+
+    for (const file of files) {
+      const result = await uploadToAzureBlob(file, folderName);
+      uploadResults.push(result);
+    }
+
+    return uploadResults;
+  } catch (error) {
+    console.error("Error uploading files to Azure Blob Storage:", error);
     throw error;
   }
 };
 
-export const deleteMultipleFromS3 = async (keys: string[]) => {
-  const objectsToDelete = keys.map((key) => ({ Key: key }));
-
-  const params = {
-    Bucket: process.env.AWS_BUCKET_NAME,
-    Delete: {
-      Objects: objectsToDelete,
-      Quiet: false,
-    },
-  };
-
+export const deleteFromAzureBlob = async (obj: S3Object) => {
   try {
-    const deleteCommand = new DeleteObjectsCommand(params);
-    const response = await s3Client.send(deleteCommand);
+    if (!accountName || !accountKey || !containerName) {
+      throw new Error("Azure storage account name, key or container name is not set in environment variables.");
+    }
 
-    console.log("Files deleted successfully:", response.Deleted);
-    return response;
+    const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+    const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+
+    const blobName = obj.key;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+    const deleteBlobResponse = await blockBlobClient.delete();
+
+    return deleteBlobResponse;
   } catch (error) {
-    console.error("Error deleting files:", error);
-    throw error;
+    console.error("Error deleting blob from Azure Blob Storage:", error);
+    // throw error;
+  }
+};
+
+export const deleteMultipleFromAzureBlob = async (keys: string[]) => {
+  try {
+
+    if (!accountName || !accountKey || !containerName) {
+      // throw new Error("Azure storage account name, key, or container name is not set in environment variables.");
+      return
+    }
+
+    const sharedKeyCredential = new StorageSharedKeyCredential(accountName, accountKey);
+    const blobServiceClient = new BlobServiceClient(`https://${accountName}.blob.core.windows.net`, sharedKeyCredential);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+
+    const deleteResponses = [];
+
+    for (const key of keys) {
+      const blobName = key; // Assuming key includes the folder path if needed
+      const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+      const deleteResponse = await blockBlobClient.delete();
+      deleteResponses.push(deleteResponse);
+    }
+
+    return deleteResponses;
+  } catch (error) {
+    console.error("Error deleting files from Azure Blob Storage:", error);
+    // throw error;
   }
 };

@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 import summaryQuestionModel from "../Models/summaryQuestionModel"
-import { uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws"
+import { uploadToAzureBlob } from "../Util/aws"
 
 export const summaryQuestionList = async (req: any, res: Response) => {
     try {
@@ -122,7 +122,7 @@ export const uploadSummaryQuestionDocument = async (req: Request, res: Response)
                 data: null
             });
         }
-        summaryQuestion.responseFile = await uploadToS3(req.file, "documents");
+        summaryQuestion.responseFile = await uploadToAzureBlob(req.file, "documents");
 
         await summaryQuestion.save();
 

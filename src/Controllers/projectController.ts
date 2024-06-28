@@ -5,7 +5,7 @@ import foiModel from "../Models/foiModel";
 import { projectStatus } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
-import { deleteFromS3, uploadMultipleFilesToS3, uploadToS3 } from "../Util/aws";
+import { deleteFromAzureBlob, uploadMultipleFilesToAzureBlob, uploadToAzureBlob } from "../Util/aws";
 import summaryQuestionModel from "../Models/summaryQuestionModel";
 
 
@@ -799,9 +799,9 @@ export const uploadFile = async (req: any, res: Response) => {
     try {
         let file
         if (req.files?.length === 1) {
-            file = await uploadToS3(req.files[0], "files")
+            file = await uploadToAzureBlob(req.files[0], "files")
         } else if (req.files?.length > 1) {
-            file = await uploadMultipleFilesToS3(req.files, "files")
+            file = await uploadMultipleFilesToAzureBlob(req.files, "files")
         }
 
         return res.status(200).json({
@@ -824,7 +824,7 @@ export const deleteFiles = async (req: Request, res: Response) => {
         let { files } = req.body
 
         files.forEach(async (file: { key: string }) => {
-            await deleteFromS3(file)
+            await deleteFromAzureBlob(file)
         });
         // files = await deleteMultipleFromS3(files.map((file: { key: string }) => file.key))
         return res.status(200).json({
