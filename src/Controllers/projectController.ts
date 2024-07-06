@@ -22,6 +22,13 @@ export const createProject = async (req: Request, res: Response) => {
             data: newProjects
         });
     } catch (err: any) {
+        if (err.code === 11000) {
+            return res.status(500).send({
+                message: 'BOSID must be unique. This value already exists.',
+                status: false,
+                data: null
+            });
+        }
         return res.status(500).json({
             message: err.message,
             status: false,
