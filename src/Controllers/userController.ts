@@ -243,7 +243,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
     try {
         const { email, role } = req.body;
 
-        const user = await userModel.findOne({ email, role });
+        const user = await userModel.findOne({ email: email.toLowerCase(), role });
 
         if (!user) {
             return res.status(404).json({

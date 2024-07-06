@@ -81,13 +81,11 @@ const userModel = new mongoose.Schema({
         trim: "",
     },
     reportTo: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        default: null,
+        type: String,
+        default: "",
     },
     manages: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',
+        type: [String],
         default: [],
     },
     plan: {
