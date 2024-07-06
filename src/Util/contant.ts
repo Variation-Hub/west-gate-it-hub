@@ -24,6 +24,9 @@ export const generatePass = () => {
 
 export const projectStatus = {
     Awaiting: 'Awaiting',
+    Inhold: 'Inhold',
+    Pass: 'Pass',
+    Fail: 'Fail',
     Inprogress: 'InProgress',
     InSolution: 'InSolution',
     InReviewWestGate: 'InReviewWestGate',
