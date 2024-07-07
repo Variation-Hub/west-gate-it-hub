@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import { userRoles } from "../Util/contant";
+import { userRoles, userStatus } from "../Util/contant";
 
 interface UserDocument extends Document {
     password: string;
@@ -92,6 +92,12 @@ const userModel = new mongoose.Schema({
         type: String,
         enum: ["Basic", "Silver", "Gold", "Premium"],
         default: "Basic"
+    },
+    status: {
+        type: String,
+        enum: userStatus,
+        required: true,
+        default: 'Active'
     },
     createdAt: {
         type: Date,

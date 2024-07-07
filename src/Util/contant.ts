@@ -67,6 +67,11 @@ export const userRoles = {
     User: 'User',
 }
 
+export const userStatus = {
+    Active: 'Active',
+    Inactive: 'Inactive'
+}
+
 export const summaryQuestionFor = {
     Supplier: 'Supplier',
     UKWriter: 'UKWriter',
