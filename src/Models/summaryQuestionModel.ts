@@ -18,7 +18,7 @@ const QuestionModel = new mongoose.Schema({
         trim: true,
     },
     weightage: {
-        type: Number,
+        type: String,
         required: true,
     },
     verify: {
