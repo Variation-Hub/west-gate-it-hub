@@ -21,6 +21,10 @@ const QuestionModel = new mongoose.Schema({
         type: String,
         required: true,
     },
+    instructions: {
+        type: String,
+        required: false,
+    },
     verify: {
         type: Boolean,
         required: true,

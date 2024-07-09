@@ -45,9 +45,9 @@ export const summaryQuestionListByUser = async (req: any, res: Response) => {
 
 export const createSummaryQuestion = async (req: any, res: Response) => {
     try {
-        let { questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile } = req.body
+        let { questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions } = req.body
 
-        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile })
+        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions })
 
         return res.status(200).json({
             message: "Summary Question create success",
@@ -66,7 +66,7 @@ export const createSummaryQuestion = async (req: any, res: Response) => {
 export const updateSummaryQuestion = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        let { questionName, question, refrenceDocument, weightage, comment, verify, summaryQuestionFor, assignTo, type, sampleFile } = req.body
+        let { questionName, question, refrenceDocument, weightage, comment, verify, summaryQuestionFor, assignTo, type, sampleFile, instructions } = req.body
         const summaryQuestion: any = await summaryQuestionModel.findById(id);
 
         if (!summaryQuestion) {
@@ -86,6 +86,7 @@ export const updateSummaryQuestion = async (req: Request, res: Response) => {
         summaryQuestion.assignTo = assignTo || summaryQuestion.assignTo;
         summaryQuestion.type = type || summaryQuestion.type;
         summaryQuestion.sampleFile = sampleFile || summaryQuestion.sampleFile;
+        summaryQuestion.instructions = instructions || summaryQuestion.instructions;
 
         await summaryQuestion.save();
 
