@@ -137,6 +137,14 @@ const projectModel = new mongoose.Schema({
         type: String,
         default: ""
     },
+    bidsubmissionhour: {
+        type: String,
+        default: "00"
+    },
+    bidsubmissionminute: {
+        type: String,
+        default: "00"
+    },
     caseStudyRequired: {
         type: Number,
         default: 0
@@ -225,7 +233,7 @@ const projectModel = new mongoose.Schema({
         type: Date,
         default: getCurrentISTTime
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 projectModel.pre('save', async function (next) {
     this.updatedAt = new Date();

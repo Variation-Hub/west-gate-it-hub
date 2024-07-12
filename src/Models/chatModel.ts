@@ -36,7 +36,7 @@ const chatModel = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 chatModel.pre('save', async function (next) {
     this.updatedAt = new Date();

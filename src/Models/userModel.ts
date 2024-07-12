@@ -107,7 +107,7 @@ const userModel = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 userModel.pre('save', async function (this: UserDocument, next) {
     this.updatedAt = new Date();

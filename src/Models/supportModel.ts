@@ -36,7 +36,7 @@ const supportModel = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 supportModel.pre('save', async function (next) {
     this.updatedAt = new Date();

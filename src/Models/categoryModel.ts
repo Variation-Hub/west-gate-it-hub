@@ -14,7 +14,7 @@ const categoryModel = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 categoryModel.pre('save', async function (next) {
     this.updatedAt = new Date();

@@ -24,7 +24,7 @@ const caseStudyModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    userId:{
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -37,7 +37,7 @@ const caseStudyModel = new mongoose.Schema({
         type: Date,
         default: Date.now
     }
-}, { versionKey: false });
+}, { versionKey: false, minimize: false });
 
 caseStudyModel.pre('save', async function (next) {
     this.updatedAt = new Date();
