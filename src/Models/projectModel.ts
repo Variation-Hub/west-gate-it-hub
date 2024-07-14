@@ -167,7 +167,7 @@ const projectModel = new mongoose.Schema({
     },
     FeasibilityOtherDocuments: {
         type: mongoose.Schema.Types.Mixed,
-        default: {}
+        default: []
     },
     loginDetail: {
         type: [mongoose.Schema.Types.Mixed],
