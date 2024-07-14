@@ -225,6 +225,10 @@ const projectModel = new mongoose.Schema({
         type: String,
         default: ""
     },
+    waitingForResult: {
+        type: Boolean,
+        default: false
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

@@ -90,16 +90,6 @@ export const getProject = async (req: Request, res: Response) => {
                 }
             },
             {
-                $addFields: {
-                    'select.supplierName': '$select.supplierDetails.name'
-                }
-            },
-            {
-                $project: {
-                    'select.supplierDetails': 0
-                }
-            },
-            {
                 $group: {
                     _id: '$_id',
                     project: { $first: '$$ROOT' },
@@ -117,11 +107,11 @@ export const getProject = async (req: Request, res: Response) => {
                 $project: {
                     'applyUserId': 0,
                     'sortListUserId': 0,
-                    'summaryQuestion.projectId': 0
+                    'summaryQuestion.projectId': 0,
+                    'select.supplierDetails.password': 0 // Exclude password for security
                 }
             }
         ]);
-
 
         console.log(project)
         if (project.length === 0) {
@@ -415,7 +405,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -452,6 +442,9 @@ export const updateProject = async (req: Request, res: Response) => {
         project.status = status || project.status;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        if (waitingForResult === false || waitingForResult === true) {
+            project.waitingForResult = waitingForResult;
+        }
 
         if (stages) {
             project.stages = stages.map((obj: any) => {
@@ -759,7 +752,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute } = req.body
+        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult } = req.body
 
         const project = await projectModel.findById(id);
 
