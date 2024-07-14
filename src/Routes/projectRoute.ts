@@ -33,7 +33,7 @@ projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.Feasibil
 
 // UKWriter routes
 projectRoutes.get("/ukwriter/dashboard", authorizeRoles(), getDashboardDataUKWriter);
-projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getSelectedUserDataUKWriter);
+projectRoutes.get("/ukwriter/selected-user/:id", authorizeRoles(), getSelectedUserDataUKWriter);
 projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles.UKWriter, userRoles.Admin), getProjectSelectUser);
 
 // Project Co-ordinator

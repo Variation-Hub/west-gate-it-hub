@@ -777,7 +777,6 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
         project.status = status || project.status;
         project.statusComment = statusComment || project.statusComment;
         project.failStatusImage = failStatusImage || project.failStatusImage;
-        project.subContracting = subContracting || project.subContracting;
         project.subContractingfile = subContractingfile || project.subContractingfile;
         project.economicalPartnershipQueryFile = economicalPartnershipQueryFile || project.economicalPartnershipQueryFile;
         project.economicalPartnershipResponceFile = economicalPartnershipResponceFile || project.economicalPartnershipResponceFile;
@@ -790,6 +789,9 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
         project.value = value || project.value;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        if (subContracting === false || subContracting === true) {
+            project.subContracting = subContracting;
+        }
 
         const updateProject = await project.save();
 
