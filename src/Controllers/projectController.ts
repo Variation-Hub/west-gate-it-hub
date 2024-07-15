@@ -669,7 +669,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 responseData.projectCount.totalNotAwarded++;
                 responseData.projectValue.totalNotAwardedValue += project.value;
             }
-            if (project.status === projectStatus.InSubmition) {
+            if (project.status === projectStatus.InSubmission) {
                 responseData.projectCount.totalInSubmition++;
                 responseData.projectValue.inSubmitionsValue += project.value;
             }
@@ -678,12 +678,9 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 responseData.projectValue.insolutionValue += project.value;
 
             }
-            if (project.status === projectStatus.InReview) {
+            if (project.status === projectStatus.InReviewWestGate) {
                 responseData.projectCount.totalInReview++;
                 responseData.projectValue.inReviewValue += project.value;
-            }
-            if (project.status === projectStatus.Expired) {
-                responseData.projectCount.totalExpired++;
             }
             if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
                 responseData.projectCount.sortListed++;
@@ -944,7 +941,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             // }
 
 
-            project.status = projectStatus.Closed
+            project.status = projectStatus.Won
             project.closedDate = new Date()
         }
         if (dropUser) {

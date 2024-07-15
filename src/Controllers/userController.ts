@@ -559,16 +559,16 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
         projects.forEach((project: any) => {
             data.projectsPosted.value += project.value;
-            if (project.status === projectStatus.Closed) {
+            if (project.status === projectStatus.Won) {
                 data.projectsClosed.count += 1;
                 data.projectsClosed.value += project.value;
             } else if (project.status === projectStatus.InSolution) {
                 data.projectsInSolution.count += 1;
                 data.projectsInSolution.value += project.value;
-            } else if (project.status === projectStatus.InSubmition) {
+            } else if (project.status === projectStatus.InSubmission) {
                 data.projectsInSubmission.count += 1;
                 data.projectsInSubmission.value += project.value;
-            } else if (project.status === projectStatus.InReview) {
+            } else if (project.status === projectStatus.InReviewWestGate) {
                 data.projectsInReview.count += 1;
                 data.projectsInReview.value += project.value;
             } else if (project.status === projectStatus.Submitted) {
@@ -629,7 +629,7 @@ export const getAdminDashboardSuppliersStatistics = async (req: any, res: Respon
         let aggregationPipeline: any[] = [
             {
                 $match: {
-                    status: projectStatus.Closed,
+                    status: projectStatus.Won,
                     closedDate: { $gte: lastWeekStart, $lte: endOfDay }
                 }
             }
