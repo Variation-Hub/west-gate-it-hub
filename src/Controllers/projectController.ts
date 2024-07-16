@@ -106,7 +106,6 @@ export const getProject = async (req: Request, res: Response) => {
             {
                 $project: {
                     'applyUserId': 0,
-                    'sortListUserId': 0,
                     'summaryQuestion.projectId': 0,
                     'select.supplierDetails.password': 0 // Exclude password for security
                 }
@@ -929,7 +928,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
 
             supplierId = new mongoose.Types.ObjectId(supplierId)
             if (!(project.select.some((select: any) => select.supplierId.equals(supplierId)))) {
-                project.select.push({ supplierId, companySelect, handoverCall: new Date(handoverCall) });
+                project.select.push(select);
             }
         }
         if (finalizedId) {
