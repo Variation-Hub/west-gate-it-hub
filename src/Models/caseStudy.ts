@@ -13,7 +13,7 @@ const caseStudyModel = new mongoose.Schema({
     },
     subCategory: {
         type: String,
-        required: true,
+        required: false,
         trim: true
     },
     link: {
