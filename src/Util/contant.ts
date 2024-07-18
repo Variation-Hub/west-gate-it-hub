@@ -63,7 +63,7 @@ export const projectStatus = {
     Awarded: "Awarded",
     NotAwarded: "NotAwarded",
     Won: "Won",
-    Inhold: 'Inhold',
+    Inhold: 'InHold',
     Inprogress: 'InProgress',
 }
 
