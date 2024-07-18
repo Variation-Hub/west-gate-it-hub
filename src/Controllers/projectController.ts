@@ -55,6 +55,14 @@ export const getProject = async (req: Request, res: Response) => {
             },
             {
                 $lookup: {
+                    from: 'casestudymodels',
+                    localField: 'category',
+                    foreignField: 'category',
+                    as: 'casestudy'
+                }
+            },
+            {
+                $lookup: {
                     from: 'mailscreenshots',
                     localField: 'BOSID',
                     foreignField: 'BOSId',
@@ -104,10 +112,45 @@ export const getProject = async (req: Request, res: Response) => {
                 }
             },
             {
+                $unwind: {
+                    path: '$casestudy',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: 'casestudy.userId',
+                    foreignField: '_id',
+                    as: 'casestudy.userDetails'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$casestudy.userDetails',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    project: { $first: '$$ROOT' },
+                    casestudy: { $push: '$casestudy' }
+                }
+            },
+            {
+                $replaceRoot: {
+                    newRoot: {
+                        $mergeObjects: ['$project', { casestudy: '$casestudy' }]
+                    }
+                }
+            },
+            {
                 $project: {
                     'applyUserId': 0,
                     'summaryQuestion.projectId': 0,
-                    'select.supplierDetails.password': 0 // Exclude password for security
+                    'select.supplierDetails.password': 0, // Exclude password for security
+                    'casestudy.userDetails.password': 0 // Exclude password for security in casestudy userDetails
                 }
             }
         ]);
