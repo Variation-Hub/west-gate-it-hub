@@ -62,7 +62,9 @@ export const projectStatus = {
     WaitingForResult: "WaitingForResult",
     Awarded: "Awarded",
     NotAwarded: "NotAwarded",
-    Won: "Won"
+    Won: "Won",
+    Inhold: 'Inhold',
+    Inprogress: 'InProgress',
 }
 
 
