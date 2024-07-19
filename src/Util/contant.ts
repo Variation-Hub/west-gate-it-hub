@@ -65,6 +65,8 @@ export const projectStatus = {
     Won: "Won",
     Inhold: 'InHold',
     Inprogress: 'InProgress',
+    Pass: 'Pass',
+    Fail: 'Fail',
 }
 
 
