@@ -8,7 +8,7 @@
     "build": "npx tsc",
     "start": "node dist/index.js",
     "dev": "nodemon src/index.ts",
-    "dep": "nodemon --max-old-space-size=8132 src/index.js"
+    "dep": "node --max-old-space-size=8132 src/index.js"
   },
   "keywords": [],
   "author": "",
