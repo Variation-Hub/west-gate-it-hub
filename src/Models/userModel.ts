@@ -33,7 +33,6 @@ const userModel = new mongoose.Schema({
     mobileNumber: {
         type: String,
         trim: true,
-        unique: true,
     },
     companyName: {
         type: String,
