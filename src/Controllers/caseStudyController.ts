@@ -1,6 +1,6 @@
 import { Request, Response } from "express"
 import caseStudyModel from "../Models/caseStudy"
-import { uploadToAzureBlob } from "../Util/aws"
+import { uploadToBackblazeB2 } from "../Util/aws"
 
 export const caseStudyList = async (req: any, res: Response) => {
     try {
@@ -47,7 +47,7 @@ export const createCaseStudy = async (req: any, res: Response) => {
         const userId = req.user.id
 
         if (req.file) {
-            file = await uploadToAzureBlob(req.file, "caseStudy")
+            file = await uploadToBackblazeB2(req.file, "caseStudy")
         }
         const CaseStudy = await caseStudyModel.create({ name, category, link: file, subCategory, userId })
 

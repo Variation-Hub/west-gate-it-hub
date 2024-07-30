@@ -4,7 +4,7 @@ import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import { generatePass, projectCategory, projectStatus, userRoles } from "../Util/contant"
 import { emailHelper } from "../Util/nodemailer"
-import { deleteFromAzureBlob, uploadToAzureBlob } from "../Util/aws"
+import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
 import { connectUser } from "../socket/socketEvent"
@@ -327,9 +327,9 @@ export const updateAvatar = async (req: any, res: Response) => {
 
         if (req.file) {
             if (user.avatar) {
-                deleteFromAzureBlob(user.avatar)
+                deleteFromBackblazeB2(user.avatar)
             }
-            user.avatar = await uploadToAzureBlob(req.file, "cv") as any
+            user.avatar = await uploadToBackblazeB2(req.file, "cv") as any
         }
 
         await user.save();
@@ -365,9 +365,9 @@ export const updateSuplierAdmin = async (req: any, res: Response) => {
 
         if (req.file) {
             if (user.cv) {
-                deleteFromAzureBlob(user.cv)
+                deleteFromBackblazeB2(user.cv)
             }
-            user.cv = await uploadToAzureBlob(req.file, "cv") as any
+            user.cv = await uploadToBackblazeB2(req.file, "cv") as any
         }
 
         await user.save();
