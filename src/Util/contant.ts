@@ -46,11 +46,11 @@ export const generatePass = () => {
 
 export const projectStatus = {
     Awaiting: "Awaiting",
-    DocumentsNotFound: "DocumentsNotFound",
+    DocumentsNotFound: "Documents not found",
     Dropped: "Dropped",
-    DroppedAfterFeasibility: "DroppedAfterFeasibility",
+    DroppedAfterFeasibility: "⁠Dropped after feasibility",
     Failed: "Failed",
-    HandoveredToOtherSupplier: "HandoveredToOtherSupplier",
+    HandoveredToOtherSupplier: "⁠Handovered to other supplier",
     Passed: "Passed",
     Submitted: "Submitted",
     InSolution3rdParty: "InSolution3rdParty",
