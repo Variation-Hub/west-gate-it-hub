@@ -93,7 +93,8 @@ const projectModel = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: projectStatus,
+        // enum: projectStatus,
+        trim: true,
         default: projectStatus.Awaiting,
     },
     statusComment: {
