@@ -42,12 +42,11 @@ export const summaryQuestionListByUser = async (req: any, res: Response) => {
     }
 }
 
-
 export const createSummaryQuestion = async (req: any, res: Response) => {
     try {
-        let { questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions } = req.body
+        let { questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions, files } = req.body
 
-        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions })
+        const summaryQuestion = await summaryQuestionModel.create({ questionName, question, refrenceDocument, weightage, comment, projectId, summaryQuestionFor, type, sampleFile, instructions, files })
 
         return res.status(200).json({
             message: "Summary Question create success",
@@ -66,7 +65,7 @@ export const createSummaryQuestion = async (req: any, res: Response) => {
 export const updateSummaryQuestion = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        let { questionName, question, refrenceDocument, weightage, comment, verify, summaryQuestionFor, assignTo, type, sampleFile, instructions } = req.body
+        let { questionName, question, refrenceDocument, weightage, comment, verify, summaryQuestionFor, assignTo, type, sampleFile, instructions, files } = req.body
         const summaryQuestion: any = await summaryQuestionModel.findById(id);
 
         if (!summaryQuestion) {
@@ -87,6 +86,7 @@ export const updateSummaryQuestion = async (req: Request, res: Response) => {
         summaryQuestion.type = type || summaryQuestion.type;
         summaryQuestion.sampleFile = sampleFile || summaryQuestion.sampleFile;
         summaryQuestion.instructions = instructions || summaryQuestion.instructions;
+        summaryQuestion.files = files || summaryQuestion.files;
 
         await summaryQuestion.save();
 
@@ -232,22 +232,3 @@ export const getsinglesummaryQuestion = async (req: any, res: Response) => {
         });
     }
 }
-
-// export const handleErrorInFunction = (req: Request, res: Response) => {
-//     try {
-//         if (true){
-//             const userRepository = userModel.
-//             return res.status(500).json({
-//                 message: "we want to error in function but we don't have a function to handle this error message ",
-//                 status: false,
-//                 data: null
-//             })
-//         }
-//     } catch (err: any) {
-//         return res.status(500).json({
-//             message: err.message,
-//             status: false,
-//             data: null
-//         })
-//     }
-// }

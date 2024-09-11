@@ -4,49 +4,41 @@ import { summaryQuestionFor, summaryQuestionType } from "../Util/contant";
 const QuestionModel = new mongoose.Schema({
     questionName: {
         type: String,
-        required: true,
         trim: true,
     },
     question: {
         type: String,
-        required: true,
         trim: true,
     },
     refrenceDocument: {
         type: String,
-        required: true,
         trim: true,
     },
     weightage: {
         type: String,
-        required: true,
     },
     instructions: {
         type: String,
-        required: false,
     },
     verify: {
         type: Boolean,
-        required: true,
         default: false,
     },
     comment: {
         type: String,
-        required: false,
     },
     response: {
         type: [mongoose.Schema.Types.Mixed], // {type : string , message: string, date: Date} type enum : ["reply","review"]
-        required: true,
         default: [],
     },
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Project"
+        ref: "Project",
+        required: true
     },
     summaryQuestionFor: {
         type: String,
         enum: summaryQuestionFor,
-        required: true,
     },
     assignTo: {
         type: mongoose.Schema.Types.ObjectId,
@@ -62,6 +54,10 @@ const QuestionModel = new mongoose.Schema({
         type: String,
         enum: summaryQuestionType,
         default: summaryQuestionType.Text
+    },
+    files: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     createdAt: {
         type: Date,
