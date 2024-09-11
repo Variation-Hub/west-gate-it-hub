@@ -220,12 +220,13 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
         website = website?.split(',');
         status = status?.split(',');
+        clientType = clientType?.split(',');
 
         let filter: any = {}
 
@@ -233,7 +234,10 @@ export const getProjects = async (req: any, res: Response) => {
             filter = {
                 $or: [
                     { BOSID: keyword },
-                    { projectName: { $regex: keyword, $options: 'i' } }
+                    { clientName: { $regex: keyword, $options: 'i' } },
+                    { website: { $regex: keyword, $options: 'i' } },
+                    { projectName: { $regex: keyword, $options: 'i' } },
+                    { noticeReference: { $regex: keyword, $options: 'i' } }
                 ]
             };
         }
@@ -248,6 +252,10 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (projectType) {
             filter.projectType = { $in: projectType };
+        }
+
+        if (clientType) {
+            filter.clientType = { $in: clientType };
         }
 
         if (foiNotUploaded) {
@@ -365,6 +373,31 @@ export const getProjects = async (req: any, res: Response) => {
 
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
         }
+
+        if (publishDateRange) {
+            const [startDate, endDate] = publishDateRange.split(',').map((date: string) => date.trim());
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const startOfDayUTC = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+
+            filter.publishDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+        }
+
+        if (SubmissionDueDateRange) {
+            const [startDate, endDate] = SubmissionDueDateRange.split(',').map((date: string) => date.trim());
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const startOfDayUTC = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+
+            filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+        }
+
 
         if (status) {
             filter.status = { $in: status };
@@ -791,7 +824,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult } = req.body
+        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -821,6 +854,8 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
         project.value = value || project.value;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        project.comment = comment || project.comment;
+
         if (subContracting === false || subContracting === true) {
             project.subContracting = subContracting;
         }

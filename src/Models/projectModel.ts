@@ -98,8 +98,12 @@ const projectModel = new mongoose.Schema({
         default: projectStatus.Awaiting,
     },
     statusComment: {
-        type: String,
-        default: ""
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
+    comment: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     failStatusImage: {
         type: mongoose.Schema.Types.Mixed,
