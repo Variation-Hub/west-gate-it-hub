@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { projectStatus } from "../Util/contant";
+import { projectStatus, projectStatus1 } from "../Util/contant";
 
 function getCurrentISTTime() {
     const currentDate = new Date();
@@ -96,6 +96,18 @@ const projectModel = new mongoose.Schema({
         // enum: projectStatus,
         trim: true,
         default: projectStatus.Awaiting,
+    },
+    status1: {
+        type: String,
+        // enum: projectStatus,
+        trim: true,
+        // default: projectStatus1.InSolution,
+    },
+    BidWritingStatus: {
+        type: String,
+        // enum: projectStatus,
+        trim: true,
+        //default: BidWritingStatus.UKExpertReview,
     },
     statusComment: {
         type: [mongoose.Schema.Types.Mixed],

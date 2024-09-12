@@ -480,7 +480,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -517,6 +517,9 @@ export const updateProject = async (req: Request, res: Response) => {
         project.status = status || project.status;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        project.status1 = status1 || project.status1;
+        project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
+
         if (waitingForResult === false || waitingForResult === true) {
             project.waitingForResult = waitingForResult;
         }
@@ -824,7 +827,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment } = req.body
+        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -856,6 +859,8 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
         project.comment = comment || project.comment;
         project.projectComment = projectComment || project.projectComment;
+        project.status1 = status1 || project.status1;
+        project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
 
         if (subContracting === false || subContracting === true) {
             project.subContracting = subContracting;

@@ -35,7 +35,7 @@ export const generatePass = () => {
 //     ReSolution: 'ReSolution',
 //     UnderSubmission: 'UnderSubmission',
 //     Awarded: 'Awarded',
-//     NotAwarded: 'NotAwarded',
+//     westgate writing: 'NotAwarded',
 //     Submitted: 'Submitted',
 //     Closed: "Closed",
 //     InSubmition: "InSubmition",
@@ -67,8 +67,28 @@ export const projectStatus = {
     Inprogress: 'InProgress',
     Pass: 'Pass',
     Fail: 'Fail',
+    QueryRaised: "Query Raised",
+    NoDocuments: "No documents"
 }
 
+export const projectStatus1 = {
+    InSolution: "In solution",
+    InReview: "In-review",
+    InSubmission: "In-Submission",
+    submitted: "submitted",
+    awarded: "awarded",
+    notAwarded: "not awarded",
+    dropped: "dropped"
+}
+
+export const BidWritingStatus = {
+    UKExpertReview: "UK expert review",
+    ukExpertWriting: "uk expert writing",
+    thirdExpertReview: "third expert review",
+    thirdPartyExpertWriting: "third party expert writing",
+    westgateReview: "westgate review",
+    westgateWriting: "westgate writing"
+}
 
 export const projectCategory = {
     WebDevelopment: 'Web Development',
