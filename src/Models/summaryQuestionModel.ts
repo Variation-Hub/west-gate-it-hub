@@ -55,10 +55,6 @@ const QuestionModel = new mongoose.Schema({
         enum: summaryQuestionType,
         default: summaryQuestionType.Text
     },
-    files: {
-        type: [mongoose.Schema.Types.Mixed],
-        default: []
-    },
     createdAt: {
         type: Date,
         default: Date.now

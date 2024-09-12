@@ -102,6 +102,10 @@ const projectModel = new mongoose.Schema({
         default: []
     },
     comment: {
+        type: String,
+        default: ""
+    },
+    projectComment: {
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
