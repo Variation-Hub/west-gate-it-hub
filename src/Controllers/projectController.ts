@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose from "mongoose";
 import foiModel from "../Models/foiModel";
-import { projectStatus } from "../Util/contant";
+import { projectStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -41,7 +41,7 @@ export const getProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
 
-        const project = await projectModel.aggregate([
+        let project: any = await projectModel.aggregate([
             {
                 $match: { _id: new mongoose.Types.ObjectId(id) }
             },
@@ -75,40 +75,6 @@ export const getProject = async (req: Request, res: Response) => {
                     localField: '_id',
                     foreignField: 'projectId',
                     as: 'summaryQuestion'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$select',
-                    preserveNullAndEmptyArrays: true // Preserve empty arrays for projects with no select entries
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'select.supplierId',
-                    foreignField: '_id',
-                    as: 'select.supplierDetails'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$select.supplierDetails',
-                    preserveNullAndEmptyArrays: true // Preserve null values if no supplier details are found
-                }
-            },
-            {
-                $group: {
-                    _id: '$_id',
-                    project: { $first: '$$ROOT' },
-                    select: { $push: '$select' }
-                }
-            },
-            {
-                $replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: ['$project', { select: '$select' }]
-                    }
                 }
             },
             {
@@ -149,13 +115,11 @@ export const getProject = async (req: Request, res: Response) => {
                 $project: {
                     'applyUserId': 0,
                     'summaryQuestion.projectId': 0,
-                    'select.supplierDetails.password': 0, // Exclude password for security
-                    'casestudy.userDetails.password': 0 // Exclude password for security in casestudy userDetails
+                    'casestudy.userDetails.password': 0
                 }
             }
         ]);
 
-        console.log(project)
         if (project.length === 0) {
             return res.status(404).json({
                 message: "Project not found",
@@ -163,10 +127,26 @@ export const getProject = async (req: Request, res: Response) => {
                 data: null
             })
         }
+        project = project[0];
+
+        if (project.select.length > 0) {
+            const supplierIds = project.select.map((item: any) => item.supplierId);
+
+            const users = await userModel.find({
+                _id: { $in: supplierIds }
+            });
+            project.select = project.select.map((item: any) => {
+                return {
+                    ...item,
+                    supplierDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.supplierId))
+                }
+            })
+        }
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
-            data: project[0]
+            data: project
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -273,7 +253,11 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (sortlist) {
-            filter.sortListUserId = req.user.id;
+            if (req.user.role === userRoles.ProjectManager) {
+                filter.sortListUserId = { $ne: [] }
+            } else {
+                filter.sortListUserId = req.user.id;
+            }
         }
 
         if (applied) {
@@ -340,7 +324,8 @@ export const getProjects = async (req: any, res: Response) => {
         if (valueRange) {
             const [startValue, endValue] = valueRange.split('-');
 
-            filter.value = { $gte: startValue, $lte: endValue };
+            filter.minValue = { $gte: startValue };
+            filter.maxValue = { $lte: endValue };
         }
 
         if (website) {
@@ -439,7 +424,8 @@ export const getProjects = async (req: any, res: Response) => {
         let projects = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate('sortListUserId');
 
         if (categorygroup) {
             projects = projects.map((project: any) => {
@@ -1011,7 +997,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             }
 
             supplierId = new mongoose.Types.ObjectId(supplierId)
-            if (!(project.select.some((select: any) => select.supplierId.equals(supplierId)))) {
+            if (!(project.select.some((select: any) => new mongoose.Types.ObjectId(select.supplierId)?.equals(supplierId)))) {
                 project.select.push(select);
             }
         }

@@ -132,6 +132,7 @@ const projectModel = new mongoose.Schema({
     },
     sortListUserId: {
         type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
         default: [],
     },
     applyUserId: {
