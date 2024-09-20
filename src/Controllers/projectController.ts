@@ -14,12 +14,45 @@ export const createProject = async (req: Request, res: Response) => {
 
         const { data } = req.body;
 
-        const newProjects = await projectModel.insertMany(data)
+        if (!Array.isArray(data) || data.length === 0) {
+            return res.status(400).json({
+                message: "No data provided or invalid format.",
+                status: false,
+                data: null
+            });
+        }
+
+        const insertedProjects = [];
+        const skippedProjects = [];
+
+        for (const project of data) {
+            try {
+                const newProject = await projectModel.create(project);
+                insertedProjects.push(newProject);
+            } catch (err: any) {
+                if (err.code === 11000) {
+                    skippedProjects.push({
+                        project,
+                        reason: 'Duplicate BOSID - Skipped'
+                    });
+                } else {
+                    throw err;
+                }
+            }
+        }
+
+        if (insertedProjects.length === 0) {
+            return res.status(400).json({
+                message: 'No projects were added. All provided data contained duplicates.',
+                status: false,
+                data: null,
+            });
+        }
 
         return res.status(200).json({
             message: "Projects create success",
             status: true,
-            data: newProjects
+            data: insertedProjects
         });
     } catch (err: any) {
         if (err.code === 11000) {
