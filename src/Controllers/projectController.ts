@@ -135,12 +135,25 @@ export const getProject = async (req: Request, res: Response) => {
             const users = await userModel.find({
                 _id: { $in: supplierIds }
             });
-            project.select = project.select.map((item: any) => {
-                return {
-                    ...item,
-                    supplierDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.supplierId))
-                }
-            })
+
+            const updatedSelect = await Promise.all(
+                project.select.map(async (item: any) => {
+                    console.log(project.category, item.supplierId)
+                    const matchedCaseStudy = await caseStudy.countDocuments({
+                        userId: item.supplierId,
+                        verify: true,
+                        category: project.category
+                    });
+
+                    return {
+                        ...item,
+                        supplierDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.supplierId)),
+                        matchedCaseStudy
+                    };
+                })
+            );
+
+            project.select = updatedSelect;
         }
 
         return res.status(200).json({
@@ -282,12 +295,13 @@ export const getProjects = async (req: any, res: Response) => {
             ]))
 
 
+            console.log(categorygroup)
             let filters: any[] = [];
             if (match === "perfect") {
                 filters = categorygroup.map(item => {
                     const category = item._id;
                     const count = item.count;
-
+                    console.log(category)
                     return {
                         $and: [
                             { category },
@@ -295,6 +309,7 @@ export const getProjects = async (req: any, res: Response) => {
                         ]
                     };
                 });
+                console.log(filters)
             } else if (match === "partial") {
                 filters = categorygroup.map(item => {
                     const category = item._id;
@@ -427,6 +442,7 @@ export const getProjects = async (req: any, res: Response) => {
             .sort({ createdAt: -1 })
             .populate('sortListUserId');
 
+        console.log(categorygroup)
         if (categorygroup) {
             projects = projects.map((project: any) => {
                 const data = categorygroup.find((item: any) => item._id === project.category)
@@ -1157,6 +1173,46 @@ export const getLatestProject = async (req: any, res: Response) => {
             message: "project fetch success",
             status: true,
             data: projects
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const addProjectStatusForSupplier = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId, supplierStatus } = req.body
+
+        console.log(projectId)
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        project.select = project.select.map(select => {
+            if (select.supplierId === supplierId) {
+                return {
+                    ...select,
+                    supplierStatus
+                }
+            } else {
+                return select
+            }
+        })
+
+        const updateProject = await project.save();
+        return res.status(200).json({
+            message: "status add project successfully",
+            status: true,
+            data: updateProject
         });
     } catch (err: any) {
         return res.status(500).json({

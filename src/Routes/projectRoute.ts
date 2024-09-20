@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -22,6 +22,7 @@ projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 
 // SupplierAdmin routes
 projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), getDashboardDataSupplierAdmin);
+projectRoutes.patch("/add-status", authorizeRoles(), addProjectStatusForSupplier);
 
 // ProjectManager routes
 projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getDashboardDataProjectManager);
