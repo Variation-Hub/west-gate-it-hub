@@ -475,7 +475,6 @@ export const getProjects = async (req: any, res: Response) => {
             .sort({ createdAt: -1 })
             .populate('sortListUserId');
 
-        console.log(categorygroup)
         if (categorygroup) {
             projects = projects.map((project: any) => {
                 const data = categorygroup.find((item: any) => item._id === project.category)
@@ -487,6 +486,17 @@ export const getProjects = async (req: any, res: Response) => {
                 } else {
                     return project
                 }
+            })
+        }
+        if (req.user.role === userRoles.SupplierAdmin || req.user.role === userRoles.SupplierUser) {
+            projects = projects.map((project) => {
+                const index = project.select.findIndex((item) =>
+                    new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
+                );
+                if (index !== -1) {
+                    project.status = project.select[index].supplierStatus
+                }
+                return project
             })
         }
 

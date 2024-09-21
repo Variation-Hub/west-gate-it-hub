@@ -22,7 +22,7 @@ const caseStudyModel = new mongoose.Schema({
     },
     verify: {
         type: Boolean,
-        default: false
+        default: true
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
