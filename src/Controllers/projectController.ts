@@ -328,44 +328,59 @@ export const getProjects = async (req: any, res: Response) => {
             ]))
 
 
-            console.log(categorygroup)
             let filters: any[] = [];
-            if (match === "perfect") {
-                filters = categorygroup.map(item => {
-                    const category = item._id;
-                    const count = item.count;
-                    console.log(category)
-                    return {
+            if (categorygroup.length > 0) {
+                if (match === "perfect") {
+                    filters = categorygroup.map(item => {
+                        const category = item._id;
+                        const count = item.count;
+                        console.log(category)
+                        return {
+                            $and: [
+                                { category },
+                                { caseStudyRequired: { $lte: count } }
+                            ]
+                        };
+                    });
+                    console.log(filters)
+                } else if (match === "partial") {
+                    filters = categorygroup.map(item => {
+                        const category = item._id;
+                        const count = item.count;
+
+                        return {
+                            $and: [
+                                { category: category },
+                                { caseStudyRequired: { $gt: count } }
+                            ]
+                        };
+                    });
+                }
+
+                if (Object.keys(filter).length > 0) {
+                    filter = {
                         $and: [
-                            { category },
-                            { caseStudyRequired: { $lte: count } }
+                            filter,
+                            { $or: filters }
                         ]
                     };
+                } else {
+                    filter = { $or: filters };
+                }
+            } else if (match === "perfect") {
+                return res.status(200).json({
+                    message: "projects fetch success",
+                    status: true,
+                    data: {
+                        data: [],
+                        meta_data: {
+                            page: req.pagination?.page,
+                            items: 0,
+                            page_size: req.pagination?.limit,
+                            pages: Math.ceil(0 / (req.pagination?.limit as number))
+                        }
+                    }
                 });
-                console.log(filters)
-            } else if (match === "partial") {
-                filters = categorygroup.map(item => {
-                    const category = item._id;
-                    const count = item.count;
-
-                    return {
-                        $and: [
-                            { category: category },
-                            { caseStudyRequired: { $gt: count } }
-                        ]
-                    };
-                });
-            }
-
-            if (Object.keys(filter).length > 0) {
-                filter = {
-                    $and: [
-                        filter,
-                        { $or: filters }
-                    ]
-                };
-            } else {
-                filter = { $or: filters };
             }
         }
 
@@ -476,19 +491,21 @@ export const getProjects = async (req: any, res: Response) => {
             .populate('sortListUserId');
 
         if (categorygroup) {
+            console.log('inside categorygroup')
             projects = projects.map((project: any) => {
                 const data = categorygroup.find((item: any) => item._id === project.category)
-                if (data) {
-                    const result = project
-                    result._doc.matchedCaseStudy = data.count
+                // if (data) {
+                const result = project
+                result._doc.matchedCaseStudy = data?.count || 0
 
-                    return result
-                } else {
-                    return project
-                }
+                return result
+                // } else {
+                //     return project
+                // }
             })
         }
-        if (req.user.role === userRoles.SupplierAdmin || req.user.role === userRoles.SupplierUser) {
+        console.log(req.user)
+        if (req.user?.role === userRoles.SupplierAdmin || req.user?.role === userRoles.SupplierUser) {
             projects = projects.map((project) => {
                 const index = project.select.findIndex((item) =>
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
