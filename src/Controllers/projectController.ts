@@ -385,11 +385,12 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (valueRange) {
-            const [startValue, endValue] = valueRange.split('-');
+            const [startValue, endValue] = valueRange.split('-').map(Number);
 
             filter.minValue = { $gte: startValue };
             filter.maxValue = { $lte: endValue };
         }
+        console.log(filter)
 
         if (website) {
             filter.website = { $in: website }
@@ -491,20 +492,14 @@ export const getProjects = async (req: any, res: Response) => {
             .populate('sortListUserId');
 
         if (categorygroup) {
-            console.log('inside categorygroup')
             projects = projects.map((project: any) => {
                 const data = categorygroup.find((item: any) => item._id === project.category)
-                // if (data) {
                 const result = project
                 result._doc.matchedCaseStudy = data?.count || 0
 
                 return result
-                // } else {
-                //     return project
-                // }
             })
         }
-        console.log(req.user)
         if (req.user?.role === userRoles.SupplierAdmin || req.user?.role === userRoles.SupplierUser) {
             projects = projects.map((project) => {
                 const index = project.select.findIndex((item) =>
@@ -711,7 +706,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
     try {
         const userId = req.user.id
         const user = await userModel.findById(userId)
-        console.log(userId)
         if (!user) {
             return res.status(404).json({
                 message: "User not found",
@@ -747,7 +741,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ]);
-
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
 
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })

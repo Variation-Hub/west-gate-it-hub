@@ -240,12 +240,12 @@ const projectModel = new mongoose.Schema({
         default: ""
     },
     minValue: {
-        type: String,
-        default: ""
+        type: Number,
+        default: 0
     },
     maxValue: {
-        type: String,
-        default: ""
+        type: Number,
+        default: 0
     },
     waitingForResult: {
         type: Boolean,
