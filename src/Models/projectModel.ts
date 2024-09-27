@@ -196,12 +196,12 @@ const projectModel = new mongoose.Schema({
         default: []
     },
     certifications: {
-        type: String,
-        default: ""
+        type: [String],
+        default: []
     },
     policy: {
-        type: String,
-        default: ""
+        type: [String],
+        default: []
     },
     select: {
         type: [mongoose.Schema.Types.Mixed],

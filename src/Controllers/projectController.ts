@@ -537,7 +537,7 @@ export const getProjects = async (req: any, res: Response) => {
 export const updateProject = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus, certifications, policy } = req.body
 
         const project = await projectModel.findById(id);
 
@@ -576,6 +576,8 @@ export const updateProject = async (req: Request, res: Response) => {
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
         project.status1 = status1 || project.status1;
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
+        project.certifications = certifications || project.certifications;
+        project.policy = policy || project.policy;
 
         if (waitingForResult === false || waitingForResult === true) {
             project.waitingForResult = waitingForResult;
