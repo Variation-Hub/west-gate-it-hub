@@ -6,7 +6,7 @@ import { generatePass, projectCategory, projectStatus, userRoles } from "../Util
 import { emailHelper } from "../Util/nodemailer"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
-import mongoose from "mongoose"
+import mongoose, { Schema } from "mongoose"
 import { connectUser } from "../socket/socketEvent"
 
 export const createUser = async (req: Request, res: Response) => {
@@ -290,7 +290,7 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 
 
         return res.status(200).json({
-            message: "User update success",
+            message: "User fetch success",
             status: true,
             data: {
                 data: user,
@@ -310,6 +310,40 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
         });
     }
 }
+
+export const fetchSuplierAdmin = async (req: any, res: Response) => {
+    try {
+
+        const count = await userModel.countDocuments({ role: userRoles.SupplierAdmin })
+
+        const user = await userModel.find(
+            { role: userRoles.SupplierAdmin })
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number);
+
+
+        return res.status(200).json({
+            message: "User fetch success",
+            status: true,
+            data: {
+                data: user,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
 export const updateAvatar = async (req: any, res: Response) => {
     try {
 
@@ -431,7 +465,8 @@ export const getUserList = async (req: any, res: Response) => {
             ]);
 
             users = users.map((user: any) => {
-                const supplierCount = result.find((item) => item.supplierId.equals(user._id));
+                console.log(result, user._id)
+                const supplierCount = result.find((item) => new mongoose.Types.ObjectId(item.supplierId).equals(user._id));
                 if (supplierCount) {
                     return {
                         ...user.toObject(),
