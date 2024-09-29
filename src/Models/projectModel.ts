@@ -195,14 +195,18 @@ const projectModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
-    certifications: {
-        type: [String],
+    eligibilityForm: {
+        type: [mongoose.Schema.Types.Mixed],
         default: []
     },
-    policy: {
-        type: [String],
-        default: []
-    },
+    // certifications: {
+    //     type: [String],
+    //     default: []
+    // },
+    // policy: {
+    //     type: [String],
+    //     default: []
+    // },
     select: {
         type: [mongoose.Schema.Types.Mixed],
         default: []
