@@ -253,6 +253,7 @@ export const getProjects = async (req: any, res: Response) => {
         website = website?.split(',');
         status = status?.split(',');
         clientType = clientType?.split(',');
+        supplierId = supplierId?.split(',');
 
         let filter: any = {}
 
@@ -481,11 +482,11 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (supplierId) {
             console.log(supplierId)
-            filter.select = { $elemMatch: { supplierId: new mongoose.Types.ObjectId(supplierId) } }
+            filter.select = { $elemMatch: { supplierId: { $in: supplierId } } }
         }
 
         const count = await projectModel.countDocuments(filter);
-        let projects = await projectModel.find(filter)
+        let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 })
@@ -501,8 +502,8 @@ export const getProjects = async (req: any, res: Response) => {
             })
         }
         if (req.user?.role === userRoles.SupplierAdmin || req.user?.role === userRoles.SupplierUser) {
-            projects = projects.map((project) => {
-                const index = project.select.findIndex((item) =>
+            projects = projects.map((project: any) => {
+                const index = project.select.findIndex((item: any) =>
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
                 );
                 if (index !== -1) {
@@ -510,6 +511,21 @@ export const getProjects = async (req: any, res: Response) => {
                 }
                 return project
             })
+        }
+
+        if (req.user?.role === userRoles.ProjectManager) {
+            projects = await Promise.all(
+                projects.map(async (project: any) => {
+                    const result = await caseStudy.aggregate([
+                        { $match: { category: project.category } },
+                        { $group: { _id: "$userId" } },
+                        { $group: { _id: null, distinctUserCount: { $sum: 1 } } }
+                    ]);
+
+                    project._doc.matchedSupplierCount = result.length > 0 ? result[0].distinctUserCount : 0;
+                    return project;
+                })
+            );
         }
 
         return res.status(200).json({
