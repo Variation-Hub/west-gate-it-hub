@@ -814,42 +814,42 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 responseData.projectCount.totalProjectInCategory
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
                     responseData.projectCount.matchedProjects++;
-                    responseData.projectValue.matchedProjectsValue += project.value;
+                    responseData.projectValue.matchedProjectsValue += project.maxValue;
                 }
             }
             if (project.status === projectStatus.Submitted) {
                 responseData.projectCount.totalSubmit++;
-                responseData.projectValue.totalSubmitValue += project.value;
+                responseData.projectValue.totalSubmitValue += project.maxValue;
             }
 
             if (project.status === projectStatus.Awarded) {
                 responseData.projectCount.totalAwarded++;
-                responseData.projectValue.totalAwardedValue += project.value;
+                responseData.projectValue.totalAwardedValue += project.maxValue;
             }
             if (project.status === projectStatus.NotAwarded) {
                 responseData.projectCount.totalNotAwarded++;
-                responseData.projectValue.totalNotAwardedValue += project.value;
+                responseData.projectValue.totalNotAwardedValue += project.maxValue;
             }
             if (project.status === projectStatus.InSubmission) {
                 responseData.projectCount.totalInSubmition++;
-                responseData.projectValue.inSubmitionsValue += project.value;
+                responseData.projectValue.inSubmitionsValue += project.maxValue;
             }
             if (project.status === projectStatus.InSolution) {
                 responseData.projectCount.totalInSolution++;
-                responseData.projectValue.insolutionValue += project.value;
+                responseData.projectValue.insolutionValue += project.maxValue;
 
             }
             if (project.status === projectStatus.InReviewWestGate) {
                 responseData.projectCount.totalInReview++;
-                responseData.projectValue.inReviewValue += project.value;
+                responseData.projectValue.inReviewValue += project.maxValue;
             }
             if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
                 responseData.projectCount.sortListed++;
-                responseData.projectValue.sortListedValue += project.value;
+                responseData.projectValue.sortListedValue += project.maxValue;
             }
             if (project.dropUser.includes(new mongoose.Types.ObjectId(userId))) {
                 responseData.projectCount.drop++;
-                responseData.projectValue.dropValue += project.value;
+                responseData.projectValue.dropValue += project.maxValue;
             }
         })
         return res.status(200).json({

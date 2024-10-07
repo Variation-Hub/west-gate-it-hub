@@ -29,6 +29,50 @@ const caseStudyModel = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    date: {
+        type: Date,
+        default: null
+    },
+    projectApplicationName: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    domainCategoryIndustry: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    type: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    descriptionTechnologies: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    maintenanceContractDuration: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    contractValue: {
+        type: Number,
+        default: 0,
+        trim: true
+    },
+    resourcesUsed: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    clientName: {
+        type: String,
+        default: null,
+        trim: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
