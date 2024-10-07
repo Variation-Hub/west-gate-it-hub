@@ -38,7 +38,12 @@ const caseStudyModel = new mongoose.Schema({
         default: null,
         trim: true
     },
-    domainCategoryIndustry: {
+    domainCategory: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    industry: {
         type: String,
         default: null,
         trim: true
@@ -48,12 +53,22 @@ const caseStudyModel = new mongoose.Schema({
         default: null,
         trim: true
     },
-    descriptionTechnologies: {
+    description: {
         type: String,
         default: null,
         trim: true
     },
-    maintenanceContractDuration: {
+    technologies: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    maintenance: {
+        type: String,
+        default: null,
+        trim: true
+    },
+    contractDuration: {
         type: String,
         default: null,
         trim: true
