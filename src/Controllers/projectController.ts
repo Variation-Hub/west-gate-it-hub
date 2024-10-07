@@ -764,7 +764,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             {
                 $group: {
                     _id: null,
-                    totalValue: { $sum: "$value" },
+                    totalValue: { $sum: "$maxValue" },
                     projectCount: { $sum: 1 }
                 }
             }
