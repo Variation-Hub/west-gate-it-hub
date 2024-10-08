@@ -38,11 +38,6 @@ const caseStudyModel = new mongoose.Schema({
         default: null,
         trim: true
     },
-    domainCategory: {
-        type: String,
-        default: null,
-        trim: true
-    },
     industry: {
         type: String,
         default: null,
