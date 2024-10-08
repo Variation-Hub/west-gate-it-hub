@@ -43,13 +43,9 @@ export const caseStudyList = async (req: any, res: Response) => {
 
 export const createCaseStudy = async (req: any, res: Response) => {
     try {
-        let { file } = req.body
         const userId = req.user.id
 
-        if (req.file) {
-            file = await uploadToBackblazeB2(req.file, "caseStudy")
-        }
-        const CaseStudy = await caseStudyModel.create({ ...req.body, link: file, userId })
+        const CaseStudy = await caseStudyModel.create({ ...req.body, userId })
 
         return res.status(200).json({
             message: "CaseStudy create success",

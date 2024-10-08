@@ -16,10 +16,6 @@ const caseStudyModel = new mongoose.Schema({
         required: false,
         trim: true
     },
-    link: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true,
-    },
     verify: {
         type: Boolean,
         default: true
@@ -32,11 +28,6 @@ const caseStudyModel = new mongoose.Schema({
     date: {
         type: Date,
         default: null
-    },
-    projectApplicationName: {
-        type: String,
-        default: null,
-        trim: true
     },
     industry: {
         type: String,
