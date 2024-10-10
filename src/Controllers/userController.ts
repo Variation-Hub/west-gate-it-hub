@@ -106,6 +106,16 @@ export const loginUser = async (req: Request, res: Response) => {
             })
         }
 
+        if (!user.active) {
+            return res.status(400).json({
+                message: "Please contect Admin to login",
+                status: false,
+                data: null
+            })
+        }
+
+        user.lastLogin = new Date()
+        await user.save()
         if (!(await comparepassword(password, user.password))) {
             return res.status(400).json({
                 message: "please enter valid password",
@@ -132,7 +142,7 @@ export const loginUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages, mobileNumber, status } = req.body
+        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages, mobileNumber, status, active, activeStatus } = req.body
         const user = await userModel.findById(id);
 
         if (!user) {
@@ -157,7 +167,10 @@ export const updateUser = async (req: Request, res: Response) => {
         user.manages = manages || user.manages;
         user.mobileNumber = mobileNumber || user.mobileNumber;
         user.status = status || user.status;
-
+        user.activeStatus = activeStatus || user.activeStatus;
+        if (active === true || active === false) {
+            user.active = active;
+        }
         const newUser = await user.save();
         return res.status(200).json({
             message: "User update success",
@@ -542,79 +555,74 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             };
         }
 
-        const projects = await projectModel.find(createdAtFilter).select({ status: 1, value: 1, category: 1 });
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
 
-        let data = {
+        let data: any = {
             projectsPosted: {
                 count: projects.length,
-                value: 0
+                maxValue: 0
             },
             projectsMatched: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsClosed: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsInSolution: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsInSubmission: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsInReview: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             TotalSubmitted: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsAwarded: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
             projectsNotAwarded: {
                 count: 0,
-                value: 0
+                maxValue: 0
             },
-            categoryWise: {
-                WebDevelopment: 0,
-                Testing: 0,
-                DataBase: 0,
-                Andoid: 0,
-                ArtificialIntelligence: 0
-            }
+            categoryWise: {}
         };
 
         const uniqueCategories = await userModel.distinct("categoryList");
+        // const projectCategory = await projectModel.distinct("category");
 
         projects.forEach((project: any) => {
-            data.projectsPosted.value += project.value;
+            data.projectsPosted.maxValue += project.maxValue;
             if (project.status === projectStatus.Won) {
                 data.projectsClosed.count += 1;
-                data.projectsClosed.value += project.value;
+                data.projectsClosed.maxValue += project.maxValue;
             } else if (project.status === projectStatus.InSolution) {
                 data.projectsInSolution.count += 1;
-                data.projectsInSolution.value += project.value;
+                data.projectsInSolution.maxValue += project.maxValue;
             } else if (project.status === projectStatus.InSubmission) {
                 data.projectsInSubmission.count += 1;
-                data.projectsInSubmission.value += project.value;
+                data.projectsInSubmission.maxValue += project.maxValue;
             } else if (project.status === projectStatus.InReviewWestGate) {
                 data.projectsInReview.count += 1;
-                data.projectsInReview.value += project.value;
+                data.projectsInReview.maxValue += project.maxValue;
             } else if (project.status === projectStatus.Submitted) {
                 data.TotalSubmitted.count += 1;
-                data.TotalSubmitted.value += project.value;
+                data.TotalSubmitted.maxValue += project.maxValue;
             } else if (project.status === projectStatus.Awarded) {
                 data.projectsAwarded.count += 1;
-                data.projectsAwarded.value += project.value;
+                data.projectsAwarded.maxValue += project.maxValue;
             } else if (project.status === projectStatus.NotAwarded) {
                 data.projectsNotAwarded.count += 1;
-                data.projectsNotAwarded.value += project.value;
+                data.projectsNotAwarded.maxValue += project.maxValue;
             }
 
             if (project.category === projectCategory.WebDevelopment) {
@@ -629,9 +637,17 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 data.categoryWise.ArtificialIntelligence += 1;
             }
 
+            if (project.category) {
+                if (data.categoryWise[project.category]) {
+                    data.categoryWise[project.category]++;
+                } else {
+                    data.categoryWise[project.category] = 1;
+                }
+            }
+
             if (uniqueCategories.includes(project.category)) {
                 data.projectsMatched.count += 1;
-                data.projectsMatched.value += project.value;
+                data.projectsMatched.maxValue += project.maxValue;
             }
         })
 

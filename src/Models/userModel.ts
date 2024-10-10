@@ -98,6 +98,18 @@ const userModel = new mongoose.Schema({
         required: true,
         default: 'Active'
     },
+    lastLogin: {
+        type: Date,
+        default: null
+    },
+    active: {
+        type: Boolean,
+        default: true
+    },
+    activeStatus: {
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now
