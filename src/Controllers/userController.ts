@@ -510,53 +510,62 @@ export const getUserList = async (req: any, res: Response) => {
 
 export const getAdminDashboardData = async (req: any, res: Response) => {
     try {
-        const { duration } = req.query;
+        const { duration, startDate, endDate } = req.query;
 
         let createdAtFilter = {};
 
-        if (duration === "yearly") {
-            const currentDate = new Date();
-            const currentYear = currentDate.getFullYear();
-            const startOfYear = new Date(currentYear, 0, 1);
+        if (duration) {
+            if (duration === "yearly") {
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear();
+                const startOfYear = new Date(currentYear, 0, 1);
+                createdAtFilter = {
+                    createdAt: {
+                        $gte: startOfYear,
+                        $lt: currentDate
+                    }
+                };
+            } else if (duration === "weekly") {
+                const currentDate = new Date();
+                const startOfWeek = new Date(currentDate);
+                startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+                createdAtFilter = {
+                    createdAt: {
+                        $gte: startOfWeek,
+                        $lt: currentDate
+                    }
+                };
+            } else if (duration === "monthly") {
+                const currentDate = new Date();
+                const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                createdAtFilter = {
+                    createdAt: {
+                        $gte: startOfMonth,
+                        $lt: currentDate
+                    }
+                };
+            } else {
+                const currentDate = new Date();
+                const startOfDay = new Date(currentDate);
+                startOfDay.setHours(0, 0, 0, 0);
+                createdAtFilter = {
+                    createdAt: {
+                        $gte: startOfDay,
+                        $lt: currentDate
+                    }
+                };
+            }
+        } else if (startDate && endDate) {
             createdAtFilter = {
                 createdAt: {
-                    $gte: startOfYear,
-                    $lt: currentDate
-                }
-            };
-        } else if (duration === "weekly") {
-            const currentDate = new Date();
-            const startOfWeek = new Date(currentDate);
-            startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-            createdAtFilter = {
-                createdAt: {
-                    $gte: startOfWeek,
-                    $lt: currentDate
-                }
-            };
-        } else if (duration === "monthly") {
-            const currentDate = new Date();
-            const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-            createdAtFilter = {
-                createdAt: {
-                    $gte: startOfMonth,
-                    $lt: currentDate
-                }
-            };
-        } else {
-            const currentDate = new Date();
-            const startOfDay = new Date(currentDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            createdAtFilter = {
-                createdAt: {
-                    $gte: startOfDay,
-                    $lt: currentDate
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
                 }
             };
         }
 
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
-
+        console.log(createdAtFilter);
         let data: any = {
             projectsPosted: {
                 count: projects.length,
