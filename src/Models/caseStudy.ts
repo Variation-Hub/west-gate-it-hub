@@ -74,6 +74,11 @@ const caseStudyModel = new mongoose.Schema({
         default: null,
         trim: true
     },
+    link: {
+        type: mongoose.Schema.Types.Mixed,
+        required: false,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
