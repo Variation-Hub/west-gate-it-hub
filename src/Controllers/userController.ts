@@ -108,7 +108,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
         if (!user.active) {
             return res.status(400).json({
-                message: "Please contect Admin to login",
+                message: user.activeStatus,
                 status: false,
                 data: null
             })
