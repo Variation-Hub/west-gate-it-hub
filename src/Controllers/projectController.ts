@@ -246,7 +246,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -391,7 +391,6 @@ export const getProjects = async (req: any, res: Response) => {
             filter.minValue = { $gte: startValue };
             filter.maxValue = { $lte: endValue };
         }
-        console.log(filter)
 
         if (website) {
             filter.website = { $in: website }
@@ -422,6 +421,11 @@ export const getProjects = async (req: any, res: Response) => {
             const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (expired) {
+            const date = new Date();
+            filter.dueDate = { $lte: date }
         }
 
         if (publishDateRange) {
@@ -784,6 +788,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalInSolution: 0,
                 totalInReview: 0,
                 totalExpired: 0,
+                totalpassed: 0,
                 //nre
                 sortListed: 0,
                 drop: 0,
@@ -797,6 +802,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalSubmitValue: 0,
                 totalAwardedValue: 0,
                 totalNotAwardedValue: 0,
+                totalpassedValue: 0,
                 //new 
                 sortListedValue: 0,
                 dropValue: 0,
@@ -809,7 +815,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         }
 
         projects.forEach((project: any) => {
-            responseData.projectValue.ProjectInCategoryValue += project.value;
+            responseData.projectValue.ProjectInCategoryValue += project.maxValue;
             if (Object.keys(categorygroup).includes(project.category)) {
                 responseData.projectCount.totalProjectInCategory
                 if (project.caseStudyRequired <= categorygroup[project.category]) {
@@ -829,6 +835,11 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             if (project.status === projectStatus.NotAwarded) {
                 responseData.projectCount.totalNotAwarded++;
                 responseData.projectValue.totalNotAwardedValue += project.maxValue;
+            }
+            console.log(project.status, projectStatus.Passed, "++++", project.status === projectStatus.Passed)
+            if (project.status === projectStatus.Passed) {
+                responseData.projectCount.totalpassed++;
+                responseData.projectValue.totalpassedValue += project.maxValue;
             }
             if (project.status === projectStatus.InSubmission) {
                 responseData.projectCount.totalInSubmition++;
