@@ -328,7 +328,6 @@ export const getProjects = async (req: any, res: Response) => {
                 }
             ]))
 
-
             let filters: any[] = [];
             if (categorygroup.length > 0) {
                 if (match === "perfect") {
@@ -343,7 +342,6 @@ export const getProjects = async (req: any, res: Response) => {
                             ]
                         };
                     });
-                    console.log(filters)
                 } else if (match === "partial") {
                     filters = categorygroup.map(item => {
                         const category = item._id;
@@ -352,7 +350,7 @@ export const getProjects = async (req: any, res: Response) => {
                         return {
                             $and: [
                                 { category: category },
-                                { caseStudyRequired: { $gt: count } }
+                                // { caseStudyRequired: { $gt: count } }
                             ]
                         };
                     });
@@ -423,9 +421,9 @@ export const getProjects = async (req: any, res: Response) => {
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
         }
 
-        if (expired) {
+        if (!expired) {
             const date = new Date();
-            filter.dueDate = { $lte: date }
+            filter.dueDate = { $gte: date }
         }
 
         if (publishDateRange) {
