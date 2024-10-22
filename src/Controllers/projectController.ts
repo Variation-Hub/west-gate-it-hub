@@ -316,7 +316,7 @@ export const getProjects = async (req: any, res: Response) => {
             categorygroup = (await caseStudy.aggregate([
                 {
                     $match: {
-                        userId: new mongoose.Types.ObjectId(req.user.id),
+                        // userId: new mongoose.Types.ObjectId(req.user.id),
                         verify: true
                     }
                 },
@@ -334,7 +334,6 @@ export const getProjects = async (req: any, res: Response) => {
                     filters = categorygroup.map(item => {
                         const category = item._id;
                         const count = item.count;
-                        console.log(category)
                         return {
                             $and: [
                                 { category },
