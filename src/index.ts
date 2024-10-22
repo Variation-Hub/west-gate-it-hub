@@ -6,13 +6,15 @@ import mongoose from 'mongoose';
 import morgan from 'morgan';
 import MainRoutes from './Routes/main';
 import { initSocket } from './socket/socket';
+import bodyParser from 'body-parser';
 
 const app = express();
 const port = process.env.PORT || 4000;
 
 // express config
 app.use(cors());
-app.use(express.json())
+app.use(bodyParser.json({ limit: '20mb' }));
+app.use(bodyParser.urlencoded({ limit: '20mb', extended: true }));
 app.use(morgan('tiny'))
 
 // database connection
