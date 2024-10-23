@@ -112,6 +112,78 @@ const webUserModel = new mongoose.Schema({
         type: String,
         default: ""
     },
+    yearOfEstablishment: {
+        type: Date,
+        default: null
+    },
+    typeOfCompany: {
+        type: String,
+        default: ""
+    },
+    industry_Sector: {
+        type: String,
+        default: ""
+    },
+    companyAddress: {
+        type: String,
+        default: ""
+    },
+    customerSupportContact: {
+        type: String,
+        default: ""
+    },
+    legalAndRegulatoryInformation: {
+        type: String,
+        default: ""
+    },
+    VATOrGSTNumber: {
+        type: String,
+        default: ""
+    },
+    companyDirectors_Owners: {
+        type: String,
+        default: ""
+    },
+    complianceCertifications: {
+        type: String,
+        default: ""
+    },
+    products_ServicesOffered: {
+        type: String,
+        default: ""
+    },
+    technologyStack: {
+        type: String,
+        default: ""
+    },
+    licensingDetails: {
+        type: String,
+        default: ""
+    },
+    IP_Patents: {
+        type: String,
+        default: ""
+    },
+    employeeCount: {
+        type: Number,
+        default: ""
+    },
+    developerOrEngineerTeams: {
+        type: String,
+        default: ""
+    },
+    dataPrivacyPolicies: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    securityCertifications: {
+        type: String,
+        default: ""
+    },
+    cybersecurityPractices: {
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now
