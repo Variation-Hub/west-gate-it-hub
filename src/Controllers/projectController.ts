@@ -246,7 +246,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -496,12 +496,24 @@ export const getProjects = async (req: any, res: Response) => {
             }
         }
 
+        if (supplierStatus) {
+            const userId = req.user.id.toString();
+            filter.select = {
+                $elemMatch: {
+                    supplierId: userId,
+                    supplierStatus: supplierStatus,
+                }
+            };
+
+        }
+
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 })
-            .populate('sortListUserId');
+            .populate('sortListUserId')
+        // .lean();
 
         if (categorygroup) {
             projects = projects.map((project: any) => {
@@ -518,7 +530,7 @@ export const getProjects = async (req: any, res: Response) => {
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
                 );
                 if (index !== -1) {
-                    project.status = project.select[index].supplierStatus
+                    return { ...project._doc, supplierStatus: project.select[index].supplierStatus }
                 }
                 return project
             })
