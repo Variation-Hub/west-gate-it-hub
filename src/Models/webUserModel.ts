@@ -20,12 +20,11 @@ const webUserModel = new mongoose.Schema({
     },
     designation: {
         type: String,
-        required: true
+        default: ""
     },
     number: {
         type: String,
-        required: true,
-        minlength: 10
+        default: ""
     },
     password: {
         type: String,
@@ -34,31 +33,31 @@ const webUserModel = new mongoose.Schema({
     },
     companyName: {
         type: String,
-        required: true
+        default: ""
     },
     registerNumber: {
         type: String,
-        required: true
+        default: ""
     },
     website: {
         type: String,
-        required: true
+        default: ""
     },
     numberOfEmployees: {
         type: Number,
-        required: true
+        default: ""
     },
     numberOfBranch: {
         type: Number,
-        required: true
+        default: ""
     },
     mainOfficeAddress: {
         type: String,
-        required: true
+        default: ""
     },
     companyContactNumber: {
         type: Number,
-        required: true
+        default: ""
     },
     sector: {
         type: [String],
