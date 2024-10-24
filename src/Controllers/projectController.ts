@@ -192,7 +192,7 @@ export const getProject = async (req: Request, res: Response) => {
         return res.status(200).json({
             message: "project fetch success",
             status: true,
-            data: project
+            data: { ...project, matchedCaseStudy: project.casestudy?.length || 0 }
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -529,10 +529,14 @@ export const getProjects = async (req: any, res: Response) => {
                 const index = project.select.findIndex((item: any) =>
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
                 );
-                if (index !== -1) {
-                    return { ...project._doc, supplierStatus: project.select[index].supplierStatus }
-                }
-                return project
+                console.log(index, index !== -1)
+                // if (index !== -1) {
+                //     console.log(project.select[index].supplierStatus)
+                return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null }
+                // } else {
+                //     return { ...project._doc, supplierStatus: null }
+                // }
+                // return project
             })
         }
 
