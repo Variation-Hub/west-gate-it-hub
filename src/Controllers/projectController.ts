@@ -246,7 +246,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -504,7 +504,14 @@ export const getProjects = async (req: any, res: Response) => {
                     supplierStatus: supplierStatus,
                 }
             };
-
+        }
+        if (workInProgress) {
+            filter.select = {
+                $elemMatch: {
+                    supplierId: { $in: [req.user.id] },
+                    supplierStatus: { $exists: true, $ne: null }
+                }
+            };
         }
 
         const count = await projectModel.countDocuments(filter);
