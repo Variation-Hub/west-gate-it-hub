@@ -547,7 +547,7 @@ export const getProjects = async (req: any, res: Response) => {
             })
         }
 
-        if (req.user?.role === userRoles.ProjectManager) {
+        if (req.user?.role === userRoles.ProjectManager || req.user.role === userRoles.FeasibilityAdmin || req.user.role === userRoles.FeasibilityAdmin) {
             projects = await Promise.all(
                 projects.map(async (project: any) => {
                     const result = await caseStudy.aggregate([
@@ -803,7 +803,8 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             {
                 $match: {
                     category: { $in: categorygroupAll },
-                    dueDate: { $gte: date }
+                    dueDate: { $gte: date },
+                    status: projectStatus.Passed
                 }
             },
             {
@@ -817,6 +818,11 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         console.log(totalProjectValueAndCountMatch, "+++++++++++++")
         const totalProjectValueAndCount = await projectModel.aggregate([
             {
+                $match: {
+                    status: projectStatus.Passed
+                }
+            },
+            {
                 $group: {
                     _id: null,
                     totalValue: { $sum: "$maxValue" },
@@ -828,7 +834,8 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
         const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
 
-        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const projects = await projectModel.find({ category: { $in: user?.categoryList }, status: "Passed" })
+        console.log(projects, "foapodpfoasdfasof[psfo[PropTypes.array,", user?.categoryList)
         const responseData = {
             projectCount: {
                 totalProjects: result.projectCount,
@@ -866,7 +873,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 UKExpertReviewValue: 0
             }
         }
-        console.log(categorygroupAll, "cate", categorygroup)
         projects.forEach((project: any) => {
             responseData.projectValue.ProjectInCategoryValue += project.maxValue;
             if (Object.keys(categorygroup).includes(project.category)) {
