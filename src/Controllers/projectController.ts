@@ -513,8 +513,8 @@ export const getProjects = async (req: any, res: Response) => {
                 }
             };
         }
-
         const count = await projectModel.countDocuments(filter);
+        console.log(filter, count)
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
@@ -784,6 +784,37 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             return acc;
         }, {});
 
+        const categorygroupAll = (await caseStudy.aggregate([
+            {
+                $match: {
+                    verify: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
+            }
+        ])).map(item => item._id)
+        console.log(categorygroupAll, "++++")
+        const date = new Date();
+        const totalProjectValueAndCountMatch = await projectModel.aggregate([
+            {
+                $match: {
+                    category: { $in: categorygroupAll },
+                    dueDate: { $gte: date }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: "$maxValue" },
+                    projectCount: { $sum: 1 }
+                }
+            }
+        ]);
+        console.log(totalProjectValueAndCountMatch, "+++++++++++++")
         const totalProjectValueAndCount = await projectModel.aggregate([
             {
                 $group: {
@@ -793,14 +824,16 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ]);
+        console.log(totalProjectValueAndCount)
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
+        const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
 
         const projects = await projectModel.find({ category: { $in: user?.categoryList } })
         const responseData = {
             projectCount: {
                 totalProjects: result.projectCount,
                 totalProjectInCategory: projects.length,
-                matchedProjects: 0,
+                matchedProjects: result1.projectCount,
                 totalSubmit: 0,
                 totalAwarded: 0,
                 totalNotAwarded: 0,
@@ -818,7 +851,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             projectValue: {
                 totalProjectValue: result.totalValue,
                 ProjectInCategoryValue: 0,
-                matchedProjectsValue: 0,
+                matchedProjectsValue: result1.totalValue,
                 totalSubmitValue: 0,
                 totalAwardedValue: 0,
                 totalNotAwardedValue: 0,
@@ -833,12 +866,16 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 UKExpertReviewValue: 0
             }
         }
-
+        console.log(categorygroupAll, "cate", categorygroup)
         projects.forEach((project: any) => {
             responseData.projectValue.ProjectInCategoryValue += project.maxValue;
             if (Object.keys(categorygroup).includes(project.category)) {
                 responseData.projectCount.totalProjectInCategory
-                if (project.caseStudyRequired <= categorygroup[project.category]) {
+
+            }
+            if (Object.keys(categorygroupAll).includes(project.category)) {
+                console.log(0 <= categorygroupAll[project.category])
+                if (0 <= categorygroupAll[project.category]) {
                     responseData.projectCount.matchedProjects++;
                     responseData.projectValue.matchedProjectsValue += project.maxValue;
                 }
@@ -856,7 +893,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 responseData.projectCount.totalNotAwarded++;
                 responseData.projectValue.totalNotAwardedValue += project.maxValue;
             }
-            console.log(project.status, projectStatus.Passed, "++++", project.status === projectStatus.Passed)
             if (project.status === projectStatus.Passed) {
                 responseData.projectCount.totalpassed++;
                 responseData.projectValue.totalpassedValue += project.maxValue;
