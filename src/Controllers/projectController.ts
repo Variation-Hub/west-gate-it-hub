@@ -488,12 +488,10 @@ export const getProjects = async (req: any, res: Response) => {
         if (selectedSupplier) {
             filter.select = {
                 $elemMatch: {
-                    supplierStatus: {
-                        $ne: null,
-                        $exists: true
-                    }
+                    $exists: true,
+                    $ne: null
                 }
-            }
+            };
         }
 
         if (supplierStatus) {
@@ -547,7 +545,7 @@ export const getProjects = async (req: any, res: Response) => {
             })
         }
 
-        if (req.user?.role === userRoles.ProjectManager || req.user.role === userRoles.FeasibilityAdmin || req.user.role === userRoles.FeasibilityAdmin) {
+        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin || req.user?.role === userRoles.FeasibilityAdmin) {
             projects = await Promise.all(
                 projects.map(async (project: any) => {
                     const result = await caseStudy.aggregate([
