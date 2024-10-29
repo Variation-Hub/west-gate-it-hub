@@ -316,7 +316,7 @@ export const getProjects = async (req: any, res: Response) => {
             categorygroup = (await caseStudy.aggregate([
                 {
                     $match: {
-                        // userId: new mongoose.Types.ObjectId(req.user.id),
+                        userId: new mongoose.Types.ObjectId(req.user.id),
                         verify: true
                     }
                 },
