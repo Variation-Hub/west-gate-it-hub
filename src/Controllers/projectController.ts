@@ -785,6 +785,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         const categorygroupAll = (await caseStudy.aggregate([
             {
                 $match: {
+                    userId: new mongoose.Types.ObjectId(req.user.id),
                     verify: true
                 }
             },
@@ -832,7 +833,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
         const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
 
-        const projects = await projectModel.find({ category: { $in: user?.categoryList }, status: "Passed" })
+        const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
         console.log(projects, "foapodpfoasdfasof[psfo[PropTypes.array,", user?.categoryList)
         const responseData = {
             projectCount: {
