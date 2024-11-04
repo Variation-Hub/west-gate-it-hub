@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { createIndustry, deleteIndustry, getIndustryList, updateIndustry } from '../Controllers/industryController';
 
 const industryRouter = express.Router();

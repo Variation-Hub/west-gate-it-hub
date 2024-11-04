@@ -1,7 +1,7 @@
 import * as express from 'express';
 import { multipleFileUpload } from '../Util/multer';
-import { authorizeRoles } from '../Middleware/verifyToken';
-import { paginationMiddleware } from '../Middleware/pagination';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { addUserToChat, chatList, createChat, deleteChat, getUserChatGroup } from '../Controllers/chatController';
 
 const chatRouter = express.Router();

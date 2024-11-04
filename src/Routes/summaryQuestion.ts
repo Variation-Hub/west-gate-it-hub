@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { addReviewQuestion, createSummaryQuestion, deleteSummaryQuestion, getsinglesummaryQuestion, summaryQuestionList, summaryQuestionListByUser, updateSummaryQuestion, uploadSummaryQuestionDocument } from '../Controllers/summaryQuestionController';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
 import { singleFileUpload } from '../Util/multer';
 

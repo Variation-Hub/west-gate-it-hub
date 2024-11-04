@@ -1,8 +1,8 @@
 import * as express from 'express';
 import { singleFileUpload } from "../Util/multer";
 import { createFOI, deleteFOI, getFIOs, updateFOI } from '../Controllers/foiController';
-import { paginationMiddleware } from '../Middleware/pagination';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
 
 

@@ -17,9 +17,9 @@ import {
     connectUserToSocket,
     fetchSuplierAdmin
 } from '../Controllers/userController';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
-import { paginationMiddleware } from '../Middleware/pagination';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { singleFileUpload } from '../Util/multer';
 
 const userRoutes = express.Router();

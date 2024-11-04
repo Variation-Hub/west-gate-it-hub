@@ -1,6 +1,6 @@
 import * as express from 'express';
 import { getWebUser, loginWebUser, registerSendMail, registerWebUser } from '../Controllers/webUserController';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 
 const webUserRoutes = express.Router();
 

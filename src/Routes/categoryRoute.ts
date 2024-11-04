@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { createCategory, deleteCategory, getCategoryList, updateCategory } from '../Controllers/categoryController';
 
 const categoryRouter = express.Router();

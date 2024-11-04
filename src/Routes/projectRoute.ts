@@ -1,7 +1,7 @@
 import * as express from 'express';
 import { addProjectStatusForSupplier, applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
-import { paginationMiddleware } from '../Middleware/pagination';
-import { authorizeRoles, authorizeRolesWithoutError } from '../Middleware/verifyToken';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
+import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
 import { multipleFileUpload } from '../Util/multer';
 

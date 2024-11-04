@@ -36,6 +36,7 @@ const userModel = new mongoose.Schema({
     },
     companyName: {
         type: String,
+        default: ""
     },
     designation: {
         type: String,
@@ -61,7 +62,8 @@ const userModel = new mongoose.Schema({
         type: String,
         trim: true,
         unique: true,
-        required: true
+        // required: true
+        default: ""
     },
     domain: {
         type: String,
@@ -107,6 +109,171 @@ const userModel = new mongoose.Schema({
         default: true
     },
     activeStatus: {
+        type: String,
+        default: ""
+    },
+    // designation: {
+    //     type: String,
+    //     default: ""
+    // },
+    // number: {
+    //     type: String,
+    //     default: ""
+    // },
+    // password: {
+    //     type: String,
+    //     required: true,
+    //     minlength: 6
+    // },
+    // companyName: {
+    //     type: String,
+    //     default: ""
+    // },
+    registerNumber: {
+        type: String,
+        default: ""
+    },
+    website: {
+        type: String,
+        default: ""
+    },
+    numberOfEmployees: {
+        type: Number,
+        default: ""
+    },
+    numberOfBranch: {
+        type: Number,
+        default: ""
+    },
+    mainOfficeAddress: {
+        type: String,
+        default: ""
+    },
+    companyContactNumber: {
+        type: Number,
+        default: ""
+    },
+    sector: {
+        type: [String],
+        default: []
+    },
+    // plan: {
+    //     type: String,
+    //     default: "Basic"
+    // },
+    registerCompany: {
+        type: Boolean,
+        default: false
+    },
+    companyActive: {
+        type: Boolean,
+        default: false
+    },
+    howLongCompanyBussiness: {
+        type: Number,
+        default: 1
+    },
+    caseStudeyPrevious: {
+        type: Boolean,
+        default: false
+    },
+    nominateAccount: {
+        type: Boolean,
+        default: false
+    },
+    supportNewBusiness: {
+        type: Boolean,
+        default: false
+    },
+    accountManagerName: {
+        type: String,
+        default: ""
+    },
+    accountManagerEmail: {
+        type: String,
+        default: ""
+    },
+    accountManagerDesignation: {
+        type: String,
+        default: ""
+    },
+    activeSince: {
+        type: String,
+        default: ""
+    },
+    accountManagerNumber: {
+        type: String,
+        default: ""
+    },
+    yearOfEstablishment: {
+        type: Date,
+        default: null
+    },
+    typeOfCompany: {
+        type: String,
+        default: ""
+    },
+    industry_Sector: {
+        type: String,
+        default: ""
+    },
+    companyAddress: {
+        type: String,
+        default: ""
+    },
+    customerSupportContact: {
+        type: String,
+        default: ""
+    },
+    legalAndRegulatoryInformation: {
+        type: String,
+        default: ""
+    },
+    VATOrGSTNumber: {
+        type: String,
+        default: ""
+    },
+    companyDirectors_Owners: {
+        type: String,
+        default: ""
+    },
+    complianceCertifications: {
+        type: String,
+        default: ""
+    },
+    products_ServicesOffered: {
+        type: String,
+        default: ""
+    },
+    technologyStack: {
+        type: String,
+        default: ""
+    },
+    licensingDetails: {
+        type: String,
+        default: ""
+    },
+    IP_Patents: {
+        type: String,
+        default: ""
+    },
+    employeeCount: {
+        type: Number,
+        default: ""
+    },
+    developerOrEngineerTeams: {
+        type: String,
+        default: ""
+    },
+    dataPrivacyPolicies: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    securityCertifications: {
+        type: String,
+        default: ""
+    },
+    cybersecurityPractices: {
         type: String,
         default: ""
     },

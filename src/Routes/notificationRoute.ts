@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { createNotification, deleteNotification, deleteNotifications, getNotifications, getNotificationsCount, markreadNotification, markreadNotifications } from '../Controllers/notificationController';
 
 const notificationRouter = express.Router();

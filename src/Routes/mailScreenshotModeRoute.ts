@@ -1,9 +1,9 @@
 import * as express from 'express';
 import { singleFileUpload } from '../Util/multer';
 import { createScreenShot, deleteScreenShot, getScreenShots, updateScreenShot } from '../Controllers/mailScreenshotModeController';
-import { paginationMiddleware } from '../Middleware/pagination';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { userRoles } from '../Util/contant';
-import { authorizeRoles } from '../Middleware/verifyToken';
+import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 
 const mailScreenShotModeRoutes = express.Router();
 
