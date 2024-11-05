@@ -61,7 +61,7 @@ const userModel = new mongoose.Schema({
     userName: {
         type: String,
         trim: true,
-        unique: true,
+        // unique: true,
         // required: true
         default: ""
     },
