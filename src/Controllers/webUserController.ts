@@ -47,11 +47,19 @@ export const registerWebUser = async (req: Request, res: Response) => {
         }
 
         req.body.role = userRoles.SupplierAdmin
-        const newUser = await userModel.create(req.body)
+        const newUser: any = await userModel.create(req.body)
 
         await sendMail(req.body)
 
-        const token = generateToken({ id: newUser._id, email: newUser.email, name: newUser.name, role: newUser.role, userName: newUser.userName, plan: newUser.plan })
+        const token = generateToken({
+            id: newUser._id,
+            ...newUser._doc
+            //  email: newUser.email,
+            //  name: newUser.name, 
+            //  role: newUser.role,
+            //  userName: newUser.userName,
+            //  plan: newUser.plan 
+        })
         return res.status(200).json({
             message: "User create success",
             status: true,
@@ -69,7 +77,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
 export const loginWebUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body
-        const user = await userModel.findOne({ email: email.toLowerCase(), role: userRoles.SupplierAdmin })
+        const user: any = await userModel.findOne({ email: email.toLowerCase(), role: userRoles.SupplierAdmin })
 
         if (!user) {
             return res.status(404).json({
@@ -87,7 +95,15 @@ export const loginWebUser = async (req: Request, res: Response) => {
             })
         }
 
-        const token = generateToken({ id: user._id, email: user.email, name: user.name, role: user.role, userName: user.userName, plan: user.plan })
+        const token = generateToken({
+            id: user._id,
+            ...user._doc
+            // email: user.email,
+            // name: user.name,
+            // role: user.role,
+            // userName: user.userName,
+            // plan: user.plan
+        })
         return res.status(200).json({
             message: "User login success",
             status: true,

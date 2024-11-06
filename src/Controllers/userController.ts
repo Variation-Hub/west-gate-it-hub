@@ -22,14 +22,15 @@ export const createUser = async (req: Request, res: Response) => {
             })
         }
 
-        const newUser = await userModel.create(req.body)
+        const newUser: any = await userModel.create(req.body)
 
         const token = generateToken({
             id: newUser._id,
-            email: newUser.email,
-            name: newUser.name,
-            role: newUser.role,
-            userName: newUser.userName
+            ...newUser._doc
+            // email: newUser.email,
+            // name: newUser.name,
+            // role: newUser.role,
+            // userName: newUser.userName
         })
         return res.status(200).json({
             message: "User create success",
@@ -96,7 +97,7 @@ export const createSuplierUser = async (req: any, res: Response) => {
 export const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password, role } = req.body
-        const user = await userModel.findOne({ email: email.toLowerCase(), role })
+        const user: any = await userModel.findOne({ email: email.toLowerCase(), role })
 
         if (!user) {
             return res.status(404).json({
@@ -124,7 +125,15 @@ export const loginUser = async (req: Request, res: Response) => {
             })
         }
 
-        const token = generateToken({ id: user._id, email: user.email, name: user.name, role: user.role, userName: user.userName, plan: user.plan })
+        const token = generateToken({
+            id: user._id,
+            ...user._doc
+            // email: user.email,
+            // name: user.name,
+            // role: user.role,
+            // userName: user.userName,
+            // plan: user.plan
+        })
         return res.status(200).json({
             message: "User login success",
             status: true,
