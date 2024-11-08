@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, applyProject, createProject, deleteFiles, deleteProject, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, applyProject, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -13,6 +13,7 @@ projectRoutes.get("/list/latest", getLatestProject);
 projectRoutes.get("/get/:id", authorizeRoles(), getProject);
 projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);
 projectRoutes.delete("/delete/:id", authorizeRoles(), deleteProject);
+projectRoutes.delete("/delete-multiple", authorizeRoles(), deleteProjectMultiple);
 projectRoutes.patch("/sortlist", authorizeRoles(), sortList);
 projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 

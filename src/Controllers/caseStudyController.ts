@@ -65,6 +65,35 @@ export const createCaseStudy = async (req: any, res: Response) => {
     }
 }
 
+export const createCaseStudyMultiple = async (req: Request, res: Response) => {
+    try {
+
+        const { data } = req.body;
+
+        if (!Array.isArray(data) || data.length === 0) {
+            return res.status(400).json({
+                message: "No data provided or invalid format.",
+                status: false,
+                data: null
+            });
+        }
+
+        const saveData = await caseStudyModel.insertMany(data);
+
+        return res.status(200).json({
+            message: "CaseStudy create success",
+            status: true,
+            data: saveData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
 export const updateCaseStudy = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;

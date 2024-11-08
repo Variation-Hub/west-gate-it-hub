@@ -3,18 +3,18 @@ import mongoose from "mongoose";
 const caseStudyModel = new mongoose.Schema({
     name: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ""
     },
     category: {
         type: String,
-        required: true,
-        trim: true
+        trim: true,
+        default: ""
     },
     subCategory: {
         type: String,
-        required: false,
-        trim: true
+        trim: true,
+        default: ""
     },
     verify: {
         type: Boolean,

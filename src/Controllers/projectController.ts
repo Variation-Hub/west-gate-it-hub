@@ -385,6 +385,7 @@ export const getProjects = async (req: any, res: Response) => {
         if (valueRange) {
             const [startValue, endValue] = valueRange.split('-').map(Number);
 
+            console.log(startValue, endValue)
             filter.minValue = { $gte: startValue };
             filter.maxValue = { $lte: endValue };
         }
@@ -674,9 +675,27 @@ export const deleteProject = async (req: Request, res: Response) => {
         const deleteproject = await projectModel.findByIdAndDelete(id);
 
         return res.status(200).json({
-            message: "User delete success",
+            message: "Project delete success",
             status: true,
             data: deleteproject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteProjectMultiple = async (req: Request, res: Response) => {
+    try {
+        await projectModel.deleteMany({});
+
+        return res.status(200).json({
+            message: "Projects deleted successfully",
+            status: true,
+            data: null
         });
     } catch (err: any) {
         return res.status(500).json({
