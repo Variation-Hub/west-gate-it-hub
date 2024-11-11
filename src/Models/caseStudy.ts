@@ -60,8 +60,8 @@ const caseStudyModel = new mongoose.Schema({
         trim: true
     },
     contractValue: {
-        type: Number,
-        default: 0,
+        type: String,
+        default: null,
         trim: true
     },
     resourcesUsed: {
