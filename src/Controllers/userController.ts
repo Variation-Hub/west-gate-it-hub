@@ -299,7 +299,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
 export const fetchSuplierUser = async (req: any, res: Response) => {
     try {
 
-        const supplierId = req.user.id;
+        const supplierId = req.query?.userId || req.user.id;
         const count = await userModel.countDocuments(
             { role: userRoles.SupplierUser, supplierId },
             { password: 0, categoryList: 0, supplierId: 0 })
@@ -446,6 +446,34 @@ export const getUserDetails = async (req: any, res: Response) => {
     try {
 
         const userID = req.user.id;
+
+        const user = await userModel.findById(userID).select({ password: 0 });;
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        return res.status(200).json({
+            message: "User detail fetch success",
+            status: true,
+            data: user
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+export const getSupplierDetails = async (req: any, res: Response) => {
+    try {
+
+        const userID = req.params.id;
 
         const user = await userModel.findById(userID).select({ password: 0 });;
 
