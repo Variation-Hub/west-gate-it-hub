@@ -44,7 +44,7 @@ export const caseStudyList = async (req: any, res: Response) => {
 export const createCaseStudy = async (req: any, res: Response) => {
     try {
         let { file } = req.body
-        const userId = req.user.id
+        const userId = req.body?.userId || req.user.id
 
         if (req.file) {
             file = await uploadToBackblazeB2(req.file, "caseStudy")
