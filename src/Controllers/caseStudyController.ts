@@ -4,7 +4,7 @@ import { uploadToBackblazeB2 } from "../Util/aws"
 
 export const caseStudyList = async (req: any, res: Response) => {
     try {
-        const userId = req.user.id
+        const userId = req.query?.userId || req.user.id
         let { category } = req.query;
         category = category?.split(',');
 
