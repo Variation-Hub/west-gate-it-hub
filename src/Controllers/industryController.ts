@@ -132,6 +132,7 @@ export const createIndustry = async (req: any, res: Response) => {
 //     }
 // }
 // createIndustrym()
+//..
 export const getIndustryList = async (req: any, res: Response) => {
     try {
 
