@@ -555,43 +555,49 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             if (duration === "yearly") {
                 const currentDate = new Date();
                 const currentYear = currentDate.getFullYear();
-                const startOfYear = new Date(currentYear, 0, 1);
+                const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 0, 0, 0)); // Start of the year in UTC
+                const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
                     createdAt: {
                         $gte: startOfYear,
-                        $lt: currentDate
+                        $lt: currentIST
                     }
                 };
             } else if (duration === "weekly") {
                 const currentDate = new Date();
                 const startOfWeek = new Date(currentDate);
                 startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+                startOfWeek.setHours(0, 0, 0, 0); // Set to midnight
+                const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
                     createdAt: {
-                        $gte: startOfWeek,
-                        $lt: currentDate
+                        $gte: new Date(startOfWeek.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
+                        $lt: currentIST
                     }
                 };
             } else if (duration === "monthly") {
                 const currentDate = new Date();
                 const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
                     createdAt: {
-                        $gte: startOfMonth,
-                        $lt: currentDate
+                        $gte: new Date(startOfMonth.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
+                        $lt: currentIST
                     }
                 };
             } else {
                 const currentDate = new Date();
                 const startOfDay = new Date(currentDate);
                 startOfDay.setHours(0, 0, 0, 0);
+                const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
                     createdAt: {
-                        $gte: startOfDay,
-                        $lt: currentDate
+                        $gte: new Date(startOfDay.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
+                        $lt: currentIST
                     }
                 };
             }
+
         } else if (startDate && endDate) {
             createdAtFilter = {
                 createdAt: {
@@ -602,7 +608,6 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
         }
 
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
-        console.log(createdAtFilter);
         let data: any = {
             projectsPosted: {
                 count: projects.length,
