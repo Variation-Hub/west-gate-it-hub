@@ -821,7 +821,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             {
                 $match: {
                     category: { $in: categorygroupAll },
-                    dueDate: { $gte: date },
+                    // dueDate: { $gte: date },
                     status: projectStatus.Passed
                 }
             },
@@ -835,8 +835,23 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         ]);
         console.log(totalProjectValueAndCountMatch, "+++++++++++++")
         const totalProjectValueAndCount = await projectModel.aggregate([
+            // {
+            //     $match: {
+            //         status: projectStatus.Passed
+            //     }
+            // },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: "$maxValue" },
+                    projectCount: { $sum: 1 }
+                }
+            }
+        ]);
+        const totalProjectValueAndCountInCategory = await projectModel.aggregate([
             {
                 $match: {
+                    category: { $in: categorygroupAll },
                     status: projectStatus.Passed
                 }
             },
@@ -848,16 +863,18 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ]);
-        console.log(totalProjectValueAndCount)
+        console.log(totalProjectValueAndCountInCategory, "totalProjectValueAndCountInCategory")
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
         const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
+        const result2 = totalProjectValueAndCountInCategory[0] || { totalValue: 0, projectCount: 0 };
 
-        const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
-        console.log(projects, "foapodpfoasdfasof[psfo[PropTypes.array,", user?.categoryList)
+        // const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
+        const projects = await projectModel.find({ status: "Passed" })
+        console.log(projects.length, "foapodpfoasdfasof[psfo[PropTypes.array,", user?.categoryList)
         const responseData = {
             projectCount: {
                 totalProjects: result.projectCount,
-                totalProjectInCategory: projects.length,
+                totalProjectInCategory: result2.projectCount,
                 matchedProjects: result1.projectCount,
                 totalSubmit: 0,
                 totalAwarded: 0,
@@ -875,7 +892,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             },
             projectValue: {
                 totalProjectValue: result.totalValue,
-                ProjectInCategoryValue: 0,
+                ProjectInCategoryValue: result2.totalValue,
                 matchedProjectsValue: result1.totalValue,
                 totalSubmitValue: 0,
                 totalAwardedValue: 0,
@@ -892,10 +909,9 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             }
         }
         projects.forEach((project: any) => {
-            responseData.projectValue.ProjectInCategoryValue += project.maxValue;
+            // responseData.projectValue.ProjectInCategoryValue += project.maxValue;
             if (Object.keys(categorygroup).includes(project.category)) {
                 responseData.projectCount.totalProjectInCategory
-
             }
             if (Object.keys(categorygroupAll).includes(project.category)) {
                 console.log(0 <= categorygroupAll[project.category])
