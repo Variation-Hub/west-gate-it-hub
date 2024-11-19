@@ -365,7 +365,7 @@ export const getProjects = async (req: any, res: Response) => {
                 } else {
                     filter = { $or: filters };
                 }
-            } else if (match === "perfect") {
+            } else {
                 return res.status(200).json({
                     message: "projects fetch success",
                     status: true,
@@ -517,7 +517,7 @@ export const getProjects = async (req: any, res: Response) => {
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1 })
+            .sort({ dueDate: 1 })
             .populate('sortListUserId')
         // .lean();
 
