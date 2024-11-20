@@ -8,6 +8,7 @@ import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
 import mongoose, { Schema } from "mongoose"
 import { connectUser } from "../socket/socketEvent"
+import LoginModel from "../Models/LoginModel"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -134,6 +135,10 @@ export const loginUser = async (req: Request, res: Response) => {
             // userName: user.userName,
             // plan: user.plan
         })
+
+        if (user.role === userRoles.SupplierAdmin) {
+            await LoginModel.create({ userId: user._id })
+        }
         return res.status(200).json({
             message: "User login success",
             status: true,
@@ -151,49 +156,42 @@ export const loginUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const id = req.params.id;
-        const { name, companyName, designation, doj, linkedInLink, categoryList, userName, domain, department, location, reportTo, manages, mobileNumber, status, active, activeStatus } = req.body
-        const user = await userModel.findById(id);
+        const updateData = req.body;
 
+        // Find user by ID
+        const user = await userModel.findById(id);
         if (!user) {
-            return res.status(404).send({
+            return res.status(404).json({
                 message: "User not found",
                 status: false,
                 data: null
-            })
+            });
         }
 
-        user.name = name || user.name;
-        user.companyName = companyName || user.companyName;
-        user.designation = designation || user.designation;
-        user.doj = doj || user.doj;
-        user.linkedInLink = linkedInLink || user.linkedInLink;
-        user.categoryList = categoryList || user.categoryList;
-        user.userName = userName || user.userName;
-        user.domain = domain || user.domain;
-        user.department = department || user.department;
-        user.location = location || user.location;
-        user.reportTo = reportTo || user.reportTo;
-        user.manages = manages || user.manages;
-        user.mobileNumber = mobileNumber || user.mobileNumber;
-        user.status = status || user.status;
-        user.activeStatus = activeStatus || user.activeStatus;
-        if (active === true || active === false) {
-            user.active = active;
-        }
-        const newUser = await user.save();
+        // Update fields dynamically
+        Object.keys(updateData).forEach((key) => {
+            if (updateData[key] !== undefined) {
+                (user as any)[key] = updateData[key];
+            }
+        });
+
+        // Save updated user
+        const updatedUser = await user.save();
+
         return res.status(200).json({
             message: "User update success",
             status: true,
-            data: newUser
+            data: updatedUser
         });
     } catch (err: any) {
         return res.status(500).json({
-            message: err.message,
+            message: err.message || "Internal server error",
             status: false,
             data: null
         });
     }
-}
+};
+
 
 export const deleteUser = async (req: Request, res: Response) => {
     try {
@@ -800,3 +798,58 @@ export const connectUserToSocket = async (req: any, res: Response) => {
         });
     }
 }
+
+export const GetUserLogin = async (req: any, res: Response) => {
+    try {
+        const userId = req.params.id;
+
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+
+        const daysInRange = [];
+        const startDate = new Date();
+        startDate.setDate(oneWeekAgo.getDate() + 1);
+        for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
+
+            daysInRange.push(new Date(d).toISOString().split("T")[0]);
+        }
+
+        const rawData = await LoginModel.find({
+            userId,
+            createdAt: { $gte: oneWeekAgo, $lte: today },
+        });
+
+        const groupedData: Record<string, any[]> = {};
+        daysInRange.forEach((day) => {
+            groupedData[day] = [];
+        });
+
+        rawData.forEach((record: any) => {
+            const dateKey = new Date(record.createdAt).toISOString().split("T")[0];
+            const time = new Date(record.createdAt).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+            });
+
+            if (groupedData[dateKey]) {
+                groupedData[dateKey].push({ loginTime: time });
+            }
+        });
+
+        return res.status(200).json({
+            message: "Day-wise login data fetched successfully",
+            status: true,
+            data: groupedData,
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null,
+        });
+    }
+};

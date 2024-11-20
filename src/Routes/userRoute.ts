@@ -16,7 +16,8 @@ import {
     getAdminDashboardSuppliersStatistics,
     connectUserToSocket,
     fetchSuplierAdmin,
-    getSupplierDetails
+    getSupplierDetails,
+    GetUserLogin
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -35,6 +36,7 @@ userRoutes.patch("/avatar-upload", authorizeRoles(), singleFileUpload("avatar"),
 userRoutes.get("/get", authorizeRoles(), getUserDetails);
 userRoutes.get("/list", authorizeRoles(), getUserList);
 userRoutes.post("/connect", authorizeRoles(), connectUserToSocket);
+userRoutes.get("/login-details/:id", authorizeRoles(), GetUserLogin);
 
 // Supplier APIs
 userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), createSuplierUser);
