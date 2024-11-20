@@ -833,6 +833,7 @@ export const GetUserLogin = async (req: any, res: Response) => {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
+                timeZone: "Asia/Kolkata",
             });
 
             if (groupedData[dateKey]) {
