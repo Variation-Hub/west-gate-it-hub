@@ -829,7 +829,7 @@ export const GetUserLogin = async (req: any, res: Response) => {
 
         rawData.forEach((record: any) => {
             const dateKey = new Date(record.createdAt).toISOString().split("T")[0];
-            const time = new Date(record.createdAt).toLocaleTimeString("en-US", {
+            const time = new Date(record.createdAt).toLocaleTimeString("en-IN", {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
