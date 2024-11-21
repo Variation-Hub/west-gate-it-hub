@@ -9,6 +9,7 @@ import projectModel from "../Models/projectModel"
 import mongoose, { Schema } from "mongoose"
 import { connectUser } from "../socket/socketEvent"
 import LoginModel from "../Models/LoginModel"
+import caseStudy from "../Models/caseStudy"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -646,7 +647,8 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             categoryWise: {}
         };
 
-        const uniqueCategories = await userModel.distinct("categoryList");
+        // const uniqueCategories = await userModel.distinct("categoryList");
+        const uniqueCategories = await caseStudy.distinct("category");
         // const projectCategory = await projectModel.distinct("category");
 
         projects.forEach((project: any) => {
