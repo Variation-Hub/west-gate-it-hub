@@ -503,6 +503,23 @@ export const getUserList = async (req: any, res: Response) => {
 
         const userRoles = (req.query.userRoles).split(",");
         const projectCount = (req.query.projectCount);
+        const projectId = req.query.projectId;
+
+        if (projectId) {
+            const project = await projectModel.findById(projectId);
+
+            const casestudy = await caseStudy.find({ category: project?.category });
+
+            const userIds = casestudy.map((caseItem) => caseItem.userId);
+
+            const users = await userModel.find({ _id: { $in: userIds } });
+
+            return res.status(200).json({
+                message: "User list fetch success",
+                status: true,
+                data: users
+            });
+        }
 
         let users: any = await userModel.find({ role: { $in: userRoles } }).select({ password: 0 });
 
