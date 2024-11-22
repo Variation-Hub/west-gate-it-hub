@@ -313,20 +313,37 @@ export const getProjects = async (req: any, res: Response) => {
 
         let categorygroup
         if (match) {
-            categorygroup = (await caseStudy.aggregate([
-                {
-                    $match: {
-                        userId: new mongoose.Types.ObjectId(req.user.id),
-                        verify: true
+            if (req?.user?.role === userRoles.ProjectManager) {
+                categorygroup = (await caseStudy.aggregate([
+                    {
+                        $match: {
+                            // userId: new mongoose.Types.ObjectId(req.user.id),
+                            verify: true
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$category",
+                            count: { $sum: 1 }
+                        }
                     }
-                },
-                {
-                    $group: {
-                        _id: "$category",
-                        count: { $sum: 1 }
+                ]))
+            } else {
+                categorygroup = (await caseStudy.aggregate([
+                    {
+                        $match: {
+                            userId: new mongoose.Types.ObjectId(req.user.id),
+                            verify: true
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$category",
+                            count: { $sum: 1 }
+                        }
                     }
-                }
-            ]))
+                ]))
+            }
 
             let filters: any[] = [];
             if (categorygroup.length > 0) {
