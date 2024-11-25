@@ -255,6 +255,10 @@ const projectModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    expiredData: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

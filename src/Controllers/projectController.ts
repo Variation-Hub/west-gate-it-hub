@@ -7,8 +7,31 @@ import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import summaryQuestionModel from "../Models/summaryQuestionModel";
-import { mailForFeasibleTimeline } from "../Util/nodemailer";
+import { mailForFeasibleTimeline, mailForNewProject } from "../Util/nodemailer";
 
+async function getCategoryWithUserIds() {
+    try {
+        const result = await caseStudy.aggregate([
+            {
+                $group: {
+                    _id: "$category",
+                    userIds: { $addToSet: "$userId" }
+                }
+            },
+            {
+                $project: {
+                    category: "$_id",
+                    userIds: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        return result;
+    } catch (error) {
+        throw error;
+    }
+}
 
 export const createProject = async (req: Request, res: Response) => {
     try {
@@ -26,8 +49,19 @@ export const createProject = async (req: Request, res: Response) => {
         const insertedProjects = [];
         const skippedProjects = [];
 
+        const casestudyData = await getCategoryWithUserIds();
         for (const project of data) {
             try {
+                project.expiredData = (() => {
+                    const matchedCategory = casestudyData.find(data => data.category === project.category);
+                    if (matchedCategory) {
+                        return matchedCategory.userIds.map((userId: string) => ({
+                            supplierId: userId,
+                            date: new Date(new Date().getTime() + 48 * 60 * 60 * 1000)
+                        }));
+                    }
+                    return [];
+                })();
                 const newProject = await projectModel.create(project);
                 insertedProjects.push(newProject);
             } catch (err: any) {
@@ -553,14 +587,14 @@ export const getProjects = async (req: any, res: Response) => {
                 const index = project.select.findIndex((item: any) =>
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
                 );
-                console.log(index, index !== -1)
-                // if (index !== -1) {
-                //     console.log(project.select[index].supplierStatus)
-                return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null }
-                // } else {
-                //     return { ...project._doc, supplierStatus: null }
-                // }
-                // return project
+                const expiredIndex = project.expiredData.findIndex((item: any) =>
+                    item.supplierId === req.user.id
+                );
+                let isExpired = true;
+                if (expiredIndex !== -1) {
+                    isExpired = new Date(project.expiredData[expiredIndex].date) < new Date();
+                }
+                return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null, isExpired }
             })
         }
 
@@ -578,15 +612,15 @@ export const getProjects = async (req: any, res: Response) => {
                 })
             );
         }
-        projects = projects.map((project: any) => {
-            const result = project.toObject ? project.toObject() : project;
+        // projects = projects.map((project: any) => {
+        //     const result = project.toObject ? project.toObject() : project;
 
-            const dueDate = new Date(project.dueDate);
+        //     const dueDate = new Date(project.dueDate);
 
-            result.isExpired = dueDate < new Date();
+        //     result.isExpired = dueDate < new Date();
 
-            return result;
-        });
+        //     return result;
+        // });
 
         return res.status(200).json({
             message: "projects fetch success",
@@ -1455,6 +1489,127 @@ export const mailSend = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: "Mail send success",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const newProjectAddMail = async (req: Request, res: Response) => {
+    try {
+        const { SupplierName } = req.body
+
+        if (SupplierName) {
+            return res.status(200).json({
+                message: "Please pass Supplier Name",
+                status: false,
+                data: null
+            });
+        }
+
+        const recivermail = [
+            {
+                email: 'arjun@runtime-solutions.com',
+                supplierName: "Runtime Solutions"
+            },
+            {
+                email: 'anand.jha@nileegames.com',
+                supplierName: "Nilee Games and Future Technologiees Pvt. Ltd"
+            },
+            {
+                email: 'adarsh@softprolang.com',
+                supplierName: "SoftProlong - Software Development Company"
+            },
+            {
+                email: 'pratik@thecybertechsolution.com',
+                supplierName: "Cyber Tech Solutions"
+            },
+            {
+                email: 'hello@someshwara.com/ basavaraj@someshwara.com',
+                supplierName: "Someshwara Software"
+            },
+            {
+                email: 'aashutosh@androidblaze.in',
+                supplierName: "ASAG Androapps Technology Pvt. Ltd."
+            },
+            {
+                email: 'collinitsolution@gmail.com',
+                supplierName: "Collin It Solution"
+            },
+            {
+                email: 'pshrotriya@splendornet.com',
+                supplierName: "SplendorNet"
+            },
+            {
+                email: 'tanmay.samal@alptechsoftware.com',
+                supplierName: "Alptech Software Solutions LLP"
+            },
+            {
+                email: 'hr@svapps.in',
+                supplierName: "SVAPPS SOFT SOLUTIONS PVT. LTD."
+            },
+            {
+                email: 'info@emergeflow.com',
+                supplierName: "EmergeFlow Technologies"
+            },
+            {
+                email: 'vidyadhari@compileinfy.com',
+                supplierName: "Compileinfy Technology Solutions LLP"
+            },
+            {
+                email: 'baskarraj@Multimise.com',
+                supplierName: "Multimise (MITS)"
+            },
+            {
+                email: 'letstalk@jscreationsnent.com',
+                supplierName: "JS CREATIONS AND ENTERTAINMENT"
+            },
+            {
+                email: 'shubham@thefinansol.com',
+                supplierName: "Infinevo Tech Pvt. Ltd. (TheFinansol)"
+            },
+            {
+                email: 'info@Posistrength.com',
+                supplierName: "Posistrength Software Solution Pvt.Ltd."
+            },
+            {
+                email: 'varun@khoslatech.com',
+                supplierName: "khosla tech"
+            },
+            {
+                email: 'mukhtar@ssmaktak.com',
+                supplierName: "SSMAK"
+            },
+            {
+                email: 'sudhir@openlx.com',
+                supplierName: "OpenLX(reminder at eve)"
+            }
+        ]
+
+        // const recivermail = [
+        //     {
+        //         email: 'jeel.tadhani11@gmail.com',
+        //         supplierName: "Jeel Tadhani"
+        //     },
+        //     {
+        //         email: 'jeeltadhani2003@gmail.com',
+        //         supplierName: "jeel patel"
+        //     }
+        // ]
+        for (const data of recivermail) {
+            await mailForNewProject(data.email, data)
+                .then(() => console.log(`Mail sent successfully to ${data.email}`))
+                .catch(err => console.error(`Error sending mail to ${data.email}:`, err));
+        }
+
+        return res.status(200).json({
+            message: "Mails send successfully",
             status: true,
             data: null
         });

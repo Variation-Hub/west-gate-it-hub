@@ -1,13 +1,24 @@
 const nodemailer = require('nodemailer');
 
+// export const transporter = nodemailer.createTransport({
+//     host: "live.smtp.mailtrap.io",
+//     port: 587,
+//     auth: {
+//         user: "api",
+//         pass: "b8c3571b2e58a51a9ddfc53c768cf1ae"
+//     }
+// });
+
 export const transporter = nodemailer.createTransport({
     host: "live.smtp.mailtrap.io",
     port: 587,
     auth: {
         user: "api",
-        pass: "b8c3571b2e58a51a9ddfc53c768cf1ae"
+        pass: "8c23ab8a1cf2690c31ed4ce3feeb5df6"
     }
 });
+
+const fromMail = "ayush@westgateithub.in"
 
 export async function emailHelper(reciverEmail: string, password: string) {
     try {
@@ -39,7 +50,7 @@ export async function emailHelper(reciverEmail: string, password: string) {
         </td></tr></table></td></tr></table></td></tr></table></div></body></html>`
 
         await transporter.sendMail({
-            from: 'service@uncleblock.in', // sender address
+            from: fromMail, // sender address
             to: reciverEmail, // list of receivers
             subject: "Reset Password", // Subject line
             text: `Your password is ${password}`, // plain text body
@@ -129,9 +140,99 @@ export async function mailForFeasibleTimeline(reciverEmail: string, data: any) {
 `
 
         await transporter.sendMail({
-            from: 'service@uncleblock.in',
+            from: fromMail,
             to: reciverEmail, // list of receivers
             subject: "Project Inquiry", // Subject line
+            text: `I understand that the deadline for shortlisting this project has passed. However, I would still like to explore this opportunity further. Could you please confirm if there is still a feasible timeline available?`, // plain text body
+            html: template, // html body
+        });
+
+    } catch (err) {
+        console.log(err)
+    }
+
+}
+
+export async function mailForNewProject(reciverEmail: string, data: any,) {
+    try {
+
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WestGate IT Hub Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        .email-container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background-color: #0078d4;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 0.9em;
+            color: #555;
+            padding: 10px 0;
+            border-top: 1px solid #ddd;
+        }
+        a {
+            color: #0078d4;
+            text-decoration: none;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #0078d4;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .button:hover {
+            background-color: #005ea6;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="content">
+            <p>Dear ${data.supplierName},</p>
+            <p>This is an automated message from WestGate IT Hub. New projects have been posted on the OSS System. Please log in to the portal to review and shortlist opportunities of interest.</p>
+            <p>For any questions or assistance with bidding, contact us at <a href="mailto:subham@westgateithub.com">subham@westgateithub.com</a> or <strong>7781978685</strong>.</p>
+            <p>We appreciate your partnership and look forward to your participation!</p>
+        </div>
+        <div class="footer">
+            <p>Best regards,</p>
+            <p>WestGate IT Hub</p>
+        </div>
+    </div>
+</body>
+</html>`
+
+        await transporter.sendMail({
+            from: fromMail,
+            to: reciverEmail, // list of receivers
+            subject: "New Projects Available on OSS System", // Subject line
             text: `I understand that the deadline for shortlisting this project has passed. However, I would still like to explore this opportunity further. Could you please confirm if there is still a feasible timeline available?`, // plain text body
             html: template, // html body
         });
