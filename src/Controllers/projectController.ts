@@ -7,6 +7,7 @@ import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import summaryQuestionModel from "../Models/summaryQuestionModel";
+import { mailForFeasibleTimeline } from "../Util/nodemailer";
 
 
 export const createProject = async (req: Request, res: Response) => {
@@ -577,6 +578,14 @@ export const getProjects = async (req: any, res: Response) => {
                 })
             );
         }
+        projects = projects.map((project: any) => {
+            const result = project;
+            const dueDate = new Date(project.dueDate);
+
+            result._doc.isExpired = dueDate < new Date();
+
+            return result;
+        });
 
         return res.status(200).json({
             message: "projects fetch success",
@@ -1418,6 +1427,34 @@ export const addProjectStatusForSupplier = async (req: any, res: Response) => {
             message: "status add project successfully",
             status: true,
             data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const mailSend = async (req: Request, res: Response) => {
+    try {
+        const { projectName, BOSID } = req.body
+
+        if (!projectName && !BOSID) {
+            return res.status(200).json({
+                message: "Please pass a project name and a BOSID",
+                status: false,
+                data: null
+            });
+        }
+
+        mailForFeasibleTimeline(process.env.MAILSEND_EMAIL as string, req.body).then(data => console.log(data)).catch(err => console.log(err));
+
+        return res.status(200).json({
+            message: "Mail send success",
+            status: true,
+            data: null
         });
     } catch (err: any) {
         return res.status(500).json({

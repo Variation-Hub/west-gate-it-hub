@@ -51,3 +51,92 @@ export async function emailHelper(reciverEmail: string, password: string) {
     }
 
 }
+
+export async function mailForFeasibleTimeline(reciverEmail: string, data: any) {
+    try {
+
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Inquiry</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #007bff;
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .footer {
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #777777;
+        }
+        .button {
+            display: inline-block;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Content -->
+        <div class="content">
+            <p>Hi Team,</p>
+            <p>
+                I understand that the deadline for shortlisting this project has passed. However, I would still like to explore this opportunity further. 
+                Could you please confirm if there is still a feasible timeline available?
+            </p>
+            <p><strong>Project Name:</strong> ${data.projectName}</p>
+            <p><strong>BOS ID:</strong> ${data.BOSID}</p>
+            <p>Thank you!</p>
+        </div>
+        
+    </div>
+</body>
+</html>
+`
+
+        await transporter.sendMail({
+            from: 'service@uncleblock.in',
+            to: reciverEmail, // list of receivers
+            subject: "Project Inquiry", // Subject line
+            text: `I understand that the deadline for shortlisting this project has passed. However, I would still like to explore this opportunity further. Could you please confirm if there is still a feasible timeline available?`, // plain text body
+            html: template, // html body
+        });
+
+    } catch (err) {
+        console.log(err)
+    }
+
+}
