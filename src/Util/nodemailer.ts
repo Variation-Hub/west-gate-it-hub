@@ -119,9 +119,10 @@ export async function mailForFeasibleTimeline(reciverEmail: string, data: any) {
             </p>
             <p><strong>Project Name:</strong> ${data.projectName}</p>
             <p><strong>BOS ID:</strong> ${data.BOSID}</p>
+            <p><strong>Supplier Name:</strong> ${data.supplierName}</p>
             <p>Thank you!</p>
         </div>
-        
+
     </div>
 </body>
 </html>
