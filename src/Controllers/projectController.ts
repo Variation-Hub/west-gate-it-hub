@@ -579,10 +579,11 @@ export const getProjects = async (req: any, res: Response) => {
             );
         }
         projects = projects.map((project: any) => {
-            const result = project;
+            const result = project.toObject ? project.toObject() : project;
+
             const dueDate = new Date(project.dueDate);
 
-            result._doc.isExpired = dueDate < new Date();
+            result.isExpired = dueDate < new Date();
 
             return result;
         });
@@ -601,6 +602,7 @@ export const getProjects = async (req: any, res: Response) => {
             }
         });
     } catch (err: any) {
+        console.error(err);
         return res.status(500).json({
             message: err.message,
             status: false,
