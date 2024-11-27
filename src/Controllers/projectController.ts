@@ -180,6 +180,16 @@ export const getProject = async (req: any, res: Response) => {
                 }
             },
             {
+                $lookup: {
+                    from: 'users',
+                    let: { sortListUserIds: ["673b10c78b9e02d785223846"] }, // Replace this array dynamically if needed
+                    pipeline: [
+                        { $match: { $expr: { $in: ['$_id', { $map: { input: '$$sortListUserIds', as: 'id', in: { $toObjectId: '$$id' } } }] } } }
+                    ],
+                    as: 'sortlistedUsers'
+                }
+            },
+            {
                 $project: {
                     'applyUserId': 0,
                     'summaryQuestion.projectId': 0,
