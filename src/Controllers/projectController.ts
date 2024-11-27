@@ -180,6 +180,23 @@ export const getProject = async (req: Request, res: Response) => {
                 }
             },
             {
+                $addFields: {
+                    casestudy: {
+                        $cond: {
+                            if: {
+                                $and: [
+                                    { $isArray: '$casestudy' },
+                                    { $eq: [{ $size: '$casestudy' }, 1] },
+                                    { $eq: ['$casestudy', [{}]] }
+                                ]
+                            },
+                            then: [],
+                            else: '$casestudy'
+                        }
+                    }
+                }
+            },
+            {
                 $project: {
                     'applyUserId': 0,
                     'summaryQuestion.projectId': 0,
