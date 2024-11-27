@@ -240,6 +240,25 @@ export const getProject = async (req: any, res: Response) => {
             );
         }
 
+        if (project.sortlistedUsers.length > 0) {
+            const updatedSelect = await Promise.all(
+                project.sortlistedUsers.map(async (item: any) => {
+                    const matchedCaseStudy = await caseStudy.find({
+                        userId: item._id,
+                        verify: true,
+                        category: project.category
+                    });
+
+                    return {
+                        ...item,
+                        caseStudy: matchedCaseStudy
+                    };
+                })
+            );
+
+            project.sortlistedUsers = updatedSelect;
+        }
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
