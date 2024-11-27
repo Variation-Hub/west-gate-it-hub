@@ -581,7 +581,6 @@ export const getProjects = async (req: any, res: Response) => {
             };
         }
         const count = await projectModel.countDocuments(filter);
-        console.log(filter, count)
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
@@ -604,7 +603,7 @@ export const getProjects = async (req: any, res: Response) => {
                     new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
                 );
                 const expiredIndex = project.expiredData.findIndex((item: any) =>
-                    item.supplierId === req.user.id
+                    item.supplierId.toString() === req.user.id
                 );
                 let isExpired = true;
                 if (expiredIndex !== -1) {
