@@ -105,7 +105,7 @@ export const createProject = async (req: Request, res: Response) => {
     }
 }
 
-export const getProject = async (req: Request, res: Response) => {
+export const getProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
 
@@ -179,23 +179,23 @@ export const getProject = async (req: Request, res: Response) => {
                     }
                 }
             },
-            {
-                $addFields: {
-                    casestudy: {
-                        $cond: {
-                            if: {
-                                $and: [
-                                    { $isArray: '$casestudy' },
-                                    { $eq: [{ $size: '$casestudy' }, 1] },
-                                    { $eq: ['$casestudy', [{}]] }
-                                ]
-                            },
-                            then: [],
-                            else: '$casestudy'
-                        }
-                    }
-                }
-            },
+            // {
+            //     $addFields: {
+            //         casestudy: {
+            //             $cond: {
+            //                 if: {
+            //                     $and: [
+            //                         { $isArray: '$casestudy' },
+            //                         { $eq: [{ $size: '$casestudy' }, 1] },
+            //                         { $eq: ['$casestudy', [{}]] }
+            //                     ]
+            //                 },
+            //                 then: [],
+            //                 else: '$casestudy'
+            //             }
+            //         }
+            //     }
+            // },
             {
                 $project: {
                     'applyUserId': 0,
@@ -239,6 +239,12 @@ export const getProject = async (req: Request, res: Response) => {
             );
 
             project.select = updatedSelect;
+        }
+
+        if (project.casestudy?.length > 0) {
+            project.casestudy = project.casestudy.filter((casestudy: any) =>
+                casestudy.userId?.toString() === req.user.id
+            );
         }
 
         return res.status(200).json({
