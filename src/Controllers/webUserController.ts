@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
-import { transporter } from "../Util/nodemailer"
+import { fromMail, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { userRoles } from "../Util/contant"
 
@@ -25,9 +25,10 @@ const sendMail = async (data: any) => {
 
 
     await transporter.sendMail({
-        from: 'service@uncleblock.in',
+        from: fromMail,
         to: process.env.ADMIN_EMAIL,
         subject: "Form Submission",
+        text: `New user Registration`,
         html: template,
     });
 

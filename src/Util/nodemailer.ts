@@ -18,7 +18,7 @@ export const transporter = nodemailer.createTransport({
     }
 });
 
-const fromMail = "ayush@westgateithub.in"
+export const fromMail = "ayush@westgateithub.in"
 
 export async function emailHelper(reciverEmail: string, password: string) {
     try {
