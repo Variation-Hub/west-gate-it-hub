@@ -33,7 +33,7 @@ async function getCategoryWithUserIds() {
     }
 }
 
-export const createProject = async (req: Request, res: Response) => {
+export const createProject = async (req: any, res: Response) => {
     try {
 
         const { data } = req.body;
@@ -62,6 +62,11 @@ export const createProject = async (req: Request, res: Response) => {
                     }
                     return [];
                 })();
+                project.statusHistory = [{
+                    status: projectStatus.Awaiting,
+                    date: new Date(),
+                    userId: req.user.id,
+                }]
                 const newProject = await projectModel.create(project);
                 insertedProjects.push(newProject);
             } catch (err: any) {
@@ -257,6 +262,24 @@ export const getProject = async (req: any, res: Response) => {
             );
 
             project.sortlistedUsers = updatedSelect;
+        }
+
+        if (project.statusHistory.length > 0) {
+            const userIds = project.statusHistory.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.statusHistory.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.statusHistory = updatedStatusHistory;
         }
 
         return res.status(200).json({
@@ -679,7 +702,7 @@ export const getProjects = async (req: any, res: Response) => {
     }
 }
 
-export const updateProject = async (req: Request, res: Response) => {
+export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus, certifications, policy, eligibilityForm } = req.body
@@ -693,6 +716,15 @@ export const updateProject = async (req: Request, res: Response) => {
                 data: null
             })
         }
+
+        if (project.status !== status) {
+            project.statusHistory.push({
+                status,
+                date: new Date(),
+                userId: req.user.id,
+            })
+        }
+
         project.projectName = projectName || project.projectName;
         project.category = category || project.category;
         project.industry = industry || project.industry;
@@ -1110,7 +1142,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
     }
 }
 
-export const updateProjectForFeasibility = async (req: Request, res: Response) => {
+export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus, eligibilityForm } = req.body
@@ -1122,6 +1154,13 @@ export const updateProjectForFeasibility = async (req: Request, res: Response) =
                 message: 'project not found',
                 status: false,
                 data: null
+            })
+        }
+        if (project.status !== status) {
+            project.statusHistory.push({
+                status,
+                date: new Date(),
+                userId: req.user.id,
             })
         }
         project.category = category || project.category;

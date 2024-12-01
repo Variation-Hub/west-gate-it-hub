@@ -97,6 +97,10 @@ const projectModel = new mongoose.Schema({
         trim: true,
         default: projectStatus.Awaiting,
     },
+    statusHistory: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     status1: {
         type: String,
         // enum: projectStatus,
