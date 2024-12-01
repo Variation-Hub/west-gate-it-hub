@@ -12,6 +12,7 @@ import industryRouter from './industryRoute';
 import webUserRoutes from './webUserRoute';
 import paymentRouter from './paymentRoute';
 import supportRoute from './supportRoute';
+import taskRouter from './taskRoute';
 
 const Routes = express.Router();
 
@@ -28,6 +29,7 @@ Routes.use("/industry", industryRouter);
 Routes.use("/web-user", webUserRoutes);
 Routes.use("/payment", paymentRouter);
 Routes.use("/support", supportRoute);
+Routes.use("/task", taskRouter);
 
 
 export default Routes; 

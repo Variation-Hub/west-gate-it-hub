@@ -110,6 +110,7 @@ export const userRoles = {
     Admin: 'Admin',
     ProjectCoOrdinator: 'ProjectCoOrdinator',
     User: 'User',
+    ProcessManagerAdmin: 'ProcessManagerAdmin',
 }
 
 export const userStatus = {
@@ -131,4 +132,10 @@ export const socketEvent = {
     Message: 'message',
     Notification: 'notification',
     Support: 'support'
+}
+
+export const taskStatus = {
+    Todo: 'Todo',
+    Ongoing: 'Ongoing',
+    Completed: 'Completed'
 }
