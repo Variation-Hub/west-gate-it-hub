@@ -1694,3 +1694,51 @@ export const newProjectAddMail = async (req: Request, res: Response) => {
         });
     }
 }
+
+export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate } = req.query;
+
+        let createdAtFilter = {};
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                createdAt: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            };
+        }
+
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
+        let data: any = {
+            projectCount: {},
+            projectValue: {},
+        };
+
+        projects.forEach((project: any) => {
+            if (data.projectCount[project.status]) {
+                data.projectCount[project.status]++;
+            } else {
+                data.projectCount[project.status] = 1;
+            }
+            if (data.projectValue[project.status]) {
+                data.projectValue[project.status] += project.maxValue;
+            } else {
+                data.projectValue[project.status] = project.maxValue;
+            }
+        })
+
+        return res.status(200).json({
+            message: "data fetch success",
+            status: true,
+            data: data
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
