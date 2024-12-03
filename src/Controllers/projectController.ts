@@ -1712,8 +1712,36 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
 
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
         let data: any = {
-            projectCount: {},
-            projectValue: {},
+            projectCount: {
+                'Awaiting': 0,
+                'In-progress': 0,
+                'In-Review UK': 0,
+                'Documents Not Found': 0,
+                'In-Solution': 0,
+                'In-Review': 0,
+                'In-Submission': 0,
+                'Dropped': 0,
+                'Dropped after feasibility': 0,
+                'Not Awarded': 0,
+                'Passed': 0,
+                'Waiting for result': 0,
+                'Failed': 0,
+            },
+            projectValue: {
+                'Awaiting': 0,
+                'In-progress': 0,
+                'In-Review UK': 0,
+                'Documents Not Found': 0,
+                'In-Solution': 0,
+                'In-Review': 0,
+                'In-Submission': 0,
+                'Dropped': 0,
+                'Dropped after feasibility': 0,
+                'Not Awarded': 0,
+                'Passed': 0,
+                'Waiting for result': 0,
+                'Failed': 0,
+            },
         };
 
         projects.forEach((project: any) => {
