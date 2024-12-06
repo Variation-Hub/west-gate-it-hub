@@ -5,6 +5,7 @@ import webUserModel from "../Models/webUserModel"
 import { fromMail, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { userRoles } from "../Util/contant"
+import LoginModel from "../Models/LoginModel"
 
 const sendMail = async (data: any) => {
 
@@ -105,6 +106,10 @@ export const loginWebUser = async (req: Request, res: Response) => {
             // userName: user.userName,
             // plan: user.plan
         })
+
+        if (user.role === userRoles.SupplierAdmin) {
+            await LoginModel.create({ userId: user._id })
+        }
         return res.status(200).json({
             message: "User login success",
             status: true,
