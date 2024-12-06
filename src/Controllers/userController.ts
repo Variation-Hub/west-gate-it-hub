@@ -829,7 +829,7 @@ export const GetUserLogin = async (req: any, res: Response) => {
         today.setHours(23, 59, 59, 999);
 
         const daysInRange = [];
-        const startDate = new Date();
+        const startDate = new Date(oneWeekAgo);
         startDate.setDate(oneWeekAgo.getDate() + 1);
         for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
 
