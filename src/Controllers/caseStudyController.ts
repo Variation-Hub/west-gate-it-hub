@@ -48,7 +48,7 @@ export const caseStudyList = async (req: any, res: Response) => {
         const CaseStudy = await caseStudyModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1, _id: -1 });
 
         return res.status(200).json({
             message: "CaseStudy successfully fetched",
