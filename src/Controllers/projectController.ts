@@ -53,7 +53,10 @@ export const createProject = async (req: any, res: Response) => {
         for (const project of data) {
             try {
                 project.expiredData = (() => {
-                    const matchedCategory = casestudyData.find(data => data.category === project.category);
+                    const matchedCategory = casestudyData.find(data =>
+                        project.category.some((category: string) => category === data.category)
+                    );
+
                     if (matchedCategory) {
                         return matchedCategory.userIds.map((userId: string) => ({
                             supplierId: userId,
@@ -212,6 +215,13 @@ export const getProject = async (req: any, res: Response) => {
         }
         project = project[0];
 
+        if (project.category.length) {
+            project.casestudy = await caseStudy.find({
+                verify: true,
+                category: { $in: project.category }
+            });
+        }
+
         if (project.select.length > 0) {
             const supplierIds = project.select.map((item: any) => item.supplierId);
 
@@ -221,11 +231,10 @@ export const getProject = async (req: any, res: Response) => {
 
             const updatedSelect = await Promise.all(
                 project.select.map(async (item: any) => {
-                    console.log(project.category, item.supplierId)
                     const matchedCaseStudy = await caseStudy.countDocuments({
                         userId: item.supplierId,
                         verify: true,
-                        category: project.category
+                        category: { $in: project.category }
                     });
 
                     return {
@@ -251,7 +260,7 @@ export const getProject = async (req: any, res: Response) => {
                     const matchedCaseStudy = await caseStudy.find({
                         userId: item._id,
                         verify: true,
-                        category: project.category
+                        category: { $in: project.category }
                     });
 
                     return {
@@ -495,7 +504,6 @@ export const getProjects = async (req: any, res: Response) => {
         if (valueRange) {
             const [startValue, endValue] = valueRange.split('-').map(Number);
 
-            console.log(startValue, endValue)
             filter.minValue = { $gte: startValue };
             filter.maxValue = { $lte: endValue };
         }
@@ -588,11 +596,9 @@ export const getProjects = async (req: any, res: Response) => {
             projectIds = [...new Set(projectIds)];
 
             filter._id = { $in: projectIds }
-            console.log(projectIds)
         }
 
         if (supplierId) {
-            console.log(supplierId)
             filter.select = { $elemMatch: { supplierId: { $in: supplierId } } }
         }
 
@@ -632,9 +638,13 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (categorygroup) {
             projects = projects.map((project: any) => {
-                const data = categorygroup.find((item: any) => item._id === project.category)
+                const totalCount = categorygroup
+                    .filter((item: any) =>
+                        project.category.some((categoryId: any) => categoryId === item._id)
+                    )
+                    .reduce((sum: number, item: any) => sum + (item.count || 0), 0);
                 const result = project
-                result._doc.matchedCaseStudy = data?.count || 0
+                result._doc.matchedCaseStudy = totalCount || 0
 
                 return result
             })
@@ -655,15 +665,14 @@ export const getProjects = async (req: any, res: Response) => {
             })
         }
 
-        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin || req.user?.role === userRoles.FeasibilityAdmin) {
+        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin) {
             projects = await Promise.all(
                 projects.map(async (project: any) => {
                     const result = await caseStudy.aggregate([
-                        { $match: { category: project.category } },
+                        { $match: { category: { $in: project.category } } },
                         { $group: { _id: "$userId" } },
                         { $group: { _id: null, distinctUserCount: { $sum: 1 } } }
                     ]);
-
                     project._doc.matchedSupplierCount = result.length > 0 ? result[0].distinctUserCount : 0;
                     return project;
                 })
@@ -943,12 +952,11 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ])).map(item => item._id)
-        console.log(categorygroupAll, "++++")
         const date = new Date();
         const totalProjectValueAndCountMatch = await projectModel.aggregate([
             {
                 $match: {
-                    category: { $in: categorygroupAll },
+                    category: { $elemMatch: { $in: categorygroupAll } },
                     // dueDate: { $gte: date },
                     status: projectStatus.Passed
                 }
@@ -961,7 +969,6 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ]);
-        console.log(totalProjectValueAndCountMatch, "+++++++++++++")
         const totalProjectValueAndCount = await projectModel.aggregate([
             // {
             //     $match: {
@@ -976,29 +983,28 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 }
             }
         ]);
-        const totalProjectValueAndCountInCategory = await projectModel.aggregate([
-            {
-                $match: {
-                    category: { $in: categorygroupAll },
-                    status: projectStatus.Passed
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalValue: { $sum: "$maxValue" },
-                    projectCount: { $sum: 1 }
-                }
-            }
-        ]);
-        console.log(totalProjectValueAndCountInCategory, "totalProjectValueAndCountInCategory")
+        // const totalProjectValueAndCountInCategory = await projectModel.aggregate([
+        //     {
+        //         $match: {
+        //             category: { $elemMatch: { $in: categorygroupAll } },
+        //             status: projectStatus.Passed
+        //         }
+        //     },
+        //     {
+        //         $group: {
+        //             _id: null,
+        //             totalValue: { $sum: "$maxValue" },
+        //             projectCount: { $sum: 1 }
+        //         }
+        //     }
+        // ]);
+        // console.log(totalProjectValueAndCountInCategory, "totalProjectValueAndCountInCategory")
         const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
         const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
-        const result2 = totalProjectValueAndCountInCategory[0] || { totalValue: 0, projectCount: 0 };
+        const result2 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
 
         // const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
         const projects = await projectModel.find({ status: "Passed" })
-        console.log(projects.length, "foapodpfoasdfasof[psfo[PropTypes.array,", user?.categoryList)
         const responseData = {
             projectCount: {
                 totalProjects: result.projectCount,
@@ -1038,16 +1044,16 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         }
         projects.forEach((project: any) => {
             // responseData.projectValue.ProjectInCategoryValue += project.maxValue;
-            if (Object.keys(categorygroup).includes(project.category)) {
-                responseData.projectCount.totalProjectInCategory
-            }
-            if (Object.keys(categorygroupAll).includes(project.category)) {
-                console.log(0 <= categorygroupAll[project.category])
-                if (0 <= categorygroupAll[project.category]) {
-                    responseData.projectCount.matchedProjects++;
-                    responseData.projectValue.matchedProjectsValue += project.maxValue;
-                }
-            }
+            // if (Object.keys(categorygroup).includes(project.category)) {
+            //     responseData.projectCount.totalProjectInCategory
+            // }
+            // if (Object.keys(categorygroupAll).includes(project.category)) {
+            //     console.log(0 <= categorygroupAll[project.category])
+            //     if (0 <= categorygroupAll[project.category]) {
+            //         responseData.projectCount.matchedProjects++;
+            //         responseData.projectValue.matchedProjectsValue += project.maxValue;
+            //     }
+            // }
             if (project.status === projectStatus.Submitted) {
                 responseData.projectCount.totalSubmit++;
                 responseData.projectValue.totalSubmitValue += project.maxValue;
@@ -1270,7 +1276,11 @@ export const getSupplierAdminList = async (req: any, res: Response) => {
         }
 
         const groupedData = await caseStudy.aggregate([
-            { $match: { category: project.category } },
+            {
+                $match: {
+                    category: { $in: project.category }
+                }
+            },
             { $group: { _id: "$userId", caseStudies: { $push: "$$ROOT" } } }
         ]);
 
@@ -1280,17 +1290,15 @@ export const getSupplierAdminList = async (req: any, res: Response) => {
                 userIds.push(user._id);
             }
         })
-
         if (supplierId) {
             const supplierObjectId = new mongoose.Types.ObjectId(supplierId);
 
-            if (userIds.some((id: any) => id.equals(supplierObjectId))) {
+            if (userIds.some((id: any) => new mongoose.Types.ObjectId(id)?.equals(supplierObjectId))) {
                 userIds = [supplierObjectId];
             } else {
                 userIds = [];
             }
         }
-
         let users = await userModel.find({ _id: { $in: userIds } }).select({ password: 0 });
 
         users = users.map((user: any) => {
@@ -1510,7 +1518,6 @@ export const addProjectStatusForSupplier = async (req: any, res: Response) => {
     try {
         const { projectId, supplierId, supplierStatus } = req.body
 
-        console.log(projectId)
         const project = await projectModel.findById(projectId);
 
         if (!project) {

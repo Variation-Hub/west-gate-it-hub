@@ -6,7 +6,7 @@ import projectModel from "../Models/projectModel";
 async function handleProjectUpdate(category: string, userId: string) {
     try {
         const filter: any = {
-            category,
+            category: { $in: [category] },
             dueDate: { $gte: new Date() },
             expiredData: {
                 $not: {

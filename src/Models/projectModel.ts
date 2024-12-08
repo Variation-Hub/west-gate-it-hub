@@ -16,14 +16,12 @@ const projectModel = new mongoose.Schema({
         default: ""
     },
     category: {
-        type: String,
-        trim: true,
-        default: ""
+        type: [String],
+        default: []
     },
     industry: {
-        type: String,
-        trim: true,
-        default: ""
+        type: [String],
+        default: []
     },
     description: {
         type: String,

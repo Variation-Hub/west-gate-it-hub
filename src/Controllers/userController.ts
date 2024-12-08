@@ -2,11 +2,11 @@ import { Request, Response } from "express"
 import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
-import { generatePass, projectCategory, projectStatus, userRoles } from "../Util/contant"
+import { generatePass, projectStatus, userRoles } from "../Util/contant"
 import { emailHelper } from "../Util/nodemailer"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
-import mongoose, { Schema } from "mongoose"
+import mongoose from "mongoose"
 import { connectUser } from "../socket/socketEvent"
 import LoginModel from "../Models/LoginModel"
 import caseStudy from "../Models/caseStudy"
@@ -529,9 +529,7 @@ export const getUserList = async (req: any, res: Response) => {
                 { $group: { _id: "$select.supplierId", count: { $sum: 1 } } },
                 { $project: { _id: 0, supplierId: "$_id", projectCount: "$count" } }
             ]);
-
             users = users.map((user: any) => {
-                console.log(result, user._id)
                 const supplierCount = result.find((item) => new mongoose.Types.ObjectId(item.supplierId).equals(user._id));
                 if (supplierCount) {
                     return {
@@ -693,27 +691,17 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 data.projectsNotAwarded.maxValue += project.maxValue;
             }
 
-            if (project.category === projectCategory.WebDevelopment) {
-                data.categoryWise.WebDevelopment += 1;
-            } else if (project.category === projectCategory.Testing) {
-                data.categoryWise.Testing += 1;
-            } else if (project.category === projectCategory.DataBase) {
-                data.categoryWise.DataBase += 1;
-            } else if (project.category === projectCategory.Andoid) {
-                data.categoryWise.Andoid += 1;
-            } else if (project.category === projectCategory.ArtificialIntelligence) {
-                data.categoryWise.ArtificialIntelligence += 1;
+            if (project.category.length) {
+                project.category.forEach((category: any) => {
+                    if (data.categoryWise[category]) {
+                        data.categoryWise[category]++;
+                    } else {
+                        data.categoryWise[category] = 1;
+                    }
+                });
             }
 
-            if (project.category) {
-                if (data.categoryWise[project.category]) {
-                    data.categoryWise[project.category]++;
-                } else {
-                    data.categoryWise[project.category] = 1;
-                }
-            }
-
-            if (uniqueCategories.includes(project.category)) {
+            if (project.category.some((category: string) => uniqueCategories.includes(category))) {
                 data.projectsMatched.count += 1;
                 data.projectsMatched.maxValue += project.maxValue;
             }
