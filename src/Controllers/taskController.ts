@@ -38,7 +38,7 @@ export const updateTask = async (req: Request, res: Response) => {
             });
         }
 
-        if (obj.assignTo && task.assignTo.toString() !== obj.assignTo) {
+        if (obj?.assignTo && task?.assignTo?.toString() !== obj?.assignTo) {
             obj.assignDate = new Date();
         }
         Object.keys(obj).forEach(value => {

@@ -13,7 +13,8 @@ const TaskModel = new mongoose.Schema({
     },
     dueDate: {
         type: Date,
-        required: true,
+        // required: true,
+        default: null
     },
     assignDate: {
         type: Date,
@@ -25,7 +26,8 @@ const TaskModel = new mongoose.Schema({
     },
     assignTo: {
         type: mongoose.Schema.Types.ObjectId,
-        required: true,
+        // required: true,
+        default: null
     },
     status: {
         type: String,
