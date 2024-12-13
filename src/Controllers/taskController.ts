@@ -111,7 +111,7 @@ export const getTasks = async (req: any, res: Response) => {
         const count = await taskModel.countDocuments(filter);
 
         let userIds: any = [];
-        Tasks.forEach((task: any) => {
+        Tasks?.forEach((task: any) => {
             task.assignTo.forEach((obj: any) => {
                 userIds.push(obj.userId)
             });
