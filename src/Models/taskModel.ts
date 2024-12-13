@@ -28,6 +28,10 @@ const TaskModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
+    project: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null,
+    },
     status: {
         type: String,
         enum: taskStatus,
