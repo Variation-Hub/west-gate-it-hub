@@ -161,6 +161,7 @@ export const getTasks = async (req: any, res: Response) => {
             }
         });
     } catch (err: any) {
+        console.log(err);
         return res.status(500).json({
             message: err.message,
             status: false,

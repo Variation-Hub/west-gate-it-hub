@@ -26,7 +26,13 @@ const TaskModel = new mongoose.Schema({
     },
     assignTo: {
         type: [mongoose.Schema.Types.Mixed],
-        default: []
+        default: [],
+        validate: {
+            validator: function (value: any): boolean {
+                return value !== null;
+            },
+            message: 'assignTo cannot be null.',
+        },
     },
     project: {
         type: mongoose.Schema.Types.ObjectId,
