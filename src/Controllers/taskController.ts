@@ -103,6 +103,7 @@ export const getTasks = async (req: any, res: Response) => {
             filter.status = status
         }
         const Tasks = await taskModel.find(filter)
+            .populate("project", "projectName status")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 })

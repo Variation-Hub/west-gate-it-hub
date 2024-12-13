@@ -30,6 +30,7 @@ const TaskModel = new mongoose.Schema({
     },
     project: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
         default: null,
     },
     status: {
