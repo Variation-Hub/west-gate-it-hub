@@ -139,3 +139,10 @@ export const taskStatus = {
     Ongoing: 'Ongoing',
     Completed: 'Completed'
 }
+
+export const taskCategory = {
+    feasibility: 'feasibility',
+    bidManager: 'bid manager',
+    otherTasks: 'other tasks',
+    none: ''
+}

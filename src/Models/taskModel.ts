@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { taskStatus } from "../Util/contant";
+import { taskCategory, taskStatus } from "../Util/contant";
 
 const TaskModel = new mongoose.Schema({
     task: {
@@ -7,17 +7,17 @@ const TaskModel = new mongoose.Schema({
         required: true,
         trim: true,
     },
-    subTask: {
+    discription: {
+        type: String,
+        default: "",
+    },
+    comments: {
         type: [mongoose.Schema.Types.Mixed],
-        default: []
+        default: [],
     },
     dueDate: {
         type: Date,
         // required: true,
-        default: null
-    },
-    assignDate: {
-        type: Date,
         default: null
     },
     createdBy: {
@@ -25,15 +25,19 @@ const TaskModel = new mongoose.Schema({
         required: true,
     },
     assignTo: {
-        type: mongoose.Schema.Types.ObjectId,
-        // required: true,
-        default: null
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     status: {
         type: String,
         enum: taskStatus,
         required: true,
         default: taskStatus.Todo
+    },
+    pickACategory: {
+        type: String,
+        enum: taskCategory,
+        default: taskCategory.none
     },
     createdAt: {
         type: Date,

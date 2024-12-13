@@ -501,7 +501,6 @@ export const getSupplierDetails = async (req: any, res: Response) => {
 export const getUserList = async (req: any, res: Response) => {
     try {
 
-        const userRoles = (req.query.userRoles).split(",");
         const projectCount = (req.query.projectCount);
         const projectId = req.query.projectId;
 
@@ -521,7 +520,14 @@ export const getUserList = async (req: any, res: Response) => {
             });
         }
 
-        let users: any = await userModel.find({ role: { $in: userRoles } }).select({ password: 0 });
+        let filter = {};
+
+        if (req.query.userRoles) {
+            const userRoles = (req.query.userRoles).split(",");
+            filter = { role: { $in: userRoles } }
+        }
+
+        let users: any = await userModel.find(filter).select({ password: 0 });
 
         if (projectCount) {
             const result = await projectModel.aggregate([
