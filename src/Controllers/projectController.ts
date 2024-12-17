@@ -1751,14 +1751,14 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             // },
 
             FeasibilityStatusCount: {
-                "Pass": 0,
+                "Passed": 0,
                 "Fail": 0,
                 "Awaiting": 0,
                 "In-progress": 0,
                 "Documents not found": 0
             },
             FeasibilityStatusValue: {
-                "Pass": 0,
+                "Passed": 0,
                 "Fail": 0,
                 "Awaiting": 0,
                 "In-progress": 0,
