@@ -87,11 +87,13 @@ export const updateTask = async (req: Request, res: Response) => {
 
 export const getTasks = async (req: any, res: Response) => {
     try {
-        const { assignTo, status, pickACategory } = req.query;
+        let { assignTo, status, pickACategory } = req.query;
 
+        assignTo = assignTo?.split(',');
         let filter: any = {}
-        if (assignTo) {
-            filter.assignTo = { $elemMatch: { userId: assignTo } };
+        if (assignTo?.length) {
+            console.log("filter")
+            filter.assignTo = { $elemMatch: { userId: { $in: assignTo } } };
         }
         if (pickACategory) {
             filter.pickACategory = pickACategory

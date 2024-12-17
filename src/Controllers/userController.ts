@@ -527,8 +527,7 @@ export const getUserList = async (req: any, res: Response) => {
             filter = { role: { $in: userRoles } }
         }
 
-        let users: any = await userModel.find(filter).select({ password: 0 });
-
+        let users: any = await userModel.find(filter).select({ password: 0 }).lean();
         if (projectCount) {
             const result = await projectModel.aggregate([
                 { $unwind: "$select" },
@@ -539,16 +538,65 @@ export const getUserList = async (req: any, res: Response) => {
                 const supplierCount = result.find((item) => new mongoose.Types.ObjectId(item.supplierId).equals(user._id));
                 if (supplierCount) {
                     return {
-                        ...user.toObject(),
+                        ...user,
                         projectCount: supplierCount.projectCount
                     };
                 } else {
                     return {
-                        ...user.toObject(),
+                        ...user,
                         projectCount: 0
                     };
                 }
             });
+        }
+
+        if (req.query.userRoles === userRoles.SupplierAdmin) {
+            users = await Promise.all(users.map(async (user: any, index: number) => {
+                const userId = user._id;
+
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+                const today = new Date();
+                today.setHours(23, 59, 59, 999);
+
+                const daysInRange = [];
+                const startDate = new Date(oneWeekAgo);
+                startDate.setDate(oneWeekAgo.getDate() + 1);
+
+                for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
+                    daysInRange.push(new Date(d).toISOString().split("T")[0]);
+                }
+
+                const rawData = await LoginModel.find({
+                    userId,
+                    createdAt: { $gte: oneWeekAgo, $lte: today },
+                });
+
+                const groupedData: Record<string, any[]> = {};
+                daysInRange.forEach((day) => {
+                    groupedData[day] = [];
+                });
+
+                rawData.forEach((record: any) => {
+                    const dateKey = new Date(record.createdAt).toISOString().split("T")[0];
+                    const time = new Date(record.createdAt).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                        timeZone: "Asia/Kolkata",
+                    });
+
+                    if (groupedData[dateKey]) {
+                        groupedData[dateKey].push({ loginTime: time });
+                    }
+                });
+
+                return {
+                    ...user,
+                    loginDetails: groupedData
+                };
+            }));
         }
 
         return res.status(200).json({
