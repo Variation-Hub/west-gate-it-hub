@@ -1766,7 +1766,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             },
             BidStatusCount: {
                 "Shortlisted projects": 0,
-                "Dropped after feasibility": 0,
+                "DroppedAfterFeasibility": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
                 "Awarded": 0,
@@ -1774,7 +1774,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             },
             BidStatusValue: {
                 "Shortlisted projects": 0,
-                "Dropped after feasibility": 0,
+                "DroppedAfterFeasibility": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
                 "Awarded": 0,
