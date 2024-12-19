@@ -1717,39 +1717,8 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             };
         }
 
-        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1 });
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1 });
         let data: any = {
-            // projectCount: {
-            //     'Awaiting': 0,
-            //     'In-progress': 0,
-            //     'In-Review UK': 0,
-            //     'Documents Not Found': 0,
-            //     'In-Solution': 0,
-            //     'In-Review': 0,
-            //     'In-Submission': 0,
-            //     'Dropped': 0,
-            //     'Dropped after feasibility': 0,
-            //     'Not Awarded': 0,
-            //     'Passed': 0,
-            //     'Waiting for result': 0,
-            //     'Failed': 0,
-            // },
-            // projectValue: {
-            //     'Awaiting': 0,
-            //     'In-progress': 0,
-            //     'In-Review UK': 0,
-            //     'Documents Not Found': 0,
-            //     'In-Solution': 0,
-            //     'In-Review': 0,
-            //     'In-Submission': 0,
-            //     'Dropped': 0,
-            //     'Dropped after feasibility': 0,
-            //     'Not Awarded': 0,
-            //     'Passed': 0,
-            //     'Waiting for result': 0,
-            //     'Failed': 0,
-            // },
-
             FeasibilityStatusCount: {
                 "Passed": 0,
                 "Fail": 0,
@@ -1783,16 +1752,6 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
         };
 
         projects.forEach((project: any) => {
-            // if (data.projectCount[project.status]) {
-            //     data.projectCount[project.status]++;
-            // } else {
-            //     data.projectCount[project.status] = 1;
-            // }
-            // if (data.projectValue[project.status]) {
-            //     data.projectValue[project.status] += project.maxValue;
-            // } else {
-            //     data.projectValue[project.status] = project.maxValue;
-            // }
 
             if (data.FeasibilityStatusCount[project.status] >= 0) {
                 data.FeasibilityStatusCount[project.status]++;
@@ -1803,6 +1762,12 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             } else {
                 // for future all status count add from this section
             }
+
+            if (project.sortListUserId.length > 0) {
+                data.BidStatusCount['Shortlisted']++
+                data.BidStatusValue.Shortlisted += project.maxValue
+            }
+
         })
 
         return res.status(200).json({
