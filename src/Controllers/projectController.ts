@@ -188,11 +188,33 @@ export const getProject = async (req: any, res: Response) => {
                 }
             },
             {
+                $addFields: {
+                    sortListUserIds: {
+                        $ifNull: ['$sortListUserId', []]
+                    }
+                }
+            },
+            {
                 $lookup: {
                     from: 'users',
-                    let: { sortListUserIds: ["673b10c78b9e02d785223846"] }, // Replace this array dynamically if needed
+                    let: { sortListUserIds: '$sortListUserId' },
                     pipeline: [
-                        { $match: { $expr: { $in: ['$_id', { $map: { input: '$$sortListUserIds', as: 'id', in: { $toObjectId: '$$id' } } }] } } }
+                        {
+                            $match: {
+                                $expr: {
+                                    $in: [
+                                        '$_id',
+                                        {
+                                            $map: {
+                                                input: '$$sortListUserIds',
+                                                as: 'id',
+                                                in: { $toObjectId: '$$id' }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
                     ],
                     as: 'sortlistedUsers'
                 }
@@ -297,6 +319,7 @@ export const getProject = async (req: any, res: Response) => {
             data: { ...project, matchedCaseStudy: project.casestudy?.length || 0 }
         });
     } catch (err: any) {
+        console.log(err, "project fetch success")
         return res.status(500).json({
             message: err.message,
             status: false,
