@@ -1,6 +1,5 @@
 import { Request, Response } from "express"
 import taskModel from "../Models/taskModel"
-import { PipelineStage } from "mongoose"
 import userModel from "../Models/userModel"
 
 export const createTask = async (req: any, res: Response) => {
@@ -213,20 +212,57 @@ export const addCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        // const index = task.comments.findIndex((comment: any) => comment.userId === userId.toString());
-
-        // if (index === -1) {
         task.comments.push({
+            commentId: task.comments.length + 1,
             comment,
             date: new Date(),
             userId: userId.toString(),
         })
-        // } else {
-        //     task.comments[index] = {
-        //         ...task.comments[index],
-        //         comment
-        //     }
-        // }
+
+        await task.save();
+
+        return res.send({
+            message: "Task updated successfully",
+            status: true,
+            data: task
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateCommentToTask = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { comment, commentId } = req.body;
+        const userId = req.user._id
+
+        const task: any = await taskModel.findById(id);
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found",
+                status: false,
+                data: null
+            });
+        }
+
+        if (task.comments.length < commentId) {
+            return res.status(404).json({
+                message: "Commant not found",
+                status: false,
+                data: null
+            });
+        }
+        task.comments[commentId - 1] = {
+            ...task.comments[commentId - 1],
+            comment,
+            updatedDate: new Date(),
+        }
 
         await task.save();
 
