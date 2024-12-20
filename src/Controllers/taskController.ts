@@ -239,7 +239,7 @@ export const updateCommentToTask = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const { comment, commentId } = req.body;
-        const userId = req.user._id
+        const userId = req.user._id;
 
         const task: any = await taskModel.findById(id);
 
@@ -251,26 +251,49 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        if (task.comments.length < commentId) {
+        if (!task.comments || task.comments.length < commentId) {
             return res.status(404).json({
-                message: "Commant not found",
+                message: "Comment not found",
                 status: false,
                 data: null
             });
         }
-        task.comments[commentId - 1] = {
-            ...task.comments[commentId - 1],
-            comment,
-            updatedDate: new Date(),
+
+        const commentToUpdate = task.comments[commentId - 1];
+
+        // Ensure the comment exists and belongs to the user (optional)
+        // if (commentToUpdate.userId.toString() !== userId.toString()) {
+        //     return res.status(403).json({
+        //         message: "You are not authorized to update this comment",
+        //         status: false,
+        //         data: null
+        //     });
+        // }
+
+        // Check if the comment was updated within 24 hours
+        // const lastUpdated = new Date(commentToUpdate.updatedDate || commentToUpdate.createdDate);
+        const lastUpdated = new Date(commentToUpdate.date);
+        const currentTime = new Date();
+        const hoursDifference = (currentTime.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+        if (hoursDifference > 24) {
+            return res.status(400).json({
+                message: "Comment cannot be updated after 24 hours",
+                status: false,
+                data: null
+            });
         }
+
+        commentToUpdate.comment = comment;
+        commentToUpdate.updatedDate = new Date();
 
         await task.save();
 
-        return res.send({
-            message: "Task updated successfully",
+        return res.json({
+            message: "Comment updated successfully",
             status: true,
             data: task
-        })
+        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message,
@@ -278,4 +301,4 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+};
