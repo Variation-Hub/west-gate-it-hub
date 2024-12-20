@@ -213,20 +213,20 @@ export const addCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        const index = task.comments.findIndex((comment: any) => comment.userId === userId.toString());
+        // const index = task.comments.findIndex((comment: any) => comment.userId === userId.toString());
 
-        if (index === -1) {
-            task.comments.push({
-                comment,
-                date: new Date(),
-                userId: userId.toString(),
-            })
-        } else {
-            task.comments[index] = {
-                ...task.comments[index],
-                comment
-            }
-        }
+        // if (index === -1) {
+        task.comments.push({
+            comment,
+            date: new Date(),
+            userId: userId.toString(),
+        })
+        // } else {
+        //     task.comments[index] = {
+        //         ...task.comments[index],
+        //         comment
+        //     }
+        // }
 
         await task.save();
 
