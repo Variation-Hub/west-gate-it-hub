@@ -284,9 +284,10 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        commentToUpdate.comment = comment;
-        commentToUpdate.updatedDate = new Date();
+        task.comments[commentId - 1].comment = comment;
+        task.comments[commentId - 1].updatedDate = new Date();
 
+        task.markModified('comments');
         await task.save();
 
         return res.json({
