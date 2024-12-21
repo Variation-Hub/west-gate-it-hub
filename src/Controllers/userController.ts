@@ -50,7 +50,7 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const createSuplierUser = async (req: any, res: Response) => {
     try {
-        const { userName, email, domain, department, password } = req.body
+        const { userName, email, domain, department } = req.body
         const userId = req.user.id;
 
         const user = await userModel.findOne({
@@ -65,6 +65,7 @@ export const createSuplierUser = async (req: any, res: Response) => {
             })
         }
 
+        const password = generatePass();
         const newUser = await userModel.create({ userName, email, domain, department, password, role: userRoles.SupplierUser, supplierId: userId })
         emailHelper(email, password).then(data => console.log(data)).catch(err => console.log(err));
 
