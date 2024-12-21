@@ -211,9 +211,9 @@ export const addCommentToTask = async (req: any, res: Response) => {
                 data: null
             });
         }
-
+        const commentId = task.comments[task?.comments?.length - 1]?.commentId + 1 || 1;
         task.comments.push({
-            commentId: task.comments.length + 1,
+            commentId,
             comment,
             date: new Date(),
             userId: userId.toString(),
@@ -251,7 +251,9 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        if (!task.comments || task.comments.length < commentId) {
+        const commentIndex = task.comments.findIndex((c: any) => c.commentId == commentId);
+        console.log(commentIndex, commentId, typeof commentId, commentId === task.comments[0].commentId);
+        if (commentIndex === -1) {
             return res.status(404).json({
                 message: "Comment not found",
                 status: false,
@@ -259,7 +261,7 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        const commentToUpdate = task.comments[commentId - 1];
+        const commentToUpdate = task.comments[commentIndex];
 
         // Ensure the comment exists and belongs to the user (optional)
         // if (commentToUpdate.userId.toString() !== userId.toString()) {
@@ -284,14 +286,72 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        task.comments[commentId - 1].comment = comment;
-        task.comments[commentId - 1].updatedDate = new Date();
+        task.comments[commentIndex].comment = comment;
+        task.comments[commentIndex].updatedDate = new Date();
 
         task.markModified('comments');
         await task.save();
 
         return res.json({
             message: "Comment updated successfully",
+            status: true,
+            data: task
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteCommentToTask = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { commentId } = req.body;
+        const userId = req.user._id;
+
+        const task: any = await taskModel.findById(id);
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const commentIndex = task.comments.findIndex((c: any) => c.commentId === commentId);
+
+        if (commentIndex === -1) {
+            return res.status(404).json({
+                message: "Comment not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const commentToUpdate = task.comments[commentIndex];
+
+        const lastUpdated = new Date(commentToUpdate.date);
+        const currentTime = new Date();
+        const hoursDifference = (currentTime.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+
+        if (hoursDifference > 24) {
+            return res.status(400).json({
+                message: "Comment cannot be delete after 24 hours",
+                status: false,
+                data: null
+            });
+        }
+
+        task.comments.splice(commentIndex, 1);
+        task.markModified('comments');
+        await task.save();
+
+        return res.json({
+            message: "Comment delete successfully",
             status: true,
             data: task
         });
