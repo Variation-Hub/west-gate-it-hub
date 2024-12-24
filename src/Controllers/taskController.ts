@@ -144,7 +144,7 @@ export const getTasks = async (req: any, res: Response) => {
                         obj.userDetail = user;
                     }
                     return obj;
-                });
+                }).reverse();
             });
         }
 
