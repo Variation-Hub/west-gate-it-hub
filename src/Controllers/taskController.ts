@@ -332,19 +332,19 @@ export const deleteCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        const commentToUpdate = task.comments[commentIndex];
+        // const commentToUpdate = task.comments[commentIndex];
 
-        const lastUpdated = new Date(commentToUpdate.date);
-        const currentTime = new Date();
-        const hoursDifference = (currentTime.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
+        // const lastUpdated = new Date(commentToUpdate.date);
+        // const currentTime = new Date();
+        // const hoursDifference = (currentTime.getTime() - lastUpdated.getTime()) / (1000 * 60 * 60);
 
-        if (hoursDifference > 24) {
-            return res.status(400).json({
-                message: "Comment cannot be delete after 24 hours",
-                status: false,
-                data: null
-            });
-        }
+        // if (hoursDifference > 24) {
+        //     return res.status(400).json({
+        //         message: "Comment cannot be delete after 24 hours",
+        //         status: false,
+        //         data: null
+        //     });
+        // }
 
         task.comments.splice(commentIndex, 1);
         task.markModified('comments');
