@@ -8,6 +8,8 @@ import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import summaryQuestionModel from "../Models/summaryQuestionModel";
 import { mailForFeasibleTimeline, mailForNewProject } from "../Util/nodemailer";
+import { addReviewQuestion } from "./summaryQuestionController";
+import taskModel from "../Models/taskModel";
 
 async function getCategoryWithUserIds() {
     try {
@@ -313,6 +315,7 @@ export const getProject = async (req: any, res: Response) => {
             project.statusHistory = updatedStatusHistory;
         }
 
+        const tasks = await taskModel.find({ _id: id }).select("comments project")
         return res.status(200).json({
             message: "project fetch success",
             status: true,
@@ -371,7 +374,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -651,6 +654,10 @@ export const getProjects = async (req: any, res: Response) => {
                 }
             };
         }
+
+        if (appointed) {
+            filter.appointedUserId = { $elemMatch: { $eq: appointed } };
+        }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
@@ -739,7 +746,7 @@ export const updateProject = async (req: any, res: Response) => {
         const id = req.params.id;
         const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus, certifications, policy, eligibilityForm } = req.body
 
-        const project = await projectModel.findById(id);
+        const project: any = await projectModel.findById(id);
 
         if (!project) {
             return res.status(404).json({
@@ -747,6 +754,27 @@ export const updateProject = async (req: any, res: Response) => {
                 status: false,
                 data: null
             })
+        }
+
+        const fieldsToUpdate = {
+            projectName, category, industry, description, BOSID, publishDate, submission, link,
+            periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
+            website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
+            minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, status1,
+            BidWritingStatus, eligibilityForm, waitingForResult, policy
+        };
+
+        for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
+            const oldValue = project[field];
+            if (newValue !== undefined && newValue !== oldValue) {
+                const logEntry = {
+                    log: `${field} updated by ${req.user?.name}`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
+                project[field] = newValue;
+            }
         }
 
         if (project.status !== status) {
@@ -866,7 +894,7 @@ export const deleteProjectMultiple = async (req: Request, res: Response) => {
     }
 }
 
-export const sortList = async (req: Request, res: Response) => {
+export const sortList = async (req: any, res: Response) => {
     try {
         const { userId, projectId } = req.body;
 
@@ -882,6 +910,14 @@ export const sortList = async (req: Request, res: Response) => {
 
         if (!project.sortListUserId.includes(userId)) {
             project.sortListUserId = [...project.sortListUserId, userId];
+
+            const user: any = await userModel.findById(userId);
+            const logEntry = {
+                log: `${user.name} was shortlisted by ${req.user.name} for the project: ${project.projectName}.`,
+                userId: req.user._id,
+                date: new Date()
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
         }
         project.save();
 
@@ -898,7 +934,7 @@ export const sortList = async (req: Request, res: Response) => {
     }
 }
 
-export const applyProject = async (req: Request, res: Response) => {
+export const applyProject = async (req: any, res: Response) => {
     try {
         const { userId, projectId } = req.body;
 
@@ -914,6 +950,14 @@ export const applyProject = async (req: Request, res: Response) => {
 
         if (!project.applyUserId.includes(userId)) {
             project.applyUserId = [...project.applyUserId, userId];
+
+            const user: any = await userModel.findById(userId);
+            const logEntry = {
+                log: `${user.name} applied for the project: ${project.projectName}.`,
+                userId: userId,
+                date: new Date()
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
         }
         project.save();
 
@@ -1176,7 +1220,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         const id = req.params.id;
         const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus, eligibilityForm } = req.body
 
-        const project = await projectModel.findById(id);
+        const project: any = await projectModel.findById(id);
 
         if (!project) {
             return res.status(404).json({
@@ -1185,6 +1229,25 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 data: null
             })
         }
+
+        const fieldsToUpdate = {
+            category, industry, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus, eligibilityForm
+        };
+
+        for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
+            const oldValue = project[field];
+            if (newValue !== undefined && newValue !== oldValue) {
+                const logEntry = {
+                    log: `${field} updated by ${req.user?.name}`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
+                project[field] = newValue;
+            }
+        }
+
+
         if (project.status !== status) {
             project.statusHistory.push({
                 status,
@@ -1369,6 +1432,14 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             supplierId = new mongoose.Types.ObjectId(supplierId)
             if (!(project.select.some((select: any) => new mongoose.Types.ObjectId(select.supplierId)?.equals(supplierId)))) {
                 project.select.push(select);
+
+                const user: any = await userModel.findById(supplierId);
+                const logEntry = {
+                    log: `${user.name} is select for the project.`,
+                    userId: supplierId,
+                    date: new Date()
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
             }
         }
         if (finalizedId) {
@@ -1378,7 +1449,13 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             //     finalizedId,
 
             // }
-
+            const user: any = await userModel.findById(finalizedId);
+            const logEntry = {
+                log: `${user.name} Won the project.`,
+                userId: finalizedId,
+                date: new Date()
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
 
             project.status = projectStatus.Won
             project.closedDate = new Date()
@@ -1388,6 +1465,14 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             userId = new mongoose.Types.ObjectId(userId)
             if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
                 project.dropUser.push({ userId, reason });
+
+                const user: any = await userModel.findById(userId);
+                const logEntry = {
+                    log: `${user.name} is drop by ${req.user.name}`,
+                    userId: userId,
+                    date: new Date()
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
             }
         }
 
@@ -1806,3 +1891,44 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
         });
     }
 }
+
+export const appointUserToProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userId } = req.body;
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        if (!project.appointedUserId.includes(userId)) {
+            project.appointedUserId.push(userId);
+
+            const updateProject = await project.save();
+
+            return res.status(200).json({
+                message: "User appointed successfully",
+                status: true,
+                data: updateProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "User is already appointed to this project",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null,
+        });
+    }
+};

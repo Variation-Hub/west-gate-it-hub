@@ -257,7 +257,16 @@ const projectModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    appointedUserId: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: [],
+    },
     expiredData: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
+    logs: {
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },

@@ -86,7 +86,7 @@ export const updateTask = async (req: Request, res: Response) => {
 
 export const getTasks = async (req: any, res: Response) => {
     try {
-        let { assignTo, status, pickACategory } = req.query;
+        let { assignTo, status, pickACategory, project } = req.query;
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
@@ -96,6 +96,9 @@ export const getTasks = async (req: any, res: Response) => {
         }
         if (pickACategory) {
             filter.pickACategory = pickACategory
+        }
+        if (project) {
+            filter.project = project
         }
         if (status === 'DueDate passed') {
             const date = new Date();
