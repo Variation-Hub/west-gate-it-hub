@@ -270,6 +270,10 @@ const projectModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
+    feasibilityStatus: {
+        type: String,
+        enum: ['feasibility status change', 'approve', 'reject'],
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

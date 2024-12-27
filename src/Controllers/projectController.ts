@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
-import { projectStatus, userRoles } from "../Util/contant";
+import { feasibilityStatus, projectStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -374,7 +374,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -657,6 +657,9 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (appointed) {
             filter.appointedUserId = { $elemMatch: { $eq: appointed } };
+        }
+        if (feasibilityReview) {
+            filter.feasibilityStatus = { $ne: null };
         }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
@@ -1243,12 +1246,14 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     date: new Date()
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
-                project[field] = newValue;
             }
         }
 
-
         if (project.status !== status) {
+            console.log("project")
+            if (req.user.role === userRoles.FeasibilityUser) {
+                project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
+            }
             project.statusHistory.push({
                 status,
                 date: new Date(),
@@ -1948,3 +1953,39 @@ export const appointUserToProject = async (req: any, res: Response) => {
         });
     }
 };
+
+export const approveOrRejectFeasibilityStatus = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { action } = req.body
+
+        const project: any = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (action === feasibilityStatus.approve) {
+            project.feasibilityStatus = null;
+        } else {
+            project.feasibilityStatus = null;
+            project.status = projectStatus.Inprogress;
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}

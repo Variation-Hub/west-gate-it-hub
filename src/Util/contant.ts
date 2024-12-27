@@ -146,3 +146,8 @@ export const taskCategory = {
     otherTasks: 'other tasks',
     none: ''
 }
+export const feasibilityStatus = {
+    feasibilityStatusChange: 'feasibility status change',
+    approve: 'approve',
+    reject: 'reject'
+}
