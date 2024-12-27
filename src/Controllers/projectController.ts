@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
-import mongoose from "mongoose";
+import mongoose, { Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
 import { projectStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
@@ -1897,6 +1897,15 @@ export const appointUserToProject = async (req: any, res: Response) => {
         const id = req.params.id;
         const { userId } = req.body;
 
+        if (!Array.isArray(userId) || userId.length === 0) {
+            return res.status(400).json({
+                message: "Invalid input: userId must be a non-empty array",
+                status: false,
+                data: null,
+            });
+        }
+
+
         const project = await projectModel.findById(id);
 
         if (!project) {
@@ -1907,19 +1916,26 @@ export const appointUserToProject = async (req: any, res: Response) => {
             });
         }
 
-        if (!project.appointedUserId.includes(userId)) {
-            project.appointedUserId.push(userId);
+        const newUserIds = userId.filter((userId: string) =>
+            !project.appointedUserId.some((appointedId: mongoose.Types.ObjectId) =>
+                appointedId.equals(new mongoose.Types.ObjectId(userId))
+            )
+        );
 
-            const updateProject = await project.save();
+
+        if (newUserIds.length > 0) {
+            project.appointedUserId.push(...newUserIds);
+
+            const updatedProject = await project.save();
 
             return res.status(200).json({
-                message: "User appointed successfully",
+                message: "Users appointed successfully",
                 status: true,
-                data: updateProject,
+                data: updatedProject,
             });
         } else {
             return res.status(400).json({
-                message: "User is already appointed to this project",
+                message: "All provided users are already appointed to this project",
                 status: false,
                 data: null,
             });
