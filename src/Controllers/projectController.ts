@@ -315,6 +315,24 @@ export const getProject = async (req: any, res: Response) => {
             project.statusHistory = updatedStatusHistory;
         }
 
+        if (project.statusComment.length > 0) {
+            const userIds = project.statusComment.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.statusComment.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.statusComment = updatedStatusHistory;
+        }
+
         const tasks = await taskModel.find({ _id: id }).select("comments project")
         return res.status(200).json({
             message: "project fetch success",
