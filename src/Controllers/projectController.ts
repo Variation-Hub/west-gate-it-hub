@@ -1322,8 +1322,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         userId: req.user._id,
                         date: new Date()
                     };
-                } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile") {
-                    if (areArraysEqual(newValue, oldValue)) {
+                } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipResponceFile") {
+                    if (areObjectsEqual(newValue, oldValue)) {
                         continue;
                     }
                     logEntry = {
