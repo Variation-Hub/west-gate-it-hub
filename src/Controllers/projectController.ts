@@ -750,6 +750,51 @@ export const getProjects = async (req: any, res: Response) => {
     }
 }
 
+function areObjectsEqual(obj1: any, obj2: any): boolean {
+    if (obj1 === obj2) return true; // Same reference or value
+
+    if (typeof obj1 !== typeof obj2 || obj1 === null || obj2 === null) {
+        return false; // Different types or one is null
+    }
+
+    if (Array.isArray(obj1) && Array.isArray(obj2)) {
+        if (obj1.length !== obj2.length) return false;
+
+        return obj1.every((item, index) => areObjectsEqual(item, obj2[index]));
+    }
+
+    if (typeof obj1 === 'object') {
+        const keys1 = Object.keys(obj1);
+        const keys2 = Object.keys(obj2);
+
+        if (keys1.length !== keys2.length) return false;
+
+        return keys1.every(key => areObjectsEqual(obj1[key], obj2[key]));
+    }
+
+    return obj1 === obj2; // Compare primitive values
+}
+
+function areArraysEqual(arr1: any[], arr2: any[]): boolean {
+    // Check if lengths are the same
+    if (arr1.length !== arr2.length) {
+        return false;
+    }
+
+    // Check each element in the arrays
+    return arr1.every((element, index) => {
+        const otherElement = arr2[index];
+
+        // Handle nested objects or arrays
+        if (typeof element === "object" && typeof otherElement === "object") {
+            return JSON.stringify(element) === JSON.stringify(otherElement);
+        }
+
+        // Primitive comparison
+        return element === otherElement;
+    });
+}
+
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
@@ -776,11 +821,32 @@ export const updateProject = async (req: any, res: Response) => {
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
-                const logEntry = {
-                    log: `${field} updated by ${req.user?.name}`,
-                    userId: req.user._id,
-                    date: new Date()
-                };
+                let logEntry: any = {}
+                if (field === "eligibilityForm") {
+                    if (areObjectsEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                } else if (field === "category" || field === "industry") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                } else {
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                }
                 project.logs = [logEntry, ...(project.logs || [])];
                 project[field] = newValue;
             }
@@ -922,7 +988,7 @@ export const sortList = async (req: any, res: Response) => {
 
             const user: any = await userModel.findById(userId);
             const logEntry = {
-                log: `${user.name} was shortlisted by ${req.user.name} for the project: ${project.projectName}.`,
+                log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
                 userId: req.user._id,
                 date: new Date()
             };
@@ -962,7 +1028,7 @@ export const applyProject = async (req: any, res: Response) => {
 
             const user: any = await userModel.findById(userId);
             const logEntry = {
-                log: `${user.name} applied for the project: ${project.projectName}.`,
+                log: `<strong>${user.name}</strong> applied for the project: ${project.projectName}.`,
                 userId: userId,
                 date: new Date()
             };
@@ -1246,11 +1312,51 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
-                const logEntry = {
-                    log: `${field} updated by ${req.user?.name}`,
-                    userId: req.user._id,
-                    date: new Date()
-                };
+                let logEntry: any = {}
+                if (field === "statusComment" || field === "clientDocument" || field === "FeasibilityOtherDocuments") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                } else if (field === "loginDetail" || field === "eligibilityForm" || field === "projectComment") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                } else if (field === "failStatusReason") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                }
+                else {
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
+                        userId: req.user._id,
+                        date: new Date()
+                    };
+                }
                 project.logs = [logEntry, ...(project.logs || [])];
             }
         }
@@ -1446,7 +1552,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
 
                 const user: any = await userModel.findById(supplierId);
                 const logEntry = {
-                    log: `${user.name} is select for the project.`,
+                    log: `<strong>${user.name}</strong> is select for the project.`,
                     userId: supplierId,
                     date: new Date()
                 };
@@ -1462,7 +1568,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             // }
             const user: any = await userModel.findById(finalizedId);
             const logEntry = {
-                log: `${user.name} Won the project.`,
+                log: `<strong>${user.name}<strong> Won the project.`,
                 userId: finalizedId,
                 date: new Date()
             };
@@ -1479,7 +1585,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
 
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
-                    log: `${user.name} is drop by ${req.user.name}`,
+                    log: `<strong>${user.name}</strong> is drop by ${req.user.name}`,
                     userId: userId,
                     date: new Date()
                 };
