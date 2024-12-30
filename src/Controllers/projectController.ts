@@ -2197,3 +2197,46 @@ export const approveOrRejectFeasibilityStatus = async (req: any, res: Response) 
         });
     }
 }
+
+export const getProjectLogs = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+
+        const project: any = await projectModel.findById(projectId);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+
+        let logs: any = [];
+        if (req.user.role === userRoles.Admin || req.user.role === userRoles.ProcessManagerAdmin || req.user.role === userRoles.FeasibilityAdmin) {
+            logs = project.logs;
+        } else if (req.user.role === userRoles.FeasibilityUser) {
+            const isUserAppointed = project.appointedUserId.some((userId: any) => userId.equals(req.user._id));
+            if (isUserAppointed) {
+                logs = project.logs;
+            }
+        } else if (req.user.role === userRoles.ProjectManager) {
+            const isUserAppointed = project.appointedBidManager.some((userId: any) => userId.equals(req.user._id));
+
+            if (isUserAppointed) {
+                logs = project.logs;
+            }
+        }
+
+        return res.status(200).json({
+            message: "Project Logs fatch successfully",
+            status: true,
+            data: logs
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}

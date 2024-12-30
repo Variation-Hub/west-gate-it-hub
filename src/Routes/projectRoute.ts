@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -20,6 +20,7 @@ projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 projectRoutes.post("/mail-send", authorizeRoles(), mailSend);
 projectRoutes.post("/new-project-mail", authorizeRoles(), newProjectAddMail);
 projectRoutes.get("/status-count-value", authorizeRoles(), getProjectCountAndValueBasedOnStatus);
+projectRoutes.get("/logs/:id", authorizeRoles(), getProjectLogs);
 
 // File upload routes
 projectRoutes.post("/upload", authorizeRoles(), multipleFileUpload('files', 5), uploadFile);
