@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, applyProject, appointUserToProject, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -33,6 +33,8 @@ projectRoutes.patch("/add-status", authorizeRoles(), addProjectStatusForSupplier
 projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getDashboardDataProjectManager);
 projectRoutes.get("/supplier-admin/list/:projectId", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getSupplierAdminList);
 projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), updateProjectForProjectManager);
+projectRoutes.patch("/update/appoint-bidmanager/:id", authorizeRoles(), appointBidManagerToProject);
+
 
 // FeasibilityUser routes
 projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser, userRoles.Admin), updateProjectForFeasibility);

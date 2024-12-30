@@ -392,7 +392,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -683,6 +683,12 @@ export const getProjects = async (req: any, res: Response) => {
             filter.$or = [
                 { appointedUserId: { $exists: true, $size: 0 } },
                 { appointedUserId: null }
+            ];
+        }
+        if (notAppointedToBidManager) {
+            filter.$or = [
+                { appointedBidManager: { $exists: true, $size: 0 } },
+                { appointedBidManager: null }
             ];
         }
         const count = await projectModel.countDocuments(filter);
@@ -2087,6 +2093,62 @@ export const appointUserToProject = async (req: any, res: Response) => {
         } else {
             return res.status(400).json({
                 message: "All provided users are already appointed to this project",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null,
+        });
+    }
+};
+
+export const appointBidManagerToProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userIds } = req.body;
+
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            return res.status(400).json({
+                message: "Invalid input: userIds must be a non-empty array",
+                status: false,
+                data: null,
+            });
+        }
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        const newUserIds = userIds.filter((userId: string) =>
+            !project.appointedBidManager.some((appointedId: mongoose.Types.ObjectId) =>
+                appointedId.equals(new mongoose.Types.ObjectId(userId))
+            )
+        );
+
+
+        if (newUserIds.length > 0) {
+            project.appointedBidManager.push(...newUserIds);
+
+            const updatedProject = await project.save();
+
+            return res.status(200).json({
+                message: "BID-Managers appointed successfully",
+                status: true,
+                data: updatedProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "All provided BID-Managers are already appointed to this project",
                 status: false,
                 data: null,
             });

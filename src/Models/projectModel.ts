@@ -262,6 +262,11 @@ const projectModel = new mongoose.Schema({
         ref: 'User',
         default: [],
     },
+    appointedBidManager: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: [],
+    },
     expiredData: {
         type: [mongoose.Schema.Types.Mixed],
         default: []
