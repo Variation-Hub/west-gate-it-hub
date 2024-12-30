@@ -446,7 +446,7 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (sortlist) {
-            if (req.user.role === userRoles.ProjectManager || req.user.role === userRoles.Admin) {
+            if (req.user.role === userRoles.ProjectManager || req.user.role === userRoles.Admin || req.user.role === userRoles.ProcessManagerAdmin) {
                 filter.sortListUserId = { $ne: [] }
             } else {
                 filter.sortListUserId = req.user.id;
