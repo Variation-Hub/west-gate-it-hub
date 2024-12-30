@@ -735,6 +735,22 @@ export const getProjects = async (req: any, res: Response) => {
                 })
             );
         }
+
+        projects = await Promise.all(
+            projects.map(async (project: any) => {
+                if (project.statusHistory.length > 0) {
+                    const { userId } = project.statusHistory.at(-1);
+                    const user = await userModel
+                        .findById(userId)
+                        .select("name email role mobileNumber companyName");
+                    project._doc.statusChangeUser = user;
+                } else {
+                    project._doc.statusChangeUser = null;
+
+                }
+                return project;
+            })
+        );
         // projects = projects.map((project: any) => {
         //     const result = project.toObject ? project.toObject() : project;
 
@@ -866,11 +882,11 @@ export const updateProject = async (req: any, res: Response) => {
                     };
                 }
                 project.logs = [logEntry, ...(project.logs || [])];
-                project[field] = newValue;
+                // project[field] = newValue;
             }
         }
-
-        if (project.status !== status) {
+        console.log(status)
+        if (project.status !== status && status !== null && status !== undefined) {
             project.statusHistory.push({
                 status,
                 date: new Date(),
@@ -1379,8 +1395,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             }
         }
 
-        if (project.status !== status) {
-            console.log("project")
+        console.log("project", status)
+        if (project.status !== status && status !== null && status !== undefined) {
             if (req.user.role === userRoles.FeasibilityUser) {
                 project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
             }
