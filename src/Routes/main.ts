@@ -13,6 +13,7 @@ import webUserRoutes from './webUserRoute';
 import paymentRouter from './paymentRoute';
 import supportRoute from './supportRoute';
 import taskRouter from './taskRoute';
+import projectDetailTitleRouter from './projectDetailTitleRoute';
 
 const Routes = express.Router();
 
@@ -30,6 +31,7 @@ Routes.use("/web-user", webUserRoutes);
 Routes.use("/payment", paymentRouter);
 Routes.use("/support", supportRoute);
 Routes.use("/task", taskRouter);
+Routes.use("/project-detail-title", projectDetailTitleRouter);
 
 
 export default Routes; 
