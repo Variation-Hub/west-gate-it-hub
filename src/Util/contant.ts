@@ -72,7 +72,7 @@ export const projectStatus = {
 }
 
 export const projectStatus1 = {
-    InSolution: "In solution",
+    ToAction: "ToAction",
     InReview: "In-review",
     InSubmission: "In-Submission",
     submitted: "submitted",

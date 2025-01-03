@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
-import { feasibilityStatus, projectStatus, userRoles } from "../Util/contant";
+import { feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -2268,6 +2268,7 @@ export const addProjectToMylist = async (req: any, res: Response) => {
         )
         if (!isAlreadyAppointed) {
             project.myList.push(userId);
+            project.status1 = projectStatus1.ToAction;
             const updatedProject = await project.save();
 
             return res.status(200).json({
