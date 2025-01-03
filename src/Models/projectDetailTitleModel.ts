@@ -6,14 +6,9 @@ const ProjectDetailTitleModel = new mongoose.Schema({
         trim: true,
         default: null
     },
-    imageText: {
-        type: String,
-        trim: true,
-        default: null
-    },
-    image: {
-        type: mongoose.Schema.Types.Mixed,
-        default: {}
+    images: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     userIds: {
         type: [mongoose.Schema.Types.ObjectId],
@@ -23,6 +18,11 @@ const ProjectDetailTitleModel = new mongoose.Schema({
     description: {
         type: String,
         trim: true,
+        default: null
+    },
+    projectId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
         default: null
     },
     type: {

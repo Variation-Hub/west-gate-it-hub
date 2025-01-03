@@ -1,16 +1,9 @@
 import { Request, Response } from "express"
 import projectDetailTitleModel from "../Models/projectDetailTitleModel"
-import { uploadToBackblazeB2 } from "../Util/aws"
 
 export const createProjectDetailsTitle = async (req: any, res: Response) => {
     try {
-        let { text, userIds, type, image, imageText, description } = req.body
-
-        if (req.file) {
-            image = await uploadToBackblazeB2(req.file, "projectdetailtitle")
-        }
-
-        const projectDetailTitle = await projectDetailTitleModel.create({ text, userIds, type, image, imageText, description })
+        const projectDetailTitle = await projectDetailTitleModel.create(req.body)
 
         return res.status(200).json({
             message: "Project detail title create success",
@@ -28,7 +21,7 @@ export const createProjectDetailsTitle = async (req: any, res: Response) => {
 
 export const getProjectDetailsTitles = async (req: any, res: Response) => {
     try {
-        let { userIds, type } = req.query;
+        let { userIds, type, projectId } = req.query;
 
         userIds = userIds?.split(',');
         let filter: any = {}
@@ -37,6 +30,9 @@ export const getProjectDetailsTitles = async (req: any, res: Response) => {
         }
         if (type) {
             filter.type = type;
+        }
+        if (projectId) {
+            filter.projectId = projectId;
         }
 
         const projectDetailTitle = await projectDetailTitleModel.find(filter)
