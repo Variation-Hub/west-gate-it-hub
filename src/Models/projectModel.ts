@@ -99,7 +99,7 @@ const projectModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
-    status1: {
+    bidManagerStatus: {
         type: String,
         // enum: projectStatus,
         trim: true,

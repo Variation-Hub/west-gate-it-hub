@@ -845,7 +845,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, status1, BidWritingStatus, certifications, policy, eligibilityForm } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -861,7 +861,7 @@ export const updateProject = async (req: any, res: Response) => {
             projectName, category, industry, description, BOSID, publishDate, submission, link,
             periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
             website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
-            minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, status1,
+            minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, bidManagerStatus,
             BidWritingStatus, eligibilityForm, waitingForResult, policy
         };
 
@@ -933,7 +933,7 @@ export const updateProject = async (req: any, res: Response) => {
         project.status = status || project.status;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
-        project.status1 = status1 || project.status1;
+        project.bidManagerStatus = bidManagerStatus || project.bidManagerStatus;
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
         // project.policy = policy || project.policy;
@@ -1340,7 +1340,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus, eligibilityForm } = req.body
+        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1353,7 +1353,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         }
 
         const fieldsToUpdate = {
-            category, industry, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, status1, BidWritingStatus, eligibilityForm
+            category, industry, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
@@ -1440,7 +1440,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
         project.comment = comment || project.comment;
         project.projectComment = projectComment || project.projectComment;
-        project.status1 = status1 || project.status1;
+        project.bidManagerStatus = bidManagerStatus || project.bidManagerStatus;
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
 
         if (subContracting === false || subContracting === true) {
@@ -2268,7 +2268,7 @@ export const addProjectToMylist = async (req: any, res: Response) => {
         )
         if (!isAlreadyAppointed) {
             project.myList.push(userId);
-            project.status1 = projectStatus1.ToAction;
+            project.bidManagerStatus = projectStatus1.ToAction;
             const updatedProject = await project.save();
 
             return res.status(200).json({
