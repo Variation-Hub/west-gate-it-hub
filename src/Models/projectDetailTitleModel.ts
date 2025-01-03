@@ -20,7 +20,7 @@ const ProjectDetailTitleModel = new mongoose.Schema({
         ref: 'User',
         default: []
     },
-    discription: {
+    description: {
         type: String,
         trim: true,
         default: null

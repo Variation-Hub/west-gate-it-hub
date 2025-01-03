@@ -4,13 +4,13 @@ import { uploadToBackblazeB2 } from "../Util/aws"
 
 export const createProjectDetailsTitle = async (req: any, res: Response) => {
     try {
-        let { text, userIds, type, image, imageText, discription } = req.body
+        let { text, userIds, type, image, imageText, description } = req.body
 
         if (req.file) {
             image = await uploadToBackblazeB2(req.file, "projectdetailtitle")
         }
 
-        const projectDetailTitle = await projectDetailTitleModel.create({ text, userIds, type, image, imageText, discription })
+        const projectDetailTitle = await projectDetailTitleModel.create({ text, userIds, type, image, imageText, description })
 
         return res.status(200).json({
             message: "Project detail title create success",
