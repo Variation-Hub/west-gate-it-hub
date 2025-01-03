@@ -20,6 +20,11 @@ const ProjectDetailTitleModel = new mongoose.Schema({
         ref: 'User',
         default: []
     },
+    discription: {
+        type: String,
+        trim: true,
+        default: null
+    },
     type: {
         type: String,
         enum: ['Text', 'Image'],
