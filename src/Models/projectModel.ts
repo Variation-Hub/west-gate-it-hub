@@ -279,6 +279,11 @@ const projectModel = new mongoose.Schema({
         type: String,
         enum: ['feasibility status change', 'approve', 'reject'],
     },
+    myList: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: []
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

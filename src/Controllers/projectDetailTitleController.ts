@@ -69,8 +69,8 @@ export const getProjectDetailsTitles = async (req: any, res: Response) => {
 export const deleteProjectDetailsTitle = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const task = await projectDetailTitleModel.findByIdAndDelete(id);
-        if (!task) {
+        const projectDetailTitle = await projectDetailTitleModel.findByIdAndDelete(id);
+        if (!projectDetailTitle) {
             return res.status(404).json({
                 message: "Project detail title not found",
                 status: false,
@@ -80,11 +80,46 @@ export const deleteProjectDetailsTitle = async (req: any, res: Response) => {
         return res.status(200).json({
             message: "Project detail title delete success",
             status: true,
-            data: task
+            data: projectDetailTitle
         });
     } catch (err: any) {
         return res.status(500).json({
             message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateProjectDetailsTitle = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+        const obj = req.body;
+
+        const projectDetailTitle: any = await projectDetailTitleModel.findById(id);
+
+        if (!projectDetailTitle) {
+            return res.status(404).json({
+                message: "Project detail title not found",
+                status: false,
+                data: null
+            });
+        }
+
+        Object.keys(obj).forEach(value => {
+            projectDetailTitle[value] = obj[value];
+        });
+
+        await projectDetailTitle.save();
+
+        return res.send({
+            message: "Project detail title updated successfully",
+            status: true,
+            data: projectDetailTitle
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
             status: false,
             data: null
         });

@@ -392,7 +392,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -448,6 +448,7 @@ export const getProjects = async (req: any, res: Response) => {
         if (sortlist) {
             if (req.user.role === userRoles.ProjectManager || req.user.role === userRoles.Admin || req.user.role === userRoles.ProcessManagerAdmin) {
                 filter.sortListUserId = { $ne: [] }
+                filter.myList = { $ne: req.user.id }
             } else {
                 filter.sortListUserId = req.user.id;
             }
@@ -693,6 +694,9 @@ export const getProjects = async (req: any, res: Response) => {
                 { appointedBidManager: { $exists: true, $size: 0 } },
                 { appointedBidManager: null }
             ];
+        }
+        if (myList) {
+            filter.myList = { $elemMatch: { $eq: myList } }
         }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
@@ -2236,6 +2240,50 @@ export const getProjectLogs = async (req: any, res: Response) => {
             data: logs
         });
     } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const addProjectToMylist = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userId } = req.body;
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        const isAlreadyAppointed = project.myList.some((appointedId: mongoose.Types.ObjectId) =>
+            appointedId.equals(new mongoose.Types.ObjectId(userId))
+        )
+        if (!isAlreadyAppointed) {
+            project.myList.push(userId);
+            const updatedProject = await project.save();
+
+            return res.status(200).json({
+                message: "Project successfully added to my list",
+                status: true,
+                data: updatedProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "Project already in my list",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        console.error(err);
         return res.status(500).json({
             message: err.message,
             status: false,
