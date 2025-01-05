@@ -392,12 +392,13 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
         website = website?.split(',');
         status = status?.split(',');
+        bidManagerStatus = bidManagerStatus?.split(',');
         clientType = clientType?.split(',');
         supplierId = supplierId?.split(',');
 
@@ -615,6 +616,9 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (status) {
             filter.status = { $in: status };
+        }
+        if (bidManagerStatus) {
+            filter.bidManagerStatus = { $in: bidManagerStatus };
         }
 
         if (UKWriten) {
@@ -845,7 +849,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -862,14 +866,14 @@ export const updateProject = async (req: any, res: Response) => {
             periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
             website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
             minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, bidManagerStatus,
-            BidWritingStatus, eligibilityForm, waitingForResult, policy
+            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
                 let logEntry: any = {}
-                if (field === "eligibilityForm") {
+                if (field === "eligibilityForm" || field === "bidManagerStatusComment") {
                     if (areObjectsEqual(newValue, oldValue)) {
                         continue;
                     }
@@ -934,6 +938,7 @@ export const updateProject = async (req: any, res: Response) => {
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
         project.bidManagerStatus = bidManagerStatus || project.bidManagerStatus;
+        project.bidManagerStatusComment = bidManagerStatusComment || project.bidManagerStatusComment;
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
         // project.policy = policy || project.policy;

@@ -105,6 +105,10 @@ const projectModel = new mongoose.Schema({
         trim: true,
         // default: projectStatus1.InSolution,
     },
+    bidManagerStatusComment: {
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
+    },
     BidWritingStatus: {
         type: String,
         // enum: projectStatus,

@@ -71,6 +71,15 @@ export const projectStatus = {
     NoDocuments: "No documents"
 }
 
+export const bidManagerStatus = {
+    ToAction: "ToAction",
+    InSolution: "InSolution",
+    WaitingForResult: "WaitingForResult",
+    DroppedAfterFeasibility: "⁠Dropped after feasibility",
+    Awarded: "Awarded",
+    NotAwarded: "NotAwarded",
+}
+
 export const projectStatus1 = {
     ToAction: "ToAction",
     InReview: "In-review",
