@@ -332,6 +332,23 @@ export const getProject = async (req: any, res: Response) => {
 
             project.statusComment = updatedStatusHistory;
         }
+        if (project.bidManagerStatusComment.length > 0) {
+            const userIds = project.bidManagerStatusComment.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.bidManagerStatusComment.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.bidManagerStatusComment = updatedStatusHistory;
+        }
 
         const tasks = await taskModel.find({ _id: id }).select("comments project")
         return res.status(200).json({
