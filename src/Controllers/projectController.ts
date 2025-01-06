@@ -350,6 +350,23 @@ export const getProject = async (req: any, res: Response) => {
             project.bidManagerStatusComment = updatedStatusHistory;
         }
 
+        if (project.dropUser.length > 0) {
+            const userIds = project.dropUser.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.dropUser.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+            project.dropUser = updatedStatusHistory;
+        }
+
         const tasks = await taskModel.find({ _id: id }).select("comments project")
         return res.status(200).json({
             message: "project fetch success",
@@ -1606,10 +1623,10 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             })
         }
         if (select) {
-            let { supplierId, companySelect, handoverCall } = select
-            if (!supplierId || !companySelect || !handoverCall) {
+            let { supplierId } = select
+            if (!supplierId) {
                 return res.status(401).json({
-                    message: "All field required",
+                    message: "supplierId required",
                     status: true,
                     data: null
                 });
@@ -1650,8 +1667,8 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             let { userId, reason } = dropUser
             userId = new mongoose.Types.ObjectId(userId)
             if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
-                project.dropUser.push({ userId, reason });
-
+                // project.dropUser.push({ userId, reason });
+                project.dropUser = [{ userId, reason }, ...(project.dropUser || [])]
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
                     log: `<strong>${user.name}</strong> is drop by ${req.user.name}`,
