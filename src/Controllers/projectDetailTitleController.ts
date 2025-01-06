@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import projectDetailTitleModel from "../Models/projectDetailTitleModel"
+import { areObjectsEqual } from "./projectController";
 
 export const createProjectDetailsTitle = async (req: any, res: Response) => {
     try {
@@ -109,6 +110,50 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
         Object.keys(obj).forEach(value => {
             projectDetailTitle[value] = obj[value];
         });
+
+        await projectDetailTitle.save();
+
+        return res.send({
+            message: "Project detail title updated successfully",
+            status: true,
+            data: projectDetailTitle
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteProjectDetailsTitleImage = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+        const obj = req.body;
+
+        const projectDetailTitle: any = await projectDetailTitleModel.findById(id);
+
+        if (!projectDetailTitle) {
+            return res.status(404).json({
+                message: "Project detail title not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const initialLength = projectDetailTitle.images.length;
+        projectDetailTitle.images = projectDetailTitle.images.filter(
+            (image: any) => !areObjectsEqual(obj, image)
+        );
+
+        if (projectDetailTitle.images.length === initialLength) {
+            return res.status(404).json({
+                message: "Image not found in project detail title",
+                status: false,
+                data: null
+            });
+        }
 
         await projectDetailTitle.save();
 

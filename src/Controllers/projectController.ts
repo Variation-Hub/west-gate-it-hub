@@ -818,7 +818,7 @@ export const getProjects = async (req: any, res: Response) => {
     }
 }
 
-function areObjectsEqual(obj1: any, obj2: any): boolean {
+export function areObjectsEqual(obj1: any, obj2: any): boolean {
     if (obj1 === obj2) return true; // Same reference or value
 
     if (typeof obj1 !== typeof obj2 || obj1 === null || obj2 === null) {
