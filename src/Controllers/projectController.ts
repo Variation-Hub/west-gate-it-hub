@@ -1668,7 +1668,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             userId = new mongoose.Types.ObjectId(userId)
             if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
                 // project.dropUser.push({ userId, reason });
-                project.dropUser = [{ userId, reason }, ...(project.dropUser || [])]
+                project.dropUser = [{ userId, reason: [{ comment: reason, date: new Date() }] }, ...(project.dropUser || [])]
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
                     log: `<strong>${user.name}</strong> is drop by ${req.user.name}`,
@@ -1676,6 +1676,12 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                     date: new Date()
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
+            } else {
+                const existingDropUser = project.dropUser.find((dropUser: any) => dropUser.userId.equals(userId));
+                if (existingDropUser) {
+                    existingDropUser.reason.unshift({ comment: reason, date: new Date() });
+                }
+                project.markModified('dropUser');
             }
         }
 
