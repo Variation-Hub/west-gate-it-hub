@@ -72,6 +72,7 @@ export const projectStatus = {
 }
 
 export const bidManagerStatus = {
+    Awaiting: "Awaiting",
     ToAction: "ToAction",
     InSolution: "InSolution",
     WaitingForResult: "WaitingForResult",

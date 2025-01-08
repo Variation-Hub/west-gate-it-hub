@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import projectDetailTitleModel from "../Models/projectDetailTitleModel"
 import { areObjectsEqual } from "./projectController";
+import { userRoles } from "../Util/contant";
 
 export const createProjectDetailsTitle = async (req: any, res: Response) => {
     try {
@@ -22,18 +23,17 @@ export const createProjectDetailsTitle = async (req: any, res: Response) => {
 
 export const getProjectDetailsTitles = async (req: any, res: Response) => {
     try {
-        let { userIds, type, projectId } = req.query;
+        let { type, projectId } = req.query;
 
-        userIds = userIds?.split(',');
         let filter: any = {}
-        if (userIds?.length) {
-            filter.userIds = { $in: userIds };
-        }
         if (type) {
             filter.type = type;
         }
         if (projectId) {
             filter.projectId = projectId;
+        }
+        if (req.user.role !== userRoles.Admin) {
+            filter.roles = { $in: [req.user.role] };
         }
 
         const projectDetailTitle = await projectDetailTitleModel.find(filter)
@@ -97,9 +97,13 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
         const id = req.params.id;
         const obj = req.body;
 
-        const projectDetailTitle: any = await projectDetailTitleModel.findById(id);
+        const updatedProjectDetailTitle = await projectDetailTitleModel.findByIdAndUpdate(
+            id,
+            { $set: obj },
+            { new: true, runValidators: true }
+        );
 
-        if (!projectDetailTitle) {
+        if (!updatedProjectDetailTitle) {
             return res.status(404).json({
                 message: "Project detail title not found",
                 status: false,
@@ -107,16 +111,10 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
             });
         }
 
-        Object.keys(obj).forEach(value => {
-            projectDetailTitle[value] = obj[value];
-        });
-
-        await projectDetailTitle.save();
-
         return res.send({
             message: "Project detail title updated successfully",
             status: true,
-            data: projectDetailTitle
+            data: updatedProjectDetailTitle
         })
     } catch (error: any) {
         return res.status(500).json({

@@ -2034,37 +2034,43 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             };
         }
 
-        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1 });
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
         let data: any = {
             FeasibilityStatusCount: {
-                "Passed": 0,
-                "Fail": 0,
                 "Awaiting": 0,
                 "InProgress": 0,
-                "DocumentsNotFound": 0
+                "InHold": 0,
+                "DocumentsNotFound": 0,
+                "Passed": 0,
+                "Fail": 0,
             },
             FeasibilityStatusValue: {
-                "Passed": 0,
-                "Fail": 0,
                 "Awaiting": 0,
                 "InProgress": 0,
-                "DocumentsNotFound": 0
+                "InHold": 0,
+                "DocumentsNotFound": 0,
+                "Passed": 0,
+                "Fail": 0,
             },
             BidStatusCount: {
                 "Shortlisted": 0,
-                "DroppedAfterFeasibility": 0,
+                "Awaiting": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
+                "DroppedAfterFeasibility": 0,
                 "Awarded": 0,
                 "NotAwarded": 0,
+                "ToAction": 0,
             },
             BidStatusValue: {
                 "Shortlisted": 0,
-                "DroppedAfterFeasibility": 0,
+                "Awaiting": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
+                "DroppedAfterFeasibility": 0,
                 "Awarded": 0,
                 "NotAwarded": 0,
+                "ToAction": 0,
             },
         };
 
@@ -2073,11 +2079,10 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             if (data.FeasibilityStatusCount[project.status] >= 0) {
                 data.FeasibilityStatusCount[project.status]++;
                 data.FeasibilityStatusValue[project.status] += project.maxValue;
-            } else if (data.BidStatusCount[project.status] >= 0) {
-                data.BidStatusCount[project.status]++;
-                data.BidStatusValue[project.status] += project.maxValue;
-            } else {
-                // for future all status count add from this section
+            }
+            if (project.bidManagerStatus in data.BidStatusCount) {
+                data.BidStatusCount[project.bidManagerStatus]++;
+                data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
             }
 
             if (project.sortListUserId.length > 0) {

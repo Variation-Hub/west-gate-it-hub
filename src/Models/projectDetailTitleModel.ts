@@ -10,9 +10,8 @@ const ProjectDetailTitleModel = new mongoose.Schema({
         type: [mongoose.Schema.Types.Mixed],
         default: []
     },
-    userIds: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',
+    roles: {
+        type: [String],
         default: []
     },
     description: {
