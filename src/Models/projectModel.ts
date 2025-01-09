@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { bidManagerStatus, projectStatus, projectStatus1 } from "../Util/contant";
+import { BidManagerStatus, projectStatus, projectStatus1 } from "../Util/contant";
 
 function getCurrentISTTime() {
     const currentDate = new Date();
@@ -103,7 +103,7 @@ const projectModel = new mongoose.Schema({
         type: String,
         // enum: projectStatus,
         trim: true,
-        default: bidManagerStatus.Awaiting
+        default: BidManagerStatus.Awaiting
         // default: projectStatus1.InSolution,
     },
     bidManagerStatusComment: {
@@ -283,6 +283,10 @@ const projectModel = new mongoose.Schema({
     feasibilityStatus: {
         type: String,
         enum: ['feasibility status change', 'approve', 'reject'],
+    },
+    adminStatus: {
+        type: String,
+        enum: ['feasibility status change', 'bid manager status change'],
     },
     myList: {
         type: [mongoose.Schema.Types.ObjectId],

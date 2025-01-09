@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -30,6 +30,7 @@ projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), getDashboardDataSupplierAdmin);
 projectRoutes.patch("/add-status", authorizeRoles(), addProjectStatusForSupplier);
 projectRoutes.get("/gap-analysis", authorizeRoles(), getGapAnalysisData);
+projectRoutes.patch("/update/approve-reject-admin/:id", authorizeRoles(), approveOrRejectByAdmin);
 
 // ProjectManager routes
 projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getDashboardDataProjectManager);

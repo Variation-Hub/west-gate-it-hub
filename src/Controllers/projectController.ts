@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
-import { feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
+import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -426,7 +426,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -721,6 +721,9 @@ export const getProjects = async (req: any, res: Response) => {
         if (feasibilityReview) {
             filter.feasibilityStatus = { $ne: null };
         }
+        if (adminReview) {
+            filter.adminStatus = { $ne: null };
+        }
         if (notAppointed) {
             filter.$or = [
                 { appointedUserId: { $exists: true, $size: 0 } },
@@ -938,11 +941,19 @@ export const updateProject = async (req: any, res: Response) => {
         }
         console.log(status)
         if (project.status !== status && status !== null && status !== undefined) {
+            if (status === projectStatus.Fail) {
+                project.adminStatus = adminStatus.feasibilityStatusChange;
+            }
             project.statusHistory.push({
                 status,
                 date: new Date(),
                 userId: req.user.id,
             })
+        }
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+                project.adminStatus = adminStatus.bidManagerStatusChange;
+            }
         }
 
         project.projectName = projectName || project.projectName;
@@ -1443,11 +1454,20 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             if (req.user.role === userRoles.FeasibilityUser) {
                 project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
             }
+            if (status === projectStatus.Fail) {
+                project.adminStatus = adminStatus.feasibilityStatusChange;
+            }
             project.statusHistory.push({
                 status,
                 date: new Date(),
                 userId: req.user.id,
             })
+        }
+
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+                project.adminStatus = adminStatus.bidManagerStatusChange;
+            }
         }
         project.category = category || project.category;
         project.industry = industry || project.industry;
@@ -2379,6 +2399,46 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             message: "Gap analysis data fatch successfully",
             status: true,
             data: data
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const approveOrRejectByAdmin = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { action } = req.body
+
+        const project: any = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (action === feasibilityStatus.approve) {
+            project.adminStatus = null;
+        } else {
+            if (project.adminStatus === adminStatus.bidManagerStatusChange) {
+                project.bidManagerStatus = BidManagerStatus.ToAction;
+            } else if (project.adminStatus === adminStatus.feasibilityStatusChange) {
+                project.status = projectStatus.Inprogress;
+            }
+            project.adminStatus = null;
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
         });
     } catch (err: any) {
         return res.status(500).json({

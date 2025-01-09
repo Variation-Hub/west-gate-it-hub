@@ -71,7 +71,7 @@ export const projectStatus = {
     NoDocuments: "No documents"
 }
 
-export const bidManagerStatus = {
+export const BidManagerStatus = {
     Awaiting: "Awaiting",
     ToAction: "ToAction",
     InSolution: "InSolution",
@@ -160,4 +160,9 @@ export const feasibilityStatus = {
     feasibilityStatusChange: 'feasibility status change',
     approve: 'approve',
     reject: 'reject'
+}
+
+export const adminStatus = {
+    feasibilityStatusChange: 'feasibility status change',
+    bidManagerStatusChange: 'bid manager status change',
 }
