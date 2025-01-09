@@ -1392,7 +1392,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         }
 
         const fieldsToUpdate = {
-            category, industry, clientDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
+            category, industry, clientDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
@@ -1423,15 +1423,6 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     }
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
-                        userId: req.user._id,
-                        date: new Date()
-                    };
-                } else if (field === "failStatusReason") {
-                    if (areArraysEqual(newValue, oldValue)) {
-                        continue;
-                    }
-                    logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
                         userId: req.user._id,
                         date: new Date()
                     };
@@ -2335,6 +2326,61 @@ export const addProjectToMylist = async (req: any, res: Response) => {
         }
     } catch (err: any) {
         console.error(err);
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getGapAnalysisData = async (req: any, res: Response) => {
+    try {
+
+        const { startDate, endDate } = req.query;
+
+        let createdAtFilter = {};
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                createdAt: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                }
+            };
+        }
+
+        const data = await projectModel.aggregate([
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$failStatusReason',
+            },
+            {
+                $group: {
+                    _id: '$failStatusReason',
+                    projectCount: { $sum: 1 },
+                },
+            },
+            {
+                $project: {
+                    tag: '$_id.tag',
+                    projectCount: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ]);
+
+        return res.status(200).json({
+            message: "Gap analysis data fatch successfully",
+            status: true,
+            data: data
+        });
+    } catch (err: any) {
         return res.status(500).json({
             message: err.message,
             status: false,

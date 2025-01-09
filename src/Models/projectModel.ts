@@ -133,8 +133,8 @@ const projectModel = new mongoose.Schema({
         default: {}
     },
     failStatusReason: {
-        type: [String],
-        enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
+        type: [mongoose.Schema.Types.Mixed],
+        // enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
         default: []
     },
     sortListUserId: {
