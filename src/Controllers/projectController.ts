@@ -2356,7 +2356,6 @@ export const addProjectToMylist = async (req: any, res: Response) => {
 
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
-
         const { startDate, endDate } = req.query;
 
         let createdAtFilter = {};
@@ -2379,14 +2378,22 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             },
             {
                 $group: {
-                    _id: '$failStatusReason',
+                    _id: '$failStatusReason.tag', // Group by the tag
                     projectCount: { $sum: 1 },
+                    projects: {
+                        $push: {
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                        },
+                    },
                 },
             },
             {
                 $project: {
-                    tag: '$_id.tag',
+                    tag: '$_id',
                     projectCount: 1,
+                    projects: 1, // Include all projects for this tag
                     _id: 0,
                 },
             },
@@ -2396,7 +2403,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
         ]);
 
         return res.status(200).json({
-            message: "Gap analysis data fatch successfully",
+            message: "Gap analysis data fetched successfully",
             status: true,
             data: data
         });
@@ -2407,7 +2414,8 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+};
+
 
 export const approveOrRejectByAdmin = async (req: any, res: Response) => {
     try {
