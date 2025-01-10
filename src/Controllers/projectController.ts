@@ -2382,6 +2382,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                     projectCount: { $sum: 1 },
                     projects: {
                         $push: {
+                            _id: '$_id',
                             projectName: '$projectName',
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
