@@ -2378,23 +2378,43 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             },
             {
                 $group: {
-                    _id: '$failStatusReason.tag', // Group by the tag
-                    projectCount: { $sum: 1 },
+                    _id: {
+                        tag: '$failStatusReason.tag',
+                        comment: '$failStatusReason.comment',
+                    },
                     projects: {
                         $push: {
                             _id: '$_id',
                             projectName: '$projectName',
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
+                            failStatusReason: '$failStatusReason',
                         },
                     },
+                },
+            },
+            {
+                $group: {
+                    _id: '$_id.tag',
+                    projectCount: { $sum: { $size: '$projects' } },
+                    projects: {
+                        $push: {
+                            k: '$_id.comment',
+                            v: '$projects',
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    projects: { $arrayToObject: '$projects' },
                 },
             },
             {
                 $project: {
                     tag: '$_id',
                     projectCount: 1,
-                    projects: 1, // Include all projects for this tag
+                    projects: 1,
                     _id: 0,
                 },
             },
