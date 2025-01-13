@@ -761,19 +761,23 @@ export const getProjects = async (req: any, res: Response) => {
             })
         }
         if (req.user?.role === userRoles.SupplierAdmin || req.user?.role === userRoles.SupplierUser) {
-            projects = projects.map((project: any) => {
-                const index = project.select.findIndex((item: any) =>
-                    new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
-                );
-                const expiredIndex = project.expiredData.findIndex((item: any) =>
-                    item.supplierId.toString() === req.user.id
-                );
-                let isExpired = true;
-                if (expiredIndex !== -1) {
-                    isExpired = new Date(project.expiredData[expiredIndex].date) < new Date();
-                }
-                return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null, isExpired }
-            })
+            projects = await Promise.all(
+                projects.map((project: any) => {
+                    const index = project.select.findIndex((item: any) =>
+                        new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
+                    );
+                    const expiredIndex = project.expiredData.findIndex((item: any) =>
+                        item.supplierId.toString() === req.user.id
+                    );
+                    let isExpired = true;
+                    if (expiredIndex !== -1) {
+                        isExpired = new Date(project.expiredData[expiredIndex].date) < new Date();
+                    }
+                    project._doc.supplierStatus = project.select[index]?.supplierStatus || null;
+                    project._doc.isExpired = isExpired;
+                    return project
+                    // return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null, isExpired }
+                }))
         }
 
         if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin) {
@@ -797,6 +801,7 @@ export const getProjects = async (req: any, res: Response) => {
                     const user = await userModel
                         .findById(userId)
                         .select("name email role mobileNumber companyName");
+
                     project._doc.statusChangeUser = user;
                 } else {
                     project._doc.statusChangeUser = null;
