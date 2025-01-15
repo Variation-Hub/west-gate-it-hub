@@ -1248,7 +1248,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
         const result2 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
 
         // const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
-        const projects = await projectModel.find({ status: "Passed" })
+        const projects = await projectModel.find({ status: { $in: ["Passed", "WaitingForResult"] } })
         const responseData = {
             projectCount: {
                 totalProjects: result.projectCount,
@@ -1262,6 +1262,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalInReview: 0,
                 totalExpired: 0,
                 totalpassed: 0,
+                totalWaitingForResult: 0,
                 //nre
                 sortListed: 0,
                 drop: 0,
@@ -1276,6 +1277,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalAwardedValue: 0,
                 totalNotAwardedValue: 0,
                 totalpassedValue: 0,
+                totalWaitingForResult: 0,
                 //new 
                 sortListedValue: 0,
                 dropValue: 0,
@@ -1327,6 +1329,10 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
             if (project.status === projectStatus.InReviewWestGate) {
                 responseData.projectCount.totalInReview++;
                 responseData.projectValue.inReviewValue += project.maxValue;
+            }
+            if (project.status === projectStatus.WaitingForResult) {
+                responseData.projectCount.totalWaitingForResult++;
+                responseData.projectValue.totalWaitingForResult += project.maxValue;
             }
             if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
                 responseData.projectCount.sortListed++;
