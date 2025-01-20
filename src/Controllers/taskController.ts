@@ -86,7 +86,7 @@ export const updateTask = async (req: Request, res: Response) => {
 
 export const getTasks = async (req: any, res: Response) => {
     try {
-        let { assignTo, status, pickACategory, project } = req.query;
+        let { assignTo, status, pickACategory, project, myDay } = req.query;
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
@@ -105,6 +105,11 @@ export const getTasks = async (req: any, res: Response) => {
             filter.dueDate = { $lt: date }
         } else if (status && status !== 'DueDate passed') {
             filter.status = status
+        }
+        if (myDay) {
+            const now = new Date();
+            const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            filter.createdAt = { $gte: past24Hours, $lte: now };
         }
         const Tasks = await taskModel.find(filter)
             .populate("project", "projectName status")
