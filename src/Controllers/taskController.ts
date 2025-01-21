@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import taskModel from "../Models/taskModel"
 import userModel from "../Models/userModel"
+import { taskStatus } from "../Util/contant"
 
 export const createTask = async (req: any, res: Response) => {
     try {
@@ -65,6 +66,16 @@ export const updateTask = async (req: Request, res: Response) => {
             delete obj.assignTo
         }
         Object.keys(obj).forEach(value => {
+            if (task[value] !== obj[value]) {
+                if (value === 'status') {
+                    if (obj[value] === taskStatus.Completed) {
+                        task.myDayDate = null;
+                    } else if (obj[value] === taskStatus.MyDay) {
+                        task.myDayDate = new Date();
+                        return;
+                    }
+                }
+            }
             task[value] = obj[value];
         });
 
@@ -109,7 +120,7 @@ export const getTasks = async (req: any, res: Response) => {
         if (myDay) {
             const now = new Date();
             const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            filter.createdAt = { $gte: past24Hours, $lte: now };
+            filter.myDayDate = { $gte: past24Hours, $lte: now };
         }
         const Tasks = await taskModel.find(filter)
             .populate("project", "projectName status")

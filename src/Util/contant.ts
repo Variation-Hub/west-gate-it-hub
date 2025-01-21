@@ -147,7 +147,8 @@ export const socketEvent = {
 export const taskStatus = {
     Todo: 'Todo',
     Ongoing: 'Ongoing',
-    Completed: 'Completed'
+    Completed: 'Completed',
+    MyDay: 'MyDay',
 }
 
 export const taskCategory = {

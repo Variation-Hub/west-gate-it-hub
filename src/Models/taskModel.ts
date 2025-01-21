@@ -50,6 +50,10 @@ const TaskModel = new mongoose.Schema({
         enum: taskCategory,
         default: taskCategory.none
     },
+    myDayDate: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
