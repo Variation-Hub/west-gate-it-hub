@@ -103,7 +103,7 @@ const projectModel = new mongoose.Schema({
         type: String,
         // enum: projectStatus,
         trim: true,
-        default: BidManagerStatus.ToAction
+        default: ""
         // default: projectStatus1.InSolution,
     },
     bidManagerStatusComment: {

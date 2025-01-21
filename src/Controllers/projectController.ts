@@ -1468,6 +1468,9 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             if (status === projectStatus.Fail) {
                 project.adminStatus = adminStatus.feasibilityStatusChange;
             }
+            if (status === projectStatus.Passed) {
+                project.bidManagerStatus = BidManagerStatus.Awaiting;
+            }
             project.statusHistory.push({
                 status,
                 date: new Date(),
@@ -2076,6 +2079,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             },
             BidStatusCount: {
                 "Shortlisted": 0,
+                "Awaiting": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
                 "DroppedAfterFeasibility": 0,
@@ -2085,6 +2089,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             },
             BidStatusValue: {
                 "Shortlisted": 0,
+                "Awaiting": 0,
                 "InSolution": 0,
                 "WaitingForResult": 0,
                 "DroppedAfterFeasibility": 0,
