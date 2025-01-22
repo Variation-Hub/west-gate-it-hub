@@ -1498,7 +1498,9 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         project.caseStudyRequired = caseStudyRequired || project.caseStudyRequired;
         // project.certifications = certifications || project.certifications;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
-        project.failStatusReason = failStatusReason || project.failStatusReason;
+        if (failStatusReason.length > 0) {
+            project.failStatusReason = [...project.failStatusReason, ...failStatusReason]
+        }
         project.value = value || project.value;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
         project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
@@ -2443,6 +2445,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             data: data
         });
     } catch (err: any) {
+        console.log(err)
         return res.status(500).json({
             message: err.message,
             status: false,
