@@ -43,7 +43,7 @@ const TaskModel = new mongoose.Schema({
         type: String,
         enum: taskStatus,
         required: true,
-        default: taskStatus.Todo
+        default: taskStatus.Ongoing
     },
     pickACategory: {
         type: String,
