@@ -713,7 +713,19 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (appointed) {
-            filter.appointedUserId = { $elemMatch: { $eq: appointed } };
+            const projectIds = await taskModel.find({
+                'assignTo.userId': appointed,
+            })
+                .select('project')
+                .lean();
+
+            const projectIdsArray = projectIds
+                .map(task => task.project?.toString())
+                .filter(Boolean);
+
+            if (projectIdsArray.length > 0) {
+                filter._id = { $in: projectIdsArray };
+            }
         }
         if (BidManagerAppointed) {
             filter.appointedBidManager = { $elemMatch: { $eq: BidManagerAppointed } };
