@@ -1510,7 +1510,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         project.caseStudyRequired = caseStudyRequired || project.caseStudyRequired;
         // project.certifications = certifications || project.certifications;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
-        if (failStatusReason.length > 0) {
+        if (failStatusReason?.length > 0) {
             project.failStatusReason = [...project.failStatusReason, ...failStatusReason]
         }
         project.value = value || project.value;
