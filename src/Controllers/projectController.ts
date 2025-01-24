@@ -373,21 +373,23 @@ export const getProject = async (req: any, res: Response) => {
                 assignTo: { $not: { $size: 0 } }
             })
             .select("project assignTo");
-        if (tasks.length > 0) {
-            console.log(tasks)
-            const userIds = tasks.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
-            console.log(userIds)
+        let assignBidmanager: any = [];
+        let assignFeasibilityUser: any = [];
+        if (tasks?.length > 0) {
+            const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
             const users = await userModel
-                .find({ _id: { $in: userIds } }) // Use $in operator for matching multiple IDs
+                .find({ _id: { $in: userIds } })
                 .select('name email role');
+
+            assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
+            assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
         }
         return res.status(200).json({
             message: "project fetch success",
             status: true,
-            data: { ...project, matchedCaseStudy: project.casestudy?.length || 0 }
+            data: { ...project, matchedCaseStudy: project.casestudy?.length || 0, assignBidmanager, assignFeasibilityUser }
         });
     } catch (err: any) {
-        console.log(err, "project fetch success")
         return res.status(500).json({
             message: err.message,
             status: false,
