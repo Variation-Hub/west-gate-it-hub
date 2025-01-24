@@ -367,7 +367,20 @@ export const getProject = async (req: any, res: Response) => {
             project.dropUser = updatedStatusHistory;
         }
 
-        const tasks = await taskModel.find({ _id: id }).select("comments project")
+        const tasks = await taskModel
+            .find({
+                project: project._id,
+                assignTo: { $not: { $size: 0 } }
+            })
+            .select("project assignTo");
+        if (tasks.length > 0) {
+            console.log(tasks)
+            const userIds = tasks.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
+            console.log(userIds)
+            const users = await userModel
+                .find({ _id: { $in: userIds } }) // Use $in operator for matching multiple IDs
+                .select('name email role');
+        }
         return res.status(200).json({
             message: "project fetch success",
             status: true,
@@ -727,6 +740,69 @@ export const getProjects = async (req: any, res: Response) => {
                 filter._id = { $in: projectIdsArray };
             }
         }
+        if (notAppointed) {
+            const pipeline: any = [
+                {
+                    $match: {
+                        project: { $ne: null },
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$assignTo',
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        'assignTo.userId': { $toObjectId: '$assignTo.userId' },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'assignTo.userId',
+                        foreignField: '_id',
+                        as: 'userDetails',
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$userDetails',
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+            ];
+
+            if (
+                req.user.role === userRoles.FeasibilityAdmin ||
+                req.user.role === userRoles.FeasibilityUser ||
+                req.user.role === userRoles.ProjectManager
+            ) {
+                pipeline.push({
+                    $match: {
+                        'userDetails.role': req.user.role,
+                    },
+                });
+            }
+
+            pipeline.push({
+                $project: {
+                    project: 1,
+                    userDetails: 1,
+                },
+            });
+
+            const projectIds = await taskModel.aggregate(pipeline);
+
+            const projectIdsArray = projectIds
+                .map(task => task.project?.toString())
+                .filter(Boolean);
+
+            if (projectIdsArray.length > 0) {
+                filter._id = { $nin: projectIdsArray };
+            }
+        }
         if (BidManagerAppointed) {
             filter.appointedBidManager = { $elemMatch: { $eq: BidManagerAppointed } };
         }
@@ -735,12 +811,6 @@ export const getProjects = async (req: any, res: Response) => {
         }
         if (adminReview) {
             filter.adminStatus = { $ne: null };
-        }
-        if (notAppointed) {
-            filter.$or = [
-                { appointedUserId: { $exists: true, $size: 0 } },
-                { appointedUserId: null }
-            ];
         }
         if (notAppointedToBidManager) {
             filter.$or = [

@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import taskModel from "../Models/taskModel"
 import userModel from "../Models/userModel"
-import { BidManagerStatus, taskStatus, userRoles } from "../Util/contant"
+import { BidManagerStatus, projectStatus, taskStatus, userRoles } from "../Util/contant"
 import projectModel from "../Models/projectModel"
 
 export const createTask = async (req: any, res: Response) => {
@@ -19,7 +19,9 @@ export const createTask = async (req: any, res: Response) => {
         if (task?.project && task?.assignTo?.length === 1) {
             const user: any = await userModel.findById(assignTo[0])
             if (user.role === userRoles.ProjectManager) {
-                const project = await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.ToAction })
+                await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.ToAction })
+            } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
+                await projectModel.findByIdAndUpdate(task.project, { status: projectStatus.Awaiting })
             }
         }
         return res.status(200).json({
