@@ -1,7 +1,8 @@
 import { Request, Response } from "express"
 import taskModel from "../Models/taskModel"
 import userModel from "../Models/userModel"
-import { taskStatus } from "../Util/contant"
+import { BidManagerStatus, taskStatus, userRoles } from "../Util/contant"
+import projectModel from "../Models/projectModel"
 
 export const createTask = async (req: any, res: Response) => {
     try {
@@ -15,13 +16,19 @@ export const createTask = async (req: any, res: Response) => {
             })
         }
         const task = await taskModel.create({ ...req.body, createdBy: req.user._id })
-
+        if (task?.project && task?.assignTo?.length === 1) {
+            const user: any = await userModel.findById(assignTo[0])
+            if (user.role === userRoles.ProjectManager) {
+                const project = await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.ToAction })
+            }
+        }
         return res.status(200).json({
             message: "Task create successfully",
             status: true,
             data: task
         });
     } catch (err: any) {
+        console.log(err)
         return res.status(500).json({
             message: err.message,
             status: false,
