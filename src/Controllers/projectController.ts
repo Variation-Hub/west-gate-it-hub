@@ -894,6 +894,31 @@ export const getProjects = async (req: any, res: Response) => {
                 return project;
             })
         );
+        projects = await Promise.all(
+            projects.map(async (project: any) => {
+                const tasks = await taskModel
+                    .find({
+                        project: project._id,
+                        assignTo: { $not: { $size: 0 } }
+                    })
+                    .select("project assignTo");
+                let assignBidmanager: any = [];
+                let assignFeasibilityUser: any = [];
+                if (tasks?.length > 0) {
+                    const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
+                    const users = await userModel
+                        .find({ _id: { $in: userIds } })
+                        .select('name email role');
+
+                    assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
+                    assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
+                }
+                project._doc.assignBidmanager = assignBidmanager;
+                project._doc.assignFeasibilityUser = assignFeasibilityUser;
+
+                return project;
+            })
+        );
         // projects = projects.map((project: any) => {
         //     const result = project.toObject ? project.toObject() : project;
 
@@ -2191,14 +2216,17 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 data.FeasibilityStatusCount[project.status]++;
                 data.FeasibilityStatusValue[project.status] += project.maxValue;
             }
-            if (project.bidManagerStatus in data.BidStatusCount) {
-                data.BidStatusCount[project.bidManagerStatus]++;
-                data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
-            }
 
-            if (project.sortListUserId.length > 0) {
-                data.BidStatusCount['Shortlisted']++
-                data.BidStatusValue.Shortlisted += project.maxValue
+            if (project.status === projectStatus.Passed) {
+                if (project.bidManagerStatus in data.BidStatusCount) {
+                    data.BidStatusCount[project.bidManagerStatus]++;
+                    data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
+                }
+
+                if (project.sortListUserId.length > 0) {
+                    data.BidStatusCount['Shortlisted']++
+                    data.BidStatusValue.Shortlisted += project.maxValue
+                }
             }
 
         })
