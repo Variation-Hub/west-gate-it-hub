@@ -367,23 +367,144 @@ export const getProject = async (req: any, res: Response) => {
             project.dropUser = updatedStatusHistory;
         }
 
-        const tasks = await taskModel
-            .find({
-                project: project._id,
-                assignTo: { $not: { $size: 0 } }
-            })
-            .select("project assignTo");
+        // const tasks = await taskModel
+        //     .find({
+        //         project: project._id,
+        //         assignTo: { $not: { $size: 0 } }
+        //     })
+        //     .select("project assignTo");
+        // let assignBidmanager: any = [];
+        // let assignFeasibilityUser: any = [];
+        // if (tasks?.length > 0) {
+        //     const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
+        //     const users = await userModel
+        //         .find({ _id: { $in: userIds } })
+        //         .select('name email role');
+
+        //     assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
+        //     assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
+        // }
+
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        const feasibilitylatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.FeasibilityUser // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
         let assignBidmanager: any = [];
         let assignFeasibilityUser: any = [];
-        if (tasks?.length > 0) {
-            const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
-            const users = await userModel
-                .find({ _id: { $in: userIds } })
-                .select('name email role');
+        if (bidlatestTask.length > 0) {
 
-            assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
-            assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
+            assignBidmanager = [
+                {
+                    _id: bidlatestTask[0].userDetails._id,
+                    name: bidlatestTask[0].userDetails.name,
+                    email: bidlatestTask[0].userDetails.email,
+                    role: bidlatestTask[0].userDetails.role,
+                    dueDate: bidlatestTask[0].dueDate
+                }
+            ];
         }
+        if (feasibilitylatestTask.length > 0) {
+
+            assignFeasibilityUser = [
+                {
+                    _id: feasibilitylatestTask[0].userDetails._id,
+                    name: feasibilitylatestTask[0].userDetails.name,
+                    email: feasibilitylatestTask[0].userDetails.email,
+                    role: feasibilitylatestTask[0].userDetails.role,
+                    dueDate: feasibilitylatestTask[0].dueDate
+                }
+            ];
+        }
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
@@ -896,22 +1017,124 @@ export const getProjects = async (req: any, res: Response) => {
         );
         projects = await Promise.all(
             projects.map(async (project: any) => {
-                const tasks = await taskModel
-                    .find({
-                        project: project._id,
-                        assignTo: { $not: { $size: 0 } }
-                    })
-                    .select("project assignTo");
+                const bidlatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+
+                const feasibilitylatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.FeasibilityUser // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
                 let assignBidmanager: any = [];
                 let assignFeasibilityUser: any = [];
-                if (tasks?.length > 0) {
-                    const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
-                    const users = await userModel
-                        .find({ _id: { $in: userIds } })
-                        .select('name email role');
+                if (bidlatestTask.length > 0) {
 
-                    assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
-                    assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
+                    assignBidmanager = [
+                        {
+                            _id: bidlatestTask[0].userDetails._id,
+                            name: bidlatestTask[0].userDetails.name,
+                            email: bidlatestTask[0].userDetails.email,
+                            role: bidlatestTask[0].userDetails.role,
+                            dueDate: bidlatestTask[0].dueDate
+                        }
+                    ];
+                }
+                if (feasibilitylatestTask.length > 0) {
+
+                    assignFeasibilityUser = [
+                        {
+                            _id: feasibilitylatestTask[0].userDetails._id,
+                            name: feasibilitylatestTask[0].userDetails.name,
+                            email: feasibilitylatestTask[0].userDetails.email,
+                            role: feasibilitylatestTask[0].userDetails.role,
+                            dueDate: feasibilitylatestTask[0].dueDate
+                        }
+                    ];
                 }
                 project._doc.assignBidmanager = assignBidmanager;
                 project._doc.assignFeasibilityUser = assignFeasibilityUser;
