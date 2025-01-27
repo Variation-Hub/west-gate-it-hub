@@ -3,10 +3,95 @@ import taskModel from "../Models/taskModel"
 import userModel from "../Models/userModel"
 import { BidManagerStatus, projectStatus, taskStatus, userRoles } from "../Util/contant"
 import projectModel from "../Models/projectModel"
+import mongoose from "mongoose"
 
 export const createTask = async (req: any, res: Response) => {
     try {
         const { assignTo } = req.body
+
+        if (req.body?.project && assignTo?.length > 0) {
+            const alreadyTask = await taskModel.findOne({
+                assignTo: { $elemMatch: { userId: { $in: assignTo } } },
+                project: req.body.project
+            })
+            if (alreadyTask) {
+                return res.status(400).json({
+                    message: "User already assigned to project",
+                    status: false,
+                    data: null
+                })
+            }
+
+            const user: any = await userModel.findById(assignTo[0]).select('name role');
+
+            let otherUserTask: any = await taskModel.aggregate([
+                {
+                    $match: {
+                        project: new mongoose.Types.ObjectId(req.body.project),
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: {
+                            $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                {
+                    $match: {
+                        "userDetails.role": user.role // Check if the role matches
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $limit: 1
+                },
+                {
+                    $project: {
+                        project: 1,
+                        assignTo: 1,
+                        dueDate: 1,
+                        userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                    }
+                }
+            ]);
+            if (otherUserTask.length > 0) {
+                const taskId = otherUserTask[0]._id;
+                const updatedAssignTo = assignTo.map((userId: string) => {
+                    return {
+                        userId,
+                        date: new Date(),
+                    };
+                });
+                const data = await taskModel.findOneAndUpdate(
+                    { _id: taskId },
+                    { $set: { assignTo: updatedAssignTo, dueDate: req.body.dueDate } },
+                    { new: true }
+                );
+
+                return res.status(200).json({
+                    message: "New user assigned to project successfully",
+                    status: true,
+                    data: data,
+                });
+
+            }
+        }
         if (assignTo?.length) {
             req.body.assignTo = assignTo.map((userId: string) => {
                 return {
@@ -30,7 +115,6 @@ export const createTask = async (req: any, res: Response) => {
             data: task
         });
     } catch (err: any) {
-        console.log(err)
         return res.status(500).json({
             message: err.message,
             status: false,
@@ -111,7 +195,6 @@ export const getTasks = async (req: any, res: Response) => {
         assignTo = assignTo?.split(',');
         let filter: any = {}
         if (assignTo?.length) {
-            console.log("filter")
             filter.assignTo = { $elemMatch: { userId: { $in: assignTo } } };
         }
         if (pickACategory) {
@@ -190,7 +273,6 @@ export const getTasks = async (req: any, res: Response) => {
             }
         });
     } catch (err: any) {
-        console.log(err);
         return res.status(500).json({
             message: err.message,
             status: false,
@@ -280,7 +362,6 @@ export const updateCommentToTask = async (req: any, res: Response) => {
         }
 
         const commentIndex = task.comments.findIndex((c: any) => c.commentId == commentId);
-        console.log(commentIndex, commentId, typeof commentId, commentId === task.comments[0].commentId);
         if (commentIndex === -1) {
             return res.status(404).json({
                 message: "Comment not found",

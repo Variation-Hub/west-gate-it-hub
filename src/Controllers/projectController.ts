@@ -849,19 +849,21 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (appointed) {
-            const projectIds = await taskModel.find({
-                'assignTo.userId': appointed,
-            })
-                .select('project')
+            const tasks = await taskModel
+                .find({
+                    'assignTo.userId': appointed,
+                })
+                .populate({
+                    path: 'project',
+                    match: { bidManagerStatus: BidManagerStatus.Awaiting },
+                    select: 'bidManagerStatus',
+                })
                 .lean();
 
-            const projectIdsArray = projectIds
-                .map(task => task.project?.toString())
-                .filter(Boolean);
-
-            if (projectIdsArray.length > 0) {
-                filter._id = { $in: projectIdsArray };
-            }
+            const projectIds = tasks
+                .filter(task => task.project)
+                .map(task => task.project._id);
+            filter._id = { $in: projectIds };
         }
         if (notAppointed) {
             const pipeline: any = [
@@ -2705,9 +2707,71 @@ export const addProjectToMylist = async (req: any, res: Response) => {
     }
 }
 
+interface FailStatusReason {
+    tag: string;
+    comment: string;
+}
+
+interface Project {
+    _id: string;
+    projectName: string;
+    status: string;
+    bidManagerStatus: string;
+    failStatusReason: FailStatusReason;
+}
+
+interface DataItem {
+    projectCount: number;
+    projects: Record<string, Project[]>; // A dictionary of project arrays keyed by strings
+    tag: string;
+}
+
+type FilterDataByKeyword = (data: DataItem[], keyword: string) => DataItem[];
+
+const filterDataByKeyword: FilterDataByKeyword = (data, keyword) => {
+    const lowerCaseKeyword = keyword.toLowerCase();
+
+    return data
+        .map(item => {
+            const filteredProjects = Object.entries(item.projects).reduce((acc, [key, value]) => {
+                if (key.toLowerCase().includes(lowerCaseKeyword)) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {} as Record<string, Project[]>);
+
+            if (Object.keys(filteredProjects).length > 0) {
+                return {
+                    ...item,
+                    projects: filteredProjects,
+                    projectCount: Object.values(filteredProjects).flat().length,
+                };
+            }
+            return null;
+        })
+        .filter((item): item is DataItem => item !== null);
+};
+
+const updateProjectCountsByUniqueId = (data: DataItem[]): DataItem[] => {
+    return data.map(item => {
+        const uniqueProjectIds = new Set<string>();
+
+        Object.values(item.projects).forEach(projectArray => {
+            projectArray.forEach(project => {
+                uniqueProjectIds.add(project._id.toString());
+            });
+        });
+
+        return {
+            ...item,
+            projectCount: uniqueProjectIds.size,
+        };
+    });
+};
+
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, keyword } = req.query;
 
         let createdAtFilter = {};
 
@@ -2720,7 +2784,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             };
         }
 
-        const data = await projectModel.aggregate([
+        const Data = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
             },
@@ -2773,14 +2837,23 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                 $sort: { projectCount: -1 },
             },
         ]);
+        let filteredData = []
+        if (keyword) {
+            filteredData = filterDataByKeyword(Data, keyword);
+        } else {
+            filteredData = Data;
+        }
+
+        if (filteredData.length > 0) {
+            filteredData = updateProjectCountsByUniqueId(filteredData);
+        }
 
         return res.status(200).json({
             message: "Gap analysis data fetched successfully",
             status: true,
-            data: data
+            data: filteredData
         });
     } catch (err: any) {
-        console.log(err)
         return res.status(500).json({
             message: err.message,
             status: false,
