@@ -1801,7 +1801,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 project.adminStatus = adminStatus.feasibilityStatusChange;
             }
             if (status === projectStatus.Passed) {
-                project.bidManagerStatus = BidManagerStatus.Awaiting;
+                project.bidManagerStatus = BidManagerStatus.ToAction;
             }
             project.statusHistory.push({
                 status,
