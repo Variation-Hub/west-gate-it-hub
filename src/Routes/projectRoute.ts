@@ -41,7 +41,7 @@ projectRoutes.patch("/update/my-list/:id", authorizeRoles(), addProjectToMylist)
 
 
 // FeasibilityUser routes
-projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(userRoles.FeasibilityAdmin, userRoles.FeasibilityUser, userRoles.Admin), updateProjectForFeasibility);
+projectRoutes.patch("/update/Feasibility/:id", authorizeRoles(), updateProjectForFeasibility);
 projectRoutes.patch("/update/appoint-user/:id", authorizeRoles(), appointUserToProject);
 projectRoutes.patch("/update/approve-reject/:id", authorizeRoles(), approveOrRejectFeasibilityStatus);
 
