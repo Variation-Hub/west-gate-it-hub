@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
-import { generatePass, projectStatus, userRoles } from "../Util/contant"
+import { BidManagerStatus, generatePass, projectStatus, userRoles } from "../Util/contant"
 import { emailHelper } from "../Util/nodemailer"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
@@ -675,65 +675,142 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             };
         }
 
-        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, bidManagerStatus: 1 });
         let data: any = {
-            FeasibilityStatusCount: {
-                "Awaiting": 0,
-                "InProgress": 0,
-                "InHold": 0,
-                "DocumentsNotFound": 0,
-                "Passed": 0,
-                "Fail": 0,
+            projectsPosted: {
+                count: projects.length,
+                maxValue: 0
             },
-            FeasibilityStatusValue: {
-                "Awaiting": 0,
-                "InProgress": 0,
-                "InHold": 0,
-                "DocumentsNotFound": 0,
-                "Passed": 0,
-                "Fail": 0,
+            projectsMatched: {
+                count: 0,
+                maxValue: 0
             },
-            BidStatusCount: {
-                "Shortlisted": 0,
-                "Awaiting": 0,
-                "InSolution": 0,
-                "WaitingForResult": 0,
-                "DroppedAfterFeasibility": 0,
-                "Awarded": 0,
-                "NotAwarded": 0,
-                "ToAction": 0,
+            projectsClosed: {
+                count: 0,
+                maxValue: 0
             },
-            BidStatusValue: {
-                "Shortlisted": 0,
-                "Awaiting": 0,
-                "InSolution": 0,
-                "WaitingForResult": 0,
-                "DroppedAfterFeasibility": 0,
-                "Awarded": 0,
-                "NotAwarded": 0,
-                "ToAction": 0,
+            projectsAwaiting: {
+                count: 0,
+                maxValue: 0
             },
+            projectsInProgress: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsInHold: {
+                count: 0,
+                maxValue: 0
+            },
+            TotalDocumentsNotFound: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsPassed: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsFail: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusAwaiting: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusInSolution: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusWaitingForResult: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusDroppedAfterFeasibility: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusAwarded: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusNotAwarded: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusToAction: {
+                count: 0,
+                maxValue: 0
+            },
+            categoryWise: {}
         };
 
+        // const uniqueCategories = await userModel.distinct("categoryList");
+        const uniqueCategories = await caseStudy.distinct("category");
+        // const projectCategory = await projectModel.distinct("category");
+
         projects.forEach((project: any) => {
-
-            if (data.FeasibilityStatusCount[project.status] >= 0) {
-                data.FeasibilityStatusCount[project.status]++;
-                data.FeasibilityStatusValue[project.status] += project.maxValue;
+            data.projectsPosted.maxValue += project.maxValue;
+            if (project.status === projectStatus.Won) {
+                data.projectsClosed.count += 1;
+                data.projectsClosed.maxValue += project.maxValue;
+            }
+            else if (project.status === projectStatus.Awaiting) {
+                data.projectsAwaiting.count += 1;
+                data.projectsAwaiting.maxValue += project.maxValue;
+            } else if (project.status === projectStatus.InSolution) {
+                data.projectsInProgress.count += 1;
+                data.projectsInProgress.maxValue += project.maxValue;
+            } else if (project.status === projectStatus.Inhold) {
+                data.projectsInHold.count += 1;
+                data.projectsInHold.maxValue += project.maxValue;
+            } else if (project.status === projectStatus.DocumentsNotFound) {
+                data.TotalDocumentsNotFound.count += 1;
+                data.TotalDocumentsNotFound.maxValue += project.maxValue;
+            } else if (project.status === projectStatus.Passed) {
+                data.projectsPassed.count += 1;
+                data.projectsPassed.maxValue += project.maxValue;
+            } else if (project.status === projectStatus.Fail) {
+                data.projectsFail.count += 1;
+                data.projectsFail.maxValue += project.maxValue;
             }
 
-            if (project.status === projectStatus.Passed) {
-                if (project.bidManagerStatus in data.BidStatusCount) {
-                    data.BidStatusCount[project.bidManagerStatus]++;
-                    data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
-                }
-
-                if (project.sortListUserId.length > 0) {
-                    data.BidStatusCount['Shortlisted']++
-                    data.BidStatusValue.Shortlisted += project.maxValue
-                }
+            if (project.bidManagerStatus === BidManagerStatus.Awaiting) {
+                data.projectsBidStatusAwaiting.count += 1;
+                data.projectsBidStatusAwaiting.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.InSolution) {
+                data.projectsBidStatusInSolution.count += 1;
+                data.projectsBidStatusInSolution.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.WaitingForResult) {
+                data.projectsBidStatusWaitingForResult.count += 1;
+                data.projectsBidStatusWaitingForResult.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+                data.projectsBidStatusDroppedAfterFeasibility.count += 1;
+                data.projectsBidStatusDroppedAfterFeasibility.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.Awarded) {
+                data.projectsBidStatusAwarded.count += 1;
+                data.projectsBidStatusAwarded.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.NotAwarded) {
+                data.projectsBidStatusNotAwarded.count += 1;
+                data.projectsBidStatusNotAwarded.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
+                data.projectsBidStatusToAction.count += 1;
+                data.projectsBidStatusToAction.maxValue += project.maxValue;
             }
 
+            if (project.category.length) {
+                project.category.forEach((category: any) => {
+                    if (data.categoryWise[category]) {
+                        data.categoryWise[category]++;
+                    } else {
+                        data.categoryWise[category] = 1;
+                    }
+                });
+            }
+
+            if (project.category.some((category: string) => uniqueCategories.includes(category))) {
+                data.projectsMatched.count += 1;
+                data.projectsMatched.maxValue += project.maxValue;
+            }
         })
 
         return res.status(200).json({
