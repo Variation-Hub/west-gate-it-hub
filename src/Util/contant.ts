@@ -151,9 +151,9 @@ export const taskStatus = {
 }
 
 export const taskCategory = {
-    feasibility: 'feasibility',
-    bidManager: 'bid manager',
-    otherTasks: 'other tasks',
+    High: 'High',
+    Medium: 'Medium',
+    Low: 'Low',
     none: ''
 }
 export const feasibilityStatus = {
