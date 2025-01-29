@@ -84,6 +84,13 @@ export const createTask = async (req: any, res: Response) => {
                     { new: true }
                 );
 
+                const user: any = await userModel.findById(assignTo[0])
+                if (user.role === userRoles.ProjectManager) {
+                    await projectModel.findByIdAndUpdate(req.body?.project, { bidManagerStatus: BidManagerStatus.Awaiting })
+                } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
+                    await projectModel.findByIdAndUpdate(req.body?.project, { status: projectStatus.Awaiting })
+                }
+
                 return res.status(200).json({
                     message: "New user assigned to project successfully",
                     status: true,
