@@ -855,7 +855,7 @@ export const getProjects = async (req: any, res: Response) => {
                 })
                 .populate({
                     path: 'project',
-                    match: { bidManagerStatus: BidManagerStatus.Awaiting },
+                    // match: { bidManagerStatus: BidManagerStatus.Awaiting },
                     select: 'bidManagerStatus',
                 })
                 .lean();
