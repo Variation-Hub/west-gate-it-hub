@@ -562,12 +562,13 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
         website = website?.split(',');
         status = status?.split(',');
+        statusNotInclude = statusNotInclude?.split(',');
         bidManagerStatus = bidManagerStatus?.split(',');
         clientType = clientType?.split(',');
         supplierId = supplierId?.split(',');
@@ -786,6 +787,9 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (status) {
             filter.status = { $in: status };
+        }
+        if (statusNotInclude) {
+            filter.status = { $nin: statusNotInclude };
         }
         if (bidManagerStatus) {
             filter.bidManagerStatus = { $in: bidManagerStatus };
@@ -2880,7 +2884,7 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
             project.adminStatus = null;
         } else {
             if (project.adminStatus === adminStatus.bidManagerStatusChange) {
-                project.bidManagerStatus = BidManagerStatus.ToAction;
+                project.bidManagerStatus = BidManagerStatus.Awaiting;
             } else if (project.adminStatus === adminStatus.feasibilityStatusChange) {
                 project.status = projectStatus.Inprogress;
             }
