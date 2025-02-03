@@ -562,7 +562,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -736,6 +736,17 @@ export const getProjects = async (req: any, res: Response) => {
             const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
 
             filter.createdAt = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (startCreatedDate && endCreatedDate) {
+            const start = new Date(startCreatedDate);
+            const end = new Date(endCreatedDate);
+
+            end.setHours(23, 59, 59, 999);
+            filter.createdAt = {
+                $gte: start,
+                $lte: end
+            }
         }
 
         if (publishDate) {
@@ -2391,14 +2402,19 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
         let createdAtFilter = {};
 
         if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            end.setHours(23, 59, 59, 999);
+
             createdAtFilter = {
                 createdAt: {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
+                    $gte: start,
+                    $lte: end
                 }
             };
         }
-
+        console.log(createdAtFilter);
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
         let data: any = {
             FeasibilityStatusCount: {
