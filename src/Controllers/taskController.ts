@@ -197,7 +197,7 @@ export const updateTask = async (req: Request, res: Response) => {
 
 export const getTasks = async (req: any, res: Response) => {
     try {
-        let { assignTo, status, pickACategory, project, myDay } = req.query;
+        let { assignTo, status, pickACategory, project, myDay, sort } = req.query;
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
@@ -221,11 +221,22 @@ export const getTasks = async (req: any, res: Response) => {
             const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
             filter.myDayDate = { $gte: past24Hours, $lte: now };
         }
+
+        const sortOptions: any = {};
+
+        if (sort === "Newest") {
+            sortOptions.dueDate = -1;
+        } else if (sort === "Oldest") {
+            sortOptions.dueDate = 1;
+        } else {
+            sortOptions.dueDate = -1;
+        }
+
         const Tasks = await taskModel.find(filter)
             .populate("project", "projectName status")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1 })
+            .sort(sortOptions)
             .exec()
 
         const count = await taskModel.countDocuments(filter);
