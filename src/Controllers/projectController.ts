@@ -1295,7 +1295,7 @@ export const updateProject = async (req: any, res: Response) => {
         }
         console.log(status)
         if (project.status !== status && status !== null && status !== undefined) {
-            if (status === projectStatus.Fail) {
+            if (status === projectStatus.Fail || status === projectStatus.DroppedAfterFeasibility) {
                 project.adminStatus = adminStatus.feasibilityStatusChange;
             }
             project.statusHistory.push({
@@ -1814,7 +1814,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             if (req.user.role === userRoles.FeasibilityUser) {
                 project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
             }
-            if (status === projectStatus.Fail) {
+            if (status === projectStatus.Fail || status === projectStatus.DroppedAfterFeasibility) {
                 project.adminStatus = adminStatus.feasibilityStatusChange;
             }
             if (status === projectStatus.Passed) {
