@@ -743,7 +743,7 @@ export const getProjects = async (req: any, res: Response) => {
             const end = new Date(endCreatedDate);
 
             end.setHours(23, 59, 59, 999);
-            filter.createdAt = {
+            filter.publishDate = {
                 $gte: start,
                 $lte: end
             }
@@ -2408,7 +2408,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             end.setHours(23, 59, 59, 999);
 
             createdAtFilter = {
-                createdAt: {
+                publishDate: {
                     $gte: start,
                     $lte: end
                 }
