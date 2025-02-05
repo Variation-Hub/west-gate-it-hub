@@ -293,6 +293,11 @@ const projectModel = new mongoose.Schema({
         ref: 'User',
         default: []
     },
+    categorisation: {
+        type: String,
+        enum: ['DPS/Framework', 'DTD', ''],
+        default: ''
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

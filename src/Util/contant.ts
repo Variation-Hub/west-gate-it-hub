@@ -79,6 +79,7 @@ export const BidManagerStatus = {
     DroppedAfterFeasibility: "⁠Dropped after feasibility",
     Awarded: "Awarded",
     NotAwarded: "NotAwarded",
+    Nosuppliermatched: "Nosuppliermatched",
 }
 
 export const projectStatus1 = {

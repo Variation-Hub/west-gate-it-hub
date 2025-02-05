@@ -626,7 +626,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 0, 0, 0)); // Start of the year in UTC
                 const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
-                    createdAt: {
+                    publishDate: {
                         $gte: startOfYear,
                         $lt: currentIST
                     }
@@ -638,7 +638,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 startOfWeek.setHours(0, 0, 0, 0); // Set to midnight
                 const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
-                    createdAt: {
+                    publishDate: {
                         $gte: new Date(startOfWeek.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
                         $lt: currentIST
                     }
@@ -648,7 +648,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
                 const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
-                    createdAt: {
+                    publishDate: {
                         $gte: new Date(startOfMonth.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
                         $lt: currentIST
                     }
@@ -659,7 +659,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 startOfDay.setHours(0, 0, 0, 0);
                 const currentIST = new Date(currentDate.getTime() + 5.5 * 60 * 60 * 1000); // Adjust to IST
                 createdAtFilter = {
-                    createdAt: {
+                    publishDate: {
                         $gte: new Date(startOfDay.getTime() + 5.5 * 60 * 60 * 1000), // Adjust to IST
                         $lt: currentIST
                     }
@@ -667,15 +667,20 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             }
 
         } else if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            end.setHours(23, 59, 59, 999);
+
             createdAtFilter = {
-                createdAt: {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate)
+                publishDate: {
+                    $gte: start,
+                    $lte: end
                 }
             };
         }
 
-        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, bidManagerStatus: 1 });
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, bidManagerStatus: 1, categorisation: 1, projectType: 1 });
         let data: any = {
             projectsPosted: {
                 count: projects.length,
@@ -741,7 +746,16 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 count: 0,
                 maxValue: 0
             },
-            categoryWise: {}
+            projectsBidStatusNosuppliermatched: {
+                count: 0,
+                maxValue: 0
+            },
+            // categoryWise: {},
+            projectTypeWise: {},
+            categorisationWise: {
+                "DPS/Framework": 0,
+                "DTD": 0,
+            },
         };
 
         // const uniqueCategories = await userModel.distinct("categoryList");
@@ -795,16 +809,32 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
                 data.projectsBidStatusToAction.count += 1;
                 data.projectsBidStatusToAction.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                data.projectsBidStatusNosuppliermatched.count += 1;
+                data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
             }
 
-            if (project.category.length) {
-                project.category.forEach((category: any) => {
-                    if (data.categoryWise[category]) {
-                        data.categoryWise[category]++;
-                    } else {
-                        data.categoryWise[category] = 1;
-                    }
-                });
+            // if (project.category.length) {
+            //     project.category.forEach((category: any) => {
+            //         if (data.categoryWise[category]) {
+            //             data.categoryWise[category]++;
+            //         } else {
+            //             data.categoryWise[category] = 1;
+            //         }
+            //     });
+            // }
+
+            if (project.projectType) {
+                if (data.projectTypeWise[project.projectType]) {
+                    data.projectTypeWise[project.projectType]++;
+                } else {
+                    data.projectTypeWise[project.projectType] = 1;
+                }
+            }
+            if (project.categorisation === "DPS/Framework") {
+                data.categorisationWise["DPS/Framework"]++
+            } else if (project.categorisation === "DTD") {
+                data.categorisationWise["DTD"]++
             }
 
             if (project.category.some((category: string) => uniqueCategories.includes(category))) {

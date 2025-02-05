@@ -562,7 +562,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation } = req.query as any
         category = category?.split(',');
         industry = industry?.split(',');
         projectType = projectType?.split(',');
@@ -951,6 +951,13 @@ export const getProjects = async (req: any, res: Response) => {
         }
         if (adminReview) {
             filter.adminStatus = { $ne: null };
+            if (adminReview === "Fail") {
+                filter.status = projectStatus.Fail
+            } else if (adminReview === "⁠Dropped after feasibility") {
+                filter.bidManagerStatus = BidManagerStatus.DroppedAfterFeasibility
+            } else if (adminReview === "Nosuppliermatched") {
+                filter.bidManagerStatus = BidManagerStatus.Nosuppliermatched
+            }
         }
         if (notAppointedToBidManager) {
             filter.$or = [
@@ -960,6 +967,9 @@ export const getProjects = async (req: any, res: Response) => {
         }
         if (myList) {
             filter.myList = { $elemMatch: { $eq: myList } }
+        }
+        if (categorisation) {
+            filter.categorisation = categorisation
         }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
@@ -1240,7 +1250,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment } = req.body
+        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1257,7 +1267,7 @@ export const updateProject = async (req: any, res: Response) => {
             periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
             website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
             minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, bidManagerStatus,
-            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment
+            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
@@ -1305,7 +1315,7 @@ export const updateProject = async (req: any, res: Response) => {
             })
         }
         if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
-            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
                 project.adminStatus = adminStatus.bidManagerStatusChange;
             }
         }
@@ -1340,6 +1350,7 @@ export const updateProject = async (req: any, res: Response) => {
         project.bidManagerStatusComment = bidManagerStatusComment || project.bidManagerStatusComment;
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
+        project.categorisation = categorisation || project.categorisation;
         // project.policy = policy || project.policy;
 
         if (waitingForResult === false || waitingForResult === true) {
@@ -1828,7 +1839,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         }
 
         if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
-            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
                 project.adminStatus = adminStatus.bidManagerStatusChange;
             }
         }
@@ -2397,9 +2408,9 @@ export const newProjectAddMail = async (req: Request, res: Response) => {
 
 export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, expired, categorisation } = req.query;
 
-        let createdAtFilter = {};
+        let createdAtFilter: any = {};
 
         if (startDate && endDate) {
             const start = new Date(startDate);
@@ -2413,6 +2424,13 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                     $lte: end
                 }
             };
+        }
+        if (!expired) {
+            const date = new Date();
+            createdAtFilter.dueDate = { $gte: date }
+        }
+        if (categorisation) {
+            createdAtFilter.categorisation = categorisation
         }
         console.log(createdAtFilter);
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
@@ -2442,6 +2460,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Awarded": 0,
                 "NotAwarded": 0,
                 "ToAction": 0,
+                "Nosuppliermatched": 0
             },
             BidStatusValue: {
                 "Shortlisted": 0,
@@ -2452,6 +2471,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Awarded": 0,
                 "NotAwarded": 0,
                 "ToAction": 0,
+                "Nosuppliermatched": 0
             },
         };
 
