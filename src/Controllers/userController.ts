@@ -10,6 +10,7 @@ import mongoose from "mongoose"
 import { connectUser } from "../socket/socketEvent"
 import LoginModel from "../Models/LoginModel"
 import caseStudy from "../Models/caseStudy"
+import taskModel from "../Models/taskModel"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -503,6 +504,7 @@ export const getUserList = async (req: any, res: Response) => {
 
         const projectCount = (req.query.projectCount);
         const projectId = req.query.projectId;
+        const taskCount = req.query.taskCount;
 
         if (projectId) {
             const project = await projectModel.findById(projectId);
@@ -545,6 +547,29 @@ export const getUserList = async (req: any, res: Response) => {
                     return {
                         ...user,
                         projectCount: 0
+                    };
+                }
+            });
+        }
+
+        if (taskCount) {
+            const result = await taskModel.aggregate([
+                { $unwind: "$assignTo" },
+                { $group: { _id: "$assignTo.userId", count: { $sum: 1 } } },
+                { $project: { _id: 0, userId: "$_id", taskcount: "$count" } }
+            ]);
+            console.log(result)
+            users = users.map((user: any) => {
+                const supplierCount = result.find((item) => new mongoose.Types.ObjectId(item.userId).equals(user._id));
+                if (supplierCount) {
+                    return {
+                        ...user,
+                        taskcount: supplierCount.taskcount
+                    };
+                } else {
+                    return {
+                        ...user,
+                        taskcount: 0
                     };
                 }
             });
