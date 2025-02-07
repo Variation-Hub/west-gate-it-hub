@@ -65,9 +65,8 @@ const projectModel = new mongoose.Schema({
         default: null
     },
     projectType: {
-        type: String,
-        trim: true,
-        default: ""
+        type: [String],
+        default: []
     },
     website: {
         type: String,
@@ -297,6 +296,22 @@ const projectModel = new mongoose.Schema({
         type: String,
         enum: ['DPS/Framework', 'DTD', ''],
         default: ''
+    },
+    loginID: {
+        type: String,
+        default: ""
+    },
+    password: {
+        type: String,
+        default: ""
+    },
+    linkToPortal: {
+        type: String,
+        default: ""
+    },
+    documentsLink: {
+        type: String,
+        default: ""
     },
     createdAt: {
         type: Date,

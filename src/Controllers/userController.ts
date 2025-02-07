@@ -824,12 +824,14 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             //     });
             // }
 
-            if (project.projectType) {
-                if (data.projectTypeWise[project.projectType]) {
-                    data.projectTypeWise[project.projectType]++;
-                } else {
-                    data.projectTypeWise[project.projectType] = 1;
-                }
+            if (project.projectType.length > 0) {
+                project.projectType.forEach((type: any) => {
+                    if (data.projectTypeWise[type]) {
+                        data.projectTypeWise[type]++;
+                    } else {
+                        data.projectTypeWise[type] = 1;
+                    }
+                });
             }
             if (project.categorisation === "DPS/Framework") {
                 data.categorisationWise["DPS/Framework"]++

@@ -234,8 +234,8 @@ export const getTasks = async (req: any, res: Response) => {
 
         const Tasks = await taskModel.find(filter)
             .populate("project", "projectName status")
-            .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number)
+            // .limit(req.pagination?.limit as number)
+            // .skip(req.pagination?.skip as number)
             .sort(sortOptions)
             .exec()
 
@@ -282,12 +282,12 @@ export const getTasks = async (req: any, res: Response) => {
             status: true,
             data: {
                 data: Tasks,
-                meta_data: {
-                    page: req.pagination?.page,
-                    items: count,
-                    page_size: req.pagination?.limit,
-                    pages: Math.ceil(count / (req.pagination?.limit as number))
-                }
+                // meta_data: {
+                //     page: req.pagination?.page,
+                //     items: count,
+                //     page_size: req.pagination?.limit,
+                //     pages: Math.ceil(count / (req.pagination?.limit as number))
+                // }
             }
         });
     } catch (err: any) {
