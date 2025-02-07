@@ -953,7 +953,7 @@ export const getProjects = async (req: any, res: Response) => {
             filter.adminStatus = { $ne: null };
             if (adminReview === "Fail") {
                 filter.status = projectStatus.Fail
-            } else if (adminReview === "⁠Dropped after feasibility") {
+            } else if (adminReview?.trim().normalize() === "⁠Dropped after feasibility") {
                 filter.bidManagerStatus = BidManagerStatus.DroppedAfterFeasibility
             } else if (adminReview === "Nosuppliermatched") {
                 filter.bidManagerStatus = BidManagerStatus.Nosuppliermatched
