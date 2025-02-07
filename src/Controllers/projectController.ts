@@ -2947,3 +2947,49 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
         });
     }
 }
+
+export const deleteProjectStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { statusComment } = req.body;
+
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        console.log(project.statusComment)
+        const index = project.statusComment.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(statusComment)
+        );
+
+        if (index === -1) {
+            return res.status(404).json({
+                message: "Status comment not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.statusComment.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "Status comment deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
