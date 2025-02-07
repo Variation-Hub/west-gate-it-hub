@@ -285,7 +285,8 @@ const projectModel = new mongoose.Schema({
     },
     adminStatus: {
         type: String,
-        enum: ['feasibility status change', 'bid manager status change'],
+        enum: ['Fail', 'Dropped after feasibility', 'Nosuppliermatched'],
+        default: null
     },
     myList: {
         type: [mongoose.Schema.Types.ObjectId],

@@ -950,15 +950,15 @@ export const getProjects = async (req: any, res: Response) => {
             filter.feasibilityStatus = { $ne: null };
         }
         if (adminReview) {
-            console.log(adminReview?.trim().normalize() === "⁠Dropped after feasibility", adminReview === "Fail")
-            filter.adminStatus = { $ne: null };
-            if (adminReview === "Fail") {
-                filter.status = projectStatus.Fail
-            } else if (adminReview?.trim().normalize() === "⁠Dropped after feasibility") {
-                filter.bidManagerStatus = BidManagerStatus.DroppedAfterFeasibility
-            } else if (adminReview === "Nosuppliermatched") {
-                filter.bidManagerStatus = BidManagerStatus.Nosuppliermatched
-            }
+            // filter.adminStatus = { $ne: null };
+            // if (adminReview === "Fail") {
+            //     filter.status = projectStatus.Fail
+            // } else if (adminReview === "Dropped after feasibility") {
+            //     filter.bidManagerStatus = BidManagerStatus.DroppedAfterFeasibility
+            // } else if (adminReview === "Nosuppliermatched") {
+            //     filter.bidManagerStatus = BidManagerStatus.Nosuppliermatched
+            // }
+            filter.adminStatus = adminReview
         }
         if (notAppointedToBidManager) {
             filter.$or = [
@@ -1251,7 +1251,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink } = req.body
+        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1261,6 +1261,25 @@ export const updateProject = async (req: any, res: Response) => {
                 status: false,
                 data: null
             })
+        }
+
+        if (project.status !== status && status !== null && status !== undefined) {
+            if (status === projectStatus.Fail) {
+                project.adminStatus = status;
+                status = undefined;
+            } else {
+                project.statusHistory.push({
+                    status,
+                    date: new Date(),
+                    userId: req.user.id,
+                })
+            }
+        }
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                project.adminStatus = bidManagerStatus;
+                bidManagerStatus = undefined;
+            }
         }
 
         const fieldsToUpdate = {
@@ -1302,22 +1321,6 @@ export const updateProject = async (req: any, res: Response) => {
                 }
                 project.logs = [logEntry, ...(project.logs || [])];
                 // project[field] = newValue;
-            }
-        }
-        console.log(status)
-        if (project.status !== status && status !== null && status !== undefined) {
-            if (status === projectStatus.Fail || status === projectStatus.DroppedAfterFeasibility) {
-                project.adminStatus = adminStatus.feasibilityStatusChange;
-            }
-            project.statusHistory.push({
-                status,
-                date: new Date(),
-                userId: req.user.id,
-            })
-        }
-        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
-            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
-                project.adminStatus = adminStatus.bidManagerStatusChange;
             }
         }
 
@@ -1766,7 +1769,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
+        let { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1776,6 +1779,32 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 status: false,
                 data: null
             })
+        }
+
+        if (project.status !== status && status !== null && status !== undefined) {
+            if (req.user.role === userRoles.FeasibilityUser) {
+                project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
+            }
+            if (status === projectStatus.Fail) {
+                project.adminStatus = status;
+                status = undefined;
+            } else {
+                if (status === projectStatus.Passed) {
+                    project.bidManagerStatus = BidManagerStatus.Awaiting;
+                }
+                project.statusHistory.push({
+                    status,
+                    date: new Date(),
+                    userId: req.user.id,
+                })
+            }
+        }
+
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                project.adminStatus = bidManagerStatus;
+                bidManagerStatus = undefined;
+            }
         }
 
         const fieldsToUpdate = {
@@ -1825,29 +1854,6 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             }
         }
 
-        console.log("project", status)
-        if (project.status !== status && status !== null && status !== undefined) {
-            if (req.user.role === userRoles.FeasibilityUser) {
-                project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
-            }
-            if (status === projectStatus.Fail || status === projectStatus.DroppedAfterFeasibility) {
-                project.adminStatus = adminStatus.feasibilityStatusChange;
-            }
-            if (status === projectStatus.Passed) {
-                project.bidManagerStatus = BidManagerStatus.Awaiting;
-            }
-            project.statusHistory.push({
-                status,
-                date: new Date(),
-                userId: req.user.id,
-            })
-        }
-
-        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
-            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
-                project.adminStatus = adminStatus.bidManagerStatusChange;
-            }
-        }
         project.category = category || project.category;
         project.industry = industry || project.industry;
         project.bidsubmissiontime = bidsubmissiontime || project.bidsubmissiontime;
@@ -2437,7 +2443,6 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
         if (categorisation) {
             createdAtFilter.categorisation = categorisation
         }
-        console.log(createdAtFilter);
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
         let data: any = {
             FeasibilityStatusCount: {
@@ -2922,13 +2927,13 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
             })
         }
         if (action === feasibilityStatus.approve) {
+            if (project.adminStatus === adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
+                project.bidManagerStatus = project.adminStatus;
+            } else if (project.adminStatus === adminStatus.Fail) {
+                project.status = project.adminStatus;
+            }
             project.adminStatus = null;
         } else {
-            if (project.adminStatus === adminStatus.bidManagerStatusChange) {
-                project.bidManagerStatus = BidManagerStatus.Awaiting;
-            } else if (project.adminStatus === adminStatus.feasibilityStatusChange) {
-                project.status = projectStatus.Inprogress;
-            }
             project.adminStatus = null;
         }
 
@@ -2953,7 +2958,6 @@ export const deleteProjectStatusComment = async (req: any, res: Response) => {
         const id = req.params.id;
         const { statusComment } = req.body;
 
-
         const project: any = await projectModel.findById(id);
 
         if (!project) {
@@ -2963,11 +2967,15 @@ export const deleteProjectStatusComment = async (req: any, res: Response) => {
                 data: null
             });
         }
-        console.log(project.statusComment)
-        const index = project.statusComment.findIndex((comment: any) =>
+        let index = project.statusComment.findIndex((comment: any) =>
             JSON.stringify(comment) === JSON.stringify(statusComment)
         );
-
+        if (index === -1) {
+            delete statusComment.userDetails;
+            index = project.statusComment.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(statusComment)
+            );
+        }
         if (index === -1) {
             return res.status(404).json({
                 message: "Status comment not found",

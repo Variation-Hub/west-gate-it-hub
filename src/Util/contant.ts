@@ -48,9 +48,9 @@ export const projectStatus = {
     Awaiting: "Awaiting",
     DocumentsNotFound: "Documents not found",
     Dropped: "Dropped",
-    DroppedAfterFeasibility: "⁠Dropped after feasibility",
+    DroppedAfterFeasibility: "Dropped after feasibility",
     Failed: "Failed",
-    HandoveredToOtherSupplier: "⁠Handovered to other supplier",
+    HandoveredToOtherSupplier: "Handovered to other supplier",
     Passed: "Passed",
     Submitted: "Submitted",
     InSolution3rdParty: "InSolution3rdParty",
@@ -76,7 +76,7 @@ export const BidManagerStatus = {
     ToAction: "ToAction",
     InSolution: "InSolution",
     WaitingForResult: "WaitingForResult",
-    DroppedAfterFeasibility: "⁠Dropped after feasibility",
+    DroppedAfterFeasibility: "Dropped after feasibility",
     Awarded: "Awarded",
     NotAwarded: "NotAwarded",
     Nosuppliermatched: "Nosuppliermatched",
@@ -164,6 +164,7 @@ export const feasibilityStatus = {
 }
 
 export const adminStatus = {
-    feasibilityStatusChange: 'feasibility status change',
-    bidManagerStatusChange: 'bid manager status change',
+    Fail: 'Fail',
+    DroppedAfterFeasibility: 'Dropped after feasibility',
+    Nosuppliermatched: 'Nosuppliermatched'
 }
