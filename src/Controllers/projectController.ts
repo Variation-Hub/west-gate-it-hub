@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
-import mongoose, { Mongoose } from "mongoose";
+import mongoose, { AnyArray, Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
 import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
@@ -2823,14 +2823,17 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
         const { startDate, endDate, keyword } = req.query;
 
-        let createdAtFilter = {};
+        let createdAtFilter: any = {
+            status: projectStatus.Fail
+        };
 
         if (startDate && endDate) {
             createdAtFilter = {
+                ...createdAtFilter,
                 createdAt: {
                     $gte: new Date(startDate),
                     $lte: new Date(endDate)
-                }
+                },
             };
         }
 
