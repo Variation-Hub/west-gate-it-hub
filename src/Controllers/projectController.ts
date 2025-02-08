@@ -835,12 +835,22 @@ export const getProjects = async (req: any, res: Response) => {
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
         }
 
-        if (status) {
-            filter.status = { $in: status };
+        if (req.user.role === userRoles.ProjectManager && bidManagerStatus[0] === BidManagerStatus.Awaiting && expired === "true") {
+            statusNotInclude.push(projectStatus.DocumentsNotFound)
         }
-        if (statusNotInclude) {
+
+        if (req.user.role === userRoles.ProjectManager && bidManagerStatus[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus[1] === BidManagerStatus.Awarded && bidManagerStatus[2] === BidManagerStatus.NotAwarded && bidManagerStatus[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
+            status.push(projectStatus.DocumentsNotFound)
+        }
+
+        if (status && statusNotInclude) {
+            filter.status = { $in: status, $nin: statusNotInclude };
+        } else if (status) {
+            filter.status = { $in: status };
+        } else if (statusNotInclude) {
             filter.status = { $nin: statusNotInclude };
         }
+
         if (bidManagerStatus) {
             filter.bidManagerStatus = { $in: bidManagerStatus };
         }
