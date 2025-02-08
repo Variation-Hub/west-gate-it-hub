@@ -576,13 +576,52 @@ export const getProjects = async (req: any, res: Response) => {
         let filter: any = {}
 
         if (keyword) {
+            const data = (await taskModel.aggregate([
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: { $toObjectId: "$firstAssignTo.userId" }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "user"
+                    }
+                },
+                {
+                    $match: {
+                        "user.name": { $regex: keyword, $options: "i" }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        projects: { $addToSet: "$project" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        projects: 1
+                    }
+                }
+            ]))?.[0]?.projects || [];
+
             filter = {
                 $or: [
                     { BOSID: keyword },
                     { clientName: { $regex: keyword, $options: 'i' } },
                     { website: { $regex: keyword, $options: 'i' } },
                     { projectName: { $regex: keyword, $options: 'i' } },
-                    { noticeReference: { $regex: keyword, $options: 'i' } }
+                    { noticeReference: { $regex: keyword, $options: 'i' } },
+                    { _id: data }
                 ]
             };
         }
