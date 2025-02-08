@@ -835,11 +835,11 @@ export const getProjects = async (req: any, res: Response) => {
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
         }
 
-        if (req.user.role === userRoles.ProjectManager && bidManagerStatus[0] === BidManagerStatus.Awaiting && expired === "true") {
+        if (req.user.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
             statusNotInclude.push(projectStatus.DocumentsNotFound)
         }
 
-        if (req.user.role === userRoles.ProjectManager && bidManagerStatus[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus[1] === BidManagerStatus.Awarded && bidManagerStatus[2] === BidManagerStatus.NotAwarded && bidManagerStatus[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
+        if (req.user.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
             status.push(projectStatus.DocumentsNotFound)
         }
 
