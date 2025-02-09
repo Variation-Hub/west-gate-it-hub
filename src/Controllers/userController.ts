@@ -308,8 +308,8 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
             { role: userRoles.SupplierUser, supplierId },
             { password: 0, categoryList: 0, supplierId: 0 })
             .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number);
-
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             message: "User fetch success",
@@ -341,8 +341,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         const user = await userModel.find(
             { role: userRoles.SupplierAdmin })
             .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number);
-
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
 
         return res.status(200).json({
             message: "User fetch success",
@@ -513,7 +513,7 @@ export const getUserList = async (req: any, res: Response) => {
 
             const userIds = casestudy.map((caseItem) => caseItem.userId);
 
-            const users = await userModel.find({ _id: { $in: userIds } });
+            const users = await userModel.find({ _id: { $in: userIds } }).sort({ createdAt: -1 });
 
             return res.status(200).json({
                 message: "User list fetch success",
@@ -529,7 +529,7 @@ export const getUserList = async (req: any, res: Response) => {
             filter = { role: { $in: userRoles } }
         }
 
-        let users: any = await userModel.find(filter).select({ password: 0 }).lean();
+        let users: any = await userModel.find(filter).select({ password: 0 }).sort({ createdAt: -1 }).lean();
         if (projectCount) {
             const result = await projectModel.aggregate([
                 { $unwind: "$select" },
