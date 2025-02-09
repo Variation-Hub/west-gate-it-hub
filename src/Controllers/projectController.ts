@@ -367,6 +367,24 @@ export const getProject = async (req: any, res: Response) => {
             project.dropUser = updatedStatusHistory;
         }
 
+        if (project.failStatusReason.length > 0) {
+            const userIds = project.failStatusReason.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.failStatusReason.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.failStatusReason = updatedStatusHistory;
+        }
+
         // const tasks = await taskModel
         //     .find({
         //         project: project._id,
@@ -1919,6 +1937,13 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         // project.certifications = certifications || project.certifications;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
         if (failStatusReason?.length > 0) {
+            failStatusReason = failStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
             project.failStatusReason = [...project.failStatusReason, ...failStatusReason]
         }
         project.value = value || project.value;
