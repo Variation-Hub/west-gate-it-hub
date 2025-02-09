@@ -1944,7 +1944,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     date: new Date()
                 }
             })
-            project.failStatusReason = [...project.failStatusReason, ...failStatusReason]
+            project.failStatusReason = [...failStatusReason, ...project.failStatusReason]
         }
         project.value = value || project.value;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
