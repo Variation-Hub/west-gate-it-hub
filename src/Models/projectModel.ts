@@ -13,7 +13,7 @@ const projectModel = new mongoose.Schema({
     projectName: {
         type: String,
         trim: true,
-        default: ""
+        required: true
     },
     category: {
         type: [String],
@@ -32,7 +32,7 @@ const projectModel = new mongoose.Schema({
         type: String,
         trim: true,
         unique: true,
-        default: ""
+        required: true
     },
     publishDate: {
         type: Date,
