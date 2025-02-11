@@ -130,7 +130,7 @@ export const createTask = async (req: any, res: Response) => {
     }
 }
 
-export const updateTask = async (req: Request, res: Response) => {
+export const updateTask = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const obj = req.body;
@@ -169,9 +169,11 @@ export const updateTask = async (req: Request, res: Response) => {
             if (task[value] !== obj[value]) {
                 if (value === 'status') {
                     if (obj[value] === taskStatus.Completed) {
-                        task.myDayDate = null;
+                        task.myDay = [];
                     } else if (obj[value] === taskStatus.MyDay) {
-                        task.myDayDate = new Date();
+                        if (!task.myDay.includes(req.user.id)) {
+                            task.myDay = [...task.myDay, req.user.id];
+                        }
                         return;
                     }
                 }
@@ -195,6 +197,39 @@ export const updateTask = async (req: Request, res: Response) => {
     }
 }
 
+export const removeTaskFromMyDay = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userId } = req.body;
+
+        const task: any = await taskModel.findById(id);
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found",
+                status: false,
+                data: null
+            });
+        }
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+
+        task.myDay = task.myDay.filter((id: any) => !id.equals(userObjectId));
+
+        await task.save();
+
+        return res.send({
+            message: "Task remove from myDay successfully",
+            status: true,
+            data: task
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
 export const getTasks = async (req: any, res: Response) => {
     try {
         let { assignTo, status, pickACategory, project, myDay, sort } = req.query;
@@ -217,9 +252,19 @@ export const getTasks = async (req: any, res: Response) => {
             filter.status = status
         }
         if (myDay) {
-            const now = new Date();
-            const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            filter.myDayDate = { $gte: past24Hours, $lte: now };
+            //     const now = new Date();
+            //     const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            if (req.user.role === userRoles.Admin) {
+                if (assignTo?.length > 0) {
+                    filter.myDay = {
+                        $in: assignTo.map((id: string) => new mongoose.Types.ObjectId(id))
+                    };
+                } else {
+                    filter.myDay = { $ne: [] }
+                }
+            } else {
+                filter.myDay = { $in: [req.user.id] }
+            }
         }
 
         const sortOptions: any = {};
@@ -233,7 +278,7 @@ export const getTasks = async (req: any, res: Response) => {
         }
 
         const Tasks = await taskModel.find(filter)
-            .populate("project", "projectName status")
+            .populate("project", "projectName status bidManagerStatus")
             // .limit(req.pagination?.limit as number)
             // .skip(req.pagination?.skip as number)
             .sort(sortOptions)

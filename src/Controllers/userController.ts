@@ -505,6 +505,7 @@ export const getUserList = async (req: any, res: Response) => {
         const projectCount = (req.query.projectCount);
         const projectId = req.query.projectId;
         const taskCount = req.query.taskCount;
+        const taskPage = req.query.taskPage;
 
         if (projectId) {
             const project = await projectModel.findById(projectId);
@@ -553,12 +554,37 @@ export const getUserList = async (req: any, res: Response) => {
         }
 
         if (taskCount) {
-            const result = await taskModel.aggregate([
-                { $unwind: "$assignTo" },
-                { $group: { _id: "$assignTo.userId", count: { $sum: 1 } } },
-                { $project: { _id: 0, userId: "$_id", taskcount: "$count" } }
-            ]);
-            console.log(result)
+            let filter: any[] = [];
+            let result = [];
+            if (taskPage === "myDay") {
+                result = await taskModel.aggregate([
+                    { $unwind: "$myDay" },
+                    { $group: { _id: "$myDay", count: { $sum: 1 } } },
+                    {
+                        $project: {
+                            _id: 0,
+                            userId: { $toString: "$_id" },
+                            taskcount: "$count"
+                        }
+                    }
+                ]);
+
+            } else {
+                if (taskPage === "Ongoing" || taskPage === "Completed") {
+                    filter.push({ $match: { status: taskPage } });
+                }
+
+                filter.push(
+                    { $unwind: "$assignTo" },
+                    { $group: { _id: "$assignTo.userId", count: { $sum: 1 } } },
+                    { $project: { _id: 0, userId: "$_id", taskcount: "$count" } }
+                );
+
+                result = await taskModel.aggregate(filter);
+
+            }
+
+            // console.log(result)
             users = users.map((user: any) => {
                 const supplierCount = result.find((item) => new mongoose.Types.ObjectId(item.userId).equals(user._id));
                 if (supplierCount) {
@@ -775,6 +801,18 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 count: 0,
                 maxValue: 0
             },
+            projectsBidStatusGoNoGoStage1: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusSupplierConfirmation: {
+                count: 0,
+                maxValue: 0
+            },
+            projectsBidStatusGoNoGoStage2: {
+                count: 0,
+                maxValue: 0
+            },
             // categoryWise: {},
             projectTypeWise: {},
             categorisationWise: {
@@ -837,6 +875,15 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
                 data.projectsBidStatusNosuppliermatched.count += 1;
                 data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage1) {
+                data.projectsBidStatusGoNoGoStage1.count += 1;
+                data.projectsBidStatusGoNoGoStage1.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.SupplierConfirmation) {
+                data.projectsBidStatusSupplierConfirmation.count += 1;
+                data.projectsBidStatusSupplierConfirmation.maxValue += project.maxValue;
+            } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage2) {
+                data.projectsBidStatusGoNoGoStage2.count += 1;
+                data.projectsBidStatusGoNoGoStage2.maxValue += project.maxValue;
             }
 
             // if (project.category.length) {

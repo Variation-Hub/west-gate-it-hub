@@ -1333,6 +1333,7 @@ export const updateProject = async (req: any, res: Response) => {
         if (project.status !== status && status !== null && status !== undefined) {
             if (status === projectStatus.Fail) {
                 project.adminStatus = status;
+                project.adminStatusDate = new Date();
                 status = undefined;
             } else {
                 project.statusHistory.push({
@@ -1345,6 +1346,7 @@ export const updateProject = async (req: any, res: Response) => {
         if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
             if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
                 project.adminStatus = bidManagerStatus;
+                project.adminStatusDate = new Date();
                 bidManagerStatus = undefined;
             }
         }
@@ -1854,6 +1856,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             }
             if (status === projectStatus.Fail) {
                 project.adminStatus = status;
+                project.adminStatusDate = new Date();
                 status = undefined;
             } else {
                 if (status === projectStatus.Passed) {
@@ -1870,6 +1873,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
             if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
                 project.adminStatus = bidManagerStatus;
+                project.adminStatusDate = new Date();
                 bidManagerStatus = undefined;
             }
         }
@@ -2544,7 +2548,10 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Awarded": 0,
                 "NotAwarded": 0,
                 "ToAction": 0,
-                "Nosuppliermatched": 0
+                "Nosuppliermatched": 0,
+                "Go-NoGoStage1": 0,
+                "SupplierConfirmation": 0,
+                "Go-NoGoStage2": 0
             },
             BidStatusValue: {
                 "Shortlisted": 0,
@@ -2555,7 +2562,10 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Awarded": 0,
                 "NotAwarded": 0,
                 "ToAction": 0,
-                "Nosuppliermatched": 0
+                "Nosuppliermatched": 0,
+                "Go-NoGoStage1": 0,
+                "SupplierConfirmation": 0,
+                "Go-NoGoStage2": 0
             },
         };
 
@@ -2893,6 +2903,77 @@ const updateProjectCountsByUniqueId = (data: DataItem[]): DataItem[] => {
     });
 };
 
+async function processData(Data: any[]) {
+    for (const data of Data) {
+        for (const [key, value] of Object.entries<any[]>(data.projects)) {
+            console.log("Key (Name):", key);
+
+            for (const project of value) {
+                const bidlatestTask: any[] = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+
+                let assignBidmanager: any = null;
+                if (bidlatestTask.length > 0) {
+                    assignBidmanager = {
+                        _id: bidlatestTask[0].userDetails?._id,
+                        name: bidlatestTask[0].userDetails?.name,
+                        email: bidlatestTask[0].userDetails?.email,
+                        role: bidlatestTask[0].userDetails?.role,
+                        dueDate: bidlatestTask[0]?.dueDate
+                    };
+                }
+
+                project.assignBidManager = assignBidmanager;
+            }
+        }
+    }
+}
+
+
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
         const { startDate, endDate, keyword } = req.query;
@@ -2911,7 +2992,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
             };
         }
 
-        const Data = await projectModel.aggregate([
+        let Data: any = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
             },
@@ -2964,6 +3045,8 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                 $sort: { projectCount: -1 },
             },
         ]);
+
+        await processData(Data);
         let filteredData = []
         if (keyword) {
             filteredData = filterDataByKeyword(Data, keyword);
@@ -3010,8 +3093,10 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
                 project.status = project.adminStatus;
             }
             project.adminStatus = null;
+            project.adminStatusDate = null;
         } else {
             project.adminStatus = null;
+            project.adminStatusDate = null;
         }
 
         const updateProject = await project.save();

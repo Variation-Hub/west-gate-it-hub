@@ -80,6 +80,9 @@ export const BidManagerStatus = {
     Awarded: "Awarded",
     NotAwarded: "NotAwarded",
     Nosuppliermatched: "Nosuppliermatched",
+    GoNoGoStage1: "Go-NoGoStage1",
+    SupplierConfirmation: "SupplierConfirmation",
+    GoNoGoStage2: "Go-NoGoStage2",
 }
 
 export const projectStatus1 = {

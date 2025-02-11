@@ -288,6 +288,10 @@ const projectModel = new mongoose.Schema({
         enum: ['Fail', 'Dropped after feasibility', 'Nosuppliermatched'],
         default: null
     },
+    adminStatusDate: {
+        type: Date,
+        default: null
+    },
     myList: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',

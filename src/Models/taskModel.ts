@@ -50,9 +50,14 @@ const TaskModel = new mongoose.Schema({
         enum: taskCategory,
         default: taskCategory.none
     },
-    myDayDate: {
-        type: Date,
-        default: null
+    myDay: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: [],
+    },
+    completedTask: {
+        type: Boolean,
+        default: false
     },
     createdAt: {
         type: Date,
