@@ -384,7 +384,7 @@ export const getProject = async (req: any, res: Response) => {
 
             project.failStatusReason = updatedStatusHistory;
         }
-        if (project.droppedAfterFeasibilityStatusReason.length > 0) {
+        if (project?.droppedAfterFeasibilityStatusReason?.length > 0) {
             const userIds = project.droppedAfterFeasibilityStatusReason.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -401,7 +401,7 @@ export const getProject = async (req: any, res: Response) => {
 
             project.droppedAfterFeasibilityStatusReason = updatedStatusHistory;
         }
-        if (project.nosuppliermatchedStatusReason.length > 0) {
+        if (project?.nosuppliermatchedStatusReason?.length > 0) {
             const userIds = project.nosuppliermatchedStatusReason.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
