@@ -384,7 +384,40 @@ export const getProject = async (req: any, res: Response) => {
 
             project.failStatusReason = updatedStatusHistory;
         }
+        if (project.droppedAfterFeasibilityStatusReason.length > 0) {
+            const userIds = project.droppedAfterFeasibilityStatusReason.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
 
+            const updatedStatusHistory = await Promise.all(
+                project.droppedAfterFeasibilityStatusReason.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.droppedAfterFeasibilityStatusReason = updatedStatusHistory;
+        }
+        if (project.nosuppliermatchedStatusReason.length > 0) {
+            const userIds = project.nosuppliermatchedStatusReason.map((item: any) => item.userId);
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName");
+
+            const updatedStatusHistory = await Promise.all(
+                project.nosuppliermatchedStatusReason.map(async (item: any) => {
+                    return {
+                        ...item,
+                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
+                    };
+                })
+            );
+
+            project.nosuppliermatchedStatusReason = updatedStatusHistory;
+        }
         // const tasks = await taskModel
         //     .find({
         //         project: project._id,
@@ -1838,7 +1871,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
+        let { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1949,6 +1982,26 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 }
             })
             project.failStatusReason = [...failStatusReason, ...project.failStatusReason]
+        }
+        if (droppedAfterFeasibilityStatusReason?.length > 0) {
+            droppedAfterFeasibilityStatusReason = droppedAfterFeasibilityStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.droppedAfterFeasibilityStatusReason = [...droppedAfterFeasibilityStatusReason, ...project.droppedAfterFeasibilityStatusReason]
+        }
+        if (nosuppliermatchedStatusReason?.length > 0) {
+            nosuppliermatchedStatusReason = nosuppliermatchedStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.nosuppliermatchedStatusReason = [...nosuppliermatchedStatusReason, ...project.nosuppliermatchedStatusReason]
         }
         project.value = value || project.value;
         project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
@@ -3072,6 +3125,201 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
     }
 };
 
+export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, keyword } = req.query;
+
+        let createdAtFilter: any = {
+            bidManagerStatus: BidManagerStatus.DroppedAfterFeasibility
+        };
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                ...createdAtFilter,
+                createdAt: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                },
+            };
+        }
+
+        let Data: any = await projectModel.aggregate([
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$droppedAfterFeasibilityStatusReason',
+            },
+            {
+                $group: {
+                    _id: {
+                        tag: '$droppedAfterFeasibilityStatusReason.tag',
+                        comment: '$droppedAfterFeasibilityStatusReason.comment',
+                    },
+                    projects: {
+                        $push: {
+                            _id: '$_id',
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                            droppedAfterFeasibilityStatusReason: '$droppedAfterFeasibilityStatusReason',
+                        },
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: '$_id.tag',
+                    projectCount: { $sum: { $size: '$projects' } },
+                    projects: {
+                        $push: {
+                            k: '$_id.comment',
+                            v: '$projects',
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    projects: { $arrayToObject: '$projects' },
+                },
+            },
+            {
+                $project: {
+                    tag: '$_id',
+                    projectCount: 1,
+                    projects: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ]);
+
+        await processData(Data);
+        let filteredData = []
+        if (keyword) {
+            filteredData = filterDataByKeyword(Data, keyword);
+        } else {
+            filteredData = Data;
+        }
+
+        if (filteredData.length > 0) {
+            filteredData = updateProjectCountsByUniqueId(filteredData);
+        }
+
+        return res.status(200).json({
+            message: "Gap analysis data fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, keyword } = req.query;
+
+        let createdAtFilter: any = {
+            bidManagerStatus: BidManagerStatus.Nosuppliermatched
+        };
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                ...createdAtFilter,
+                createdAt: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                },
+            };
+        }
+
+        let Data: any = await projectModel.aggregate([
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$nosuppliermatchedStatusReason',
+            },
+            {
+                $group: {
+                    _id: {
+                        tag: '$nosuppliermatchedStatusReason.tag',
+                        comment: '$nosuppliermatchedStatusReason.comment',
+                    },
+                    projects: {
+                        $push: {
+                            _id: '$_id',
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                            nosuppliermatchedStatusReason: '$nosuppliermatchedStatusReason',
+                        },
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: '$_id.tag',
+                    projectCount: { $sum: { $size: '$projects' } },
+                    projects: {
+                        $push: {
+                            k: '$_id.comment',
+                            v: '$projects',
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    projects: { $arrayToObject: '$projects' },
+                },
+            },
+            {
+                $project: {
+                    tag: '$_id',
+                    projectCount: 1,
+                    projects: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ]);
+
+        await processData(Data);
+        let filteredData = []
+        if (keyword) {
+            filteredData = filterDataByKeyword(Data, keyword);
+        } else {
+            filteredData = Data;
+        }
+
+        if (filteredData.length > 0) {
+            filteredData = updateProjectCountsByUniqueId(filteredData);
+        }
+
+        return res.status(200).json({
+            message: "Gap analysis data fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
 
 export const approveOrRejectByAdmin = async (req: any, res: Response) => {
     try {
@@ -3249,6 +3497,104 @@ export const deleteProjectBidStatusComment = async (req: any, res: Response) => 
 
         return res.status(200).json({
             message: "bidManager Status Comment deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectdroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { droppedAfterFeasibilityStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.droppedAfterFeasibilityStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(droppedAfterFeasibilityStatusReason)
+        );
+        if (index === -1) {
+            delete droppedAfterFeasibilityStatusReason.userDetails;
+            index = project.droppedAfterFeasibilityStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(droppedAfterFeasibilityStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "droppedAfterFeasibility Status Reason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.droppedAfterFeasibilityStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "droppedAfterFeasibility Status Reason deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectnosuppliermatchedStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { nosuppliermatchedStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.nosuppliermatchedStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(nosuppliermatchedStatusReason)
+        );
+        if (index === -1) {
+            delete nosuppliermatchedStatusReason.userDetails;
+            index = project.nosuppliermatchedStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(nosuppliermatchedStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "Nosuppliermatched Status Reason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.nosuppliermatchedStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "Nosuppliermatched Status Reason deleted successfully",
             status: true,
             data: updatedProject
         });

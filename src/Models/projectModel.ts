@@ -136,6 +136,16 @@ const projectModel = new mongoose.Schema({
         // enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
         default: []
     },
+    droppedAfterFeasibilityStatusReason: {
+        type: [mongoose.Schema.Types.Mixed],
+        // enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
+        default: []
+    },
+    nosuppliermatchedStatusReason: {
+        type: [mongoose.Schema.Types.Mixed],
+        // enum: ['Accreditation', 'Experience', 'Financial Condition', 'Not Related', 'Pre-Market', 'Product', 'Service', 'Subcontracting-NO', 'Time Constraints'],
+        default: []
+    },
     sortListUserId: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: 'User',

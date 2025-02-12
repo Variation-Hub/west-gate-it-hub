@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -18,6 +18,8 @@ projectRoutes.delete("/delete-multiple", authorizeRoles(), deleteProjectMultiple
 projectRoutes.delete("/delete-comment/:id", authorizeRoles(), deleteProjectStatusComment);
 projectRoutes.delete("/delete-failreason/:id", authorizeRoles(), deleteProjectFailStatusReason);
 projectRoutes.delete("/delete-bidstatuscomment/:id", authorizeRoles(), deleteProjectBidStatusComment);
+projectRoutes.delete("/delete-dafstatusreason/:id", authorizeRoles(), deleteProjectdroppedAfterFeasibilityStatusReason);
+projectRoutes.delete("/delete-nosuppliearmatchedreason/:id", authorizeRoles(), deleteProjectnosuppliermatchedStatusReason);
 projectRoutes.patch("/sortlist", authorizeRoles(), sortList);
 projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 projectRoutes.post("/mail-send", authorizeRoles(), mailSend);
@@ -33,6 +35,8 @@ projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), getDashboardDataSupplierAdmin);
 projectRoutes.patch("/add-status", authorizeRoles(), addProjectStatusForSupplier);
 projectRoutes.get("/gap-analysis", authorizeRoles(), getGapAnalysisData);
+projectRoutes.get("/gap-analysis-dafstatus-reason", authorizeRoles(), getGapAnalysisDataDroppedAfterFeasibilityStatusReason);
+projectRoutes.get("/gap-analysis-nosuppliermatched-reason", authorizeRoles(), getGapAnalysisDatanosuppliermatchedStatusReason);
 projectRoutes.patch("/update/approve-reject-admin/:id", authorizeRoles(), approveOrRejectByAdmin);
 
 // ProjectManager routes

@@ -558,17 +558,11 @@ export const getUserList = async (req: any, res: Response) => {
             let result = [];
             if (taskPage === "myDay") {
                 result = await taskModel.aggregate([
-                    { $unwind: "$myDay" },
-                    { $group: { _id: "$myDay", count: { $sum: 1 } } },
-                    {
-                        $project: {
-                            _id: 0,
-                            userId: { $toString: "$_id" },
-                            taskcount: "$count"
-                        }
-                    }
+                    { $match: { myDay: { $in: [new mongoose.Types.ObjectId(req.user.id)] } } },
+                    { $unwind: "$assignTo" },
+                    { $group: { _id: "$assignTo.userId", count: { $sum: 1 } } },
+                    { $project: { _id: 0, userId: "$_id", taskcount: "$count" } }
                 ]);
-
             } else {
                 if (taskPage === "Ongoing" || taskPage === "Completed") {
                     filter.push({ $match: { status: taskPage } });
