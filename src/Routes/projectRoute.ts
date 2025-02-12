@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectMultiple, deleteProjectStatusComment, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -16,6 +16,8 @@ projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);
 projectRoutes.delete("/delete/:id", authorizeRoles(), deleteProject);
 projectRoutes.delete("/delete-multiple", authorizeRoles(), deleteProjectMultiple);
 projectRoutes.delete("/delete-comment/:id", authorizeRoles(), deleteProjectStatusComment);
+projectRoutes.delete("/delete-failreason/:id", authorizeRoles(), deleteProjectFailStatusReason);
+projectRoutes.delete("/delete-bidstatuscomment/:id", authorizeRoles(), deleteProjectBidStatusComment);
 projectRoutes.patch("/sortlist", authorizeRoles(), sortList);
 projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 projectRoutes.post("/mail-send", authorizeRoles(), mailSend);

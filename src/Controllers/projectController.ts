@@ -3163,3 +3163,100 @@ export const deleteProjectStatusComment = async (req: any, res: Response) => {
         });
     }
 };
+export const deleteProjectFailStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { failStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.failStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(failStatusReason)
+        );
+        if (index === -1) {
+            delete failStatusReason.userDetails;
+            index = project.failStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(failStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "failStatusReason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.failStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "failStatusReason deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectBidStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { bidManagerStatusComment } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.bidManagerStatusComment.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(bidManagerStatusComment)
+        );
+        if (index === -1) {
+            delete bidManagerStatusComment.userDetails;
+            index = project.bidManagerStatusComment.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(bidManagerStatusComment)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "bidManager Status Comment not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.bidManagerStatusComment.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "bidManager Status Comment deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
