@@ -2955,6 +2955,22 @@ const updateProjectCountsByUniqueId = (data: DataItem[]): DataItem[] => {
         };
     });
 };
+const updateProjectCountsByUniqueId1 = (data: any): any => {
+    return data.map((item: any) => {
+        const uniqueProjectIds = new Set<string>();
+
+        // Directly iterate over projects array
+        item.projects.forEach((project: any) => {
+            uniqueProjectIds.add(project._id.toString());
+        });
+
+        return {
+            ...item,
+            projectCount: uniqueProjectIds.size, // Update project count
+        };
+    });
+};
+
 
 async function processData(Data: any[]) {
     for (const data of Data) {
@@ -3026,6 +3042,66 @@ async function processData(Data: any[]) {
     }
 }
 
+async function processData1(Data: any[]) {
+    for (const data of Data) {
+        await Promise.all(data.projects.map(async (project: any) => {
+            const bidlatestTask: any[] = await taskModel.aggregate([
+                {
+                    $match: {
+                        project: project._id,
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: {
+                            $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                {
+                    $match: {
+                        "userDetails.role": userRoles.ProjectManager
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $limit: 1
+                },
+                {
+                    $project: {
+                        project: 1,
+                        assignTo: 1,
+                        dueDate: 1,
+                        userDetails: { $arrayElemAt: ["$userDetails", 0] } // Get first userDetails object
+                    }
+                }
+            ]);
+
+            project.assignBidManager = bidlatestTask.length > 0 ? {
+                _id: bidlatestTask[0].userDetails?._id,
+                name: bidlatestTask[0].userDetails?.name,
+                email: bidlatestTask[0].userDetails?.email,
+                role: bidlatestTask[0].userDetails?.role,
+                dueDate: bidlatestTask[0]?.dueDate
+            } : null;
+        }));
+    }
+}
 
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
@@ -3246,45 +3322,26 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
                 $match: createdAtFilter,
             },
             {
-                $unwind: '$nosuppliermatchedStatusReason',
+                $unwind: '$bidManagerStatusComment', // Unwinding bidManagerStatusComment instead of nosuppliermatchedStatusReason
             },
             {
                 $group: {
-                    _id: {
-                        tag: '$nosuppliermatchedStatusReason.tag',
-                        comment: '$nosuppliermatchedStatusReason.comment',
-                    },
+                    _id: '$bidManagerStatusComment.comment', // Grouping by comment
+                    projectCount: { $sum: 1 },
                     projects: {
                         $push: {
                             _id: '$_id',
                             projectName: '$projectName',
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
-                            nosuppliermatchedStatusReason: '$nosuppliermatchedStatusReason',
+                            bidManagerStatusComment: '$bidManagerStatusComment', // Keeping all details
                         },
                     },
-                },
-            },
-            {
-                $group: {
-                    _id: '$_id.tag',
-                    projectCount: { $sum: { $size: '$projects' } },
-                    projects: {
-                        $push: {
-                            k: '$_id.comment',
-                            v: '$projects',
-                        },
-                    },
-                },
-            },
-            {
-                $addFields: {
-                    projects: { $arrayToObject: '$projects' },
                 },
             },
             {
                 $project: {
-                    tag: '$_id',
+                    comment: '$_id', // Renaming _id to comment
                     projectCount: 1,
                     projects: 1,
                     _id: 0,
@@ -3295,7 +3352,7 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
             },
         ]);
 
-        await processData(Data);
+        await processData1(Data);
         let filteredData = []
         if (keyword) {
             filteredData = filterDataByKeyword(Data, keyword);
@@ -3304,7 +3361,7 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
         }
 
         if (filteredData.length > 0) {
-            filteredData = updateProjectCountsByUniqueId(filteredData);
+            filteredData = updateProjectCountsByUniqueId1(filteredData);
         }
 
         return res.status(200).json({
