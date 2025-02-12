@@ -232,10 +232,17 @@ export const removeTaskFromMyDay = async (req: any, res: Response) => {
 }
 export const getTasks = async (req: any, res: Response) => {
     try {
-        let { assignTo, status, pickACategory, project, myDay, sort } = req.query;
+        let { assignTo, status, pickACategory, project, myDay, sort, keyword } = req.query;
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
+        if (keyword) {
+            filter = {
+                $or: [
+                    { task: { $regex: keyword, $options: 'i' } },
+                ]
+            };
+        }
         if (assignTo?.length) {
             filter.assignTo = { $elemMatch: { userId: { $in: assignTo } } };
         }
