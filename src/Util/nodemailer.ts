@@ -242,3 +242,52 @@ export async function mailForNewProject(reciverEmail: string, data: any,) {
     }
 
 }
+
+export async function sendContactEmail(recipientEmail: string, formData: any) {
+    try {
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Inquiry</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; }
+        .email-container { max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; }
+        .header { background-color: #0078d4; color: white; text-align: center; padding: 20px; font-size: 20px; }
+        .content { padding: 20px; }
+        .footer { text-align: center; font-size: 0.9em; color: #555; padding: 10px 0; border-top: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">New Contact Inquiry</div>
+        <div class="content">
+            <p><strong>Full Name:</strong> ${formData?.fullName}</p>
+            <p><strong>Email Address:</strong> ${formData?.email}</p>
+            <p><strong>Company Name:</strong> ${formData?.companyName}</p>
+            ${formData?.phone ? `<p><strong>Phone Number:</strong> ${formData?.phone}</p>` : ''}
+            <p><strong>Subject:</strong> ${formData?.subject}</p>
+            <p><strong>Message:</strong></p>
+            <p>${formData?.message}</p>
+        </div>
+        <div class="footer">
+            <p>Thank you for reaching out!</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        await transporter.sendMail({
+            from: fromMail, // Replace with your email
+            to: recipientEmail,
+            subject: `New Contact Inquiry`,
+            text: `New inquiry received from ${formData?.fullName}. Email: ${formData?.email}. Message: ${formData?.message}`,
+            html: template,
+        });
+
+        console.log("Email sent successfully");
+    } catch (error) {
+        console.error("Error sending email:", error);
+    }
+}
