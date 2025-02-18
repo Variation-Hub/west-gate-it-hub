@@ -4,6 +4,7 @@ import userModel from "../Models/userModel"
 import { BidManagerStatus, projectStatus, taskStatus, userRoles } from "../Util/contant"
 import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
+import moment from 'moment';
 
 export const createTask = async (req: any, res: Response) => {
     try {
@@ -236,13 +237,14 @@ export const getTasks = async (req: any, res: Response) => {
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
-        if (keyword) {
-            filter = {
-                $or: [
-                    { task: { $regex: keyword, $options: 'i' } },
-                ]
-            };
-        }
+        // if (keyword) {
+        //     filter = {
+        //         $or: [
+        //             { task: { $regex: keyword, $options: 'i' } },
+        //             { 'project.status': { $regex: keyword, $options: 'i' } },
+        //         ]
+        //     };
+        // }
         if (assignTo?.length) {
             filter.assignTo = { $elemMatch: { userId: { $in: assignTo } } };
         }
@@ -284,14 +286,21 @@ export const getTasks = async (req: any, res: Response) => {
             sortOptions.dueDate = -1;
         }
 
-        const Tasks = await taskModel.find(filter)
+        let Tasks = await taskModel.find(filter)
             .populate("project", "projectName status bidManagerStatus")
             // .limit(req.pagination?.limit as number)
             // .skip(req.pagination?.skip as number)
             .sort(sortOptions)
             .exec()
 
-        const count = await taskModel.countDocuments(filter);
+        // const count = await taskModel.countDocuments(filter);
+        if (keyword) {
+            Tasks = Tasks.filter((task: any) =>
+                task.task?.toLowerCase().includes(keyword.toLowerCase()) ||
+                task.project?.status?.toLowerCase().includes(keyword.toLowerCase()) ||
+                task.project?.bidManagerStatus?.toLowerCase().includes(keyword.toLowerCase())
+            );
+        }
 
         let userIds: any = [];
         Tasks?.forEach((task: any) => {
@@ -328,6 +337,32 @@ export const getTasks = async (req: any, res: Response) => {
                 }).reverse();
             });
         }
+
+        Tasks = Tasks.map((task: any) => {
+            const taskObj = task.toObject(); // Convert Mongoose document to plain object
+            const createdAt = moment(taskObj.createdAt).startOf('day');
+            const today = moment().startOf('day');
+            const datewiseComments: any = {};
+
+            let currentDate = createdAt.clone();
+            while (currentDate.isSameOrBefore(today, 'day')) {
+                const dateStr = currentDate.format('YYYY-MM-DD');
+                const commentsForDate = taskObj.comments.filter((comment: any) =>
+                    moment(comment.date).isSame(currentDate, 'day')
+                );
+
+                if (commentsForDate.length > 0) {
+                    datewiseComments[dateStr] = commentsForDate;
+                } else {
+                    datewiseComments[dateStr] = "No comments available for this date";
+                }
+
+                currentDate.add(1, 'day');
+            }
+
+            taskObj.datewiseComments = datewiseComments; // Assigning the new field
+            return taskObj; // Return the modified object
+        });
 
         return res.status(200).json({
             message: "Tasks fetch success",

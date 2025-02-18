@@ -903,6 +903,12 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 data.categorisationWise["DPS/Framework"]++
             } else if (project.categorisation === "DTD") {
                 data.categorisationWise["DTD"]++
+            } else if (project.categorisation === "") {
+                if (data.categorisationWise[""]) {
+                    data.categorisationWise[""]++
+                } else {
+                    data.categorisationWise[""] = 1;
+                }
             }
 
             if (project.category.some((category: string) => uniqueCategories.includes(category))) {
