@@ -1380,7 +1380,7 @@ export const getProjects = async (req: any, res: Response) => {
                 ]);
                 let assignBidmanager: any = [];
                 let assignFeasibilityUser: any = [];
-                let task = {}
+                let task: any = {}
                 if (bidlatestTask.length > 0) {
 
                     assignBidmanager = [
@@ -1392,7 +1392,28 @@ export const getProjects = async (req: any, res: Response) => {
                             dueDate: bidlatestTask[0].dueDate
                         }
                     ];
+
                     task = bidlatestTask[0]
+                    let userIds: any = [];
+
+                    task.comments.forEach((obj: any) => {
+                        userIds.push(obj.userId)
+                    });
+                    if (userIds.length > 0) {
+                        const users = await userModel.find({ _id: { $in: userIds } }, 'name email role')
+                        const usersMap = users.reduce((map: any, user: any) => {
+                            map[user._id] = user;
+                            return map;
+                        }, {});
+
+                        task.comments = task.comments.map((obj: any) => {
+                            const user = usersMap[obj.userId];
+                            if (user) {
+                                obj.userDetail = user;
+                            }
+                            return obj;
+                        }).reverse();
+                    }
                 }
                 if (feasibilitylatestTask.length > 0) {
 
