@@ -47,7 +47,7 @@ userRoutes.patch("/suplier/cv-upload", authorizeRoles(userRoles.SupplierAdmin, u
 userRoutes.get("/suplier/get/:id", authorizeRoles(), getSupplierDetails);
 
 // Admin APIs
-userRoutes.get("/admin/dashboard", authorizeRoles(userRoles.Admin), getAdminDashboardData)
-userRoutes.get("/admin/suppleir-statictics", authorizeRoles(userRoles.Admin), getAdminDashboardSuppliersStatistics)
+userRoutes.get("/admin/dashboard", authorizeRoles(), getAdminDashboardData)
+userRoutes.get("/admin/suppleir-statictics", authorizeRoles(), getAdminDashboardSuppliersStatistics)
 
 export default userRoutes;
