@@ -1515,7 +1515,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime = "", projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason } = req.body
+        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1528,7 +1528,7 @@ export const updateProject = async (req: any, res: Response) => {
         }
 
         if (project.status !== status && status !== null && status !== undefined) {
-            if (status === projectStatus.Fail) {
+            if (status === projectStatus.Fail || status === projectStatus.NotReleted) {
                 project.adminStatus = status;
                 project.adminStatusDate = new Date();
                 status = undefined;
@@ -2045,7 +2045,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { category, industry, bidsubmissiontime = "", clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
+        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -2061,7 +2061,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             if (req.user.role === userRoles.FeasibilityUser) {
                 project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
             }
-            if (status === projectStatus.Fail) {
+            if (status === projectStatus.Fail || status === projectStatus.NotReleted) {
                 project.adminStatus = status;
                 project.adminStatusDate = new Date();
                 status = undefined;
@@ -3277,7 +3277,7 @@ async function processData1(Data: any[]) {
 
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword } = req.query;
+        const { startDate, endDate, keyword, categorisation } = req.query;
 
         let createdAtFilter: any = {
             status: projectStatus.Fail
@@ -3292,6 +3292,10 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                 },
             };
         }
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
+
 
         let Data: any = await projectModel.aggregate([
             {
@@ -3313,6 +3317,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
                             failStatusReason: '$failStatusReason',
+                            categorisation: '$categorisation',
                         },
                     },
                 },
@@ -3375,7 +3380,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
 
 export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword } = req.query;
+        const { startDate, endDate, keyword, categorisation } = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.DroppedAfterFeasibility
@@ -3390,7 +3395,9 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
                 },
             };
         }
-
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
         let Data: any = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
@@ -3411,6 +3418,7 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
                             droppedAfterFeasibilityStatusReason: '$droppedAfterFeasibilityStatusReason',
+                            categorisation: '$categorisation'
                         },
                     },
                 },
@@ -3473,7 +3481,7 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
 
 export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword } = req.query;
+        const { startDate, endDate, keyword, categorisation } = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.Nosuppliermatched
@@ -3488,7 +3496,9 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
                 },
             };
         }
-
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
         let Data: any = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
@@ -3507,6 +3517,7 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
                             bidManagerStatusComment: '$bidManagerStatusComment', // Keeping all details
+                            categorisation: '$categorisation',
                         },
                     },
                 },
@@ -3566,7 +3577,7 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
         if (action === feasibilityStatus.approve) {
             if (project.adminStatus === adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
                 project.bidManagerStatus = project.adminStatus;
-            } else if (project.adminStatus === adminStatus.Fail) {
+            } else if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted) {
                 project.status = project.adminStatus;
             }
             project.adminStatus = null;

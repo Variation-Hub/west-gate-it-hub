@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { taskCategory, taskStatus } from "../Util/contant";
+import { taskCategory, taskStatus, taskType } from "../Util/contant";
 
 const TaskModel = new mongoose.Schema({
     task: {
@@ -44,6 +44,12 @@ const TaskModel = new mongoose.Schema({
         enum: taskStatus,
         required: true,
         default: taskStatus.Ongoing
+    },
+    type: {
+        type: String,
+        enum: taskType,
+        required: true,
+        default: taskType.Other
     },
     pickACategory: {
         type: String,

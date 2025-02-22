@@ -233,7 +233,7 @@ export const removeTaskFromMyDay = async (req: any, res: Response) => {
 }
 export const getTasks = async (req: any, res: Response) => {
     try {
-        let { assignTo, status, pickACategory, project, myDay, sort, keyword } = req.query;
+        let { assignTo, status, pickACategory, project, myDay, sort, keyword, type } = req.query;
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
@@ -253,6 +253,9 @@ export const getTasks = async (req: any, res: Response) => {
         }
         if (project) {
             filter.project = project
+        }
+        if (type) {
+            filter.type = type
         }
         if (status === 'DueDate passed') {
             const date = new Date();
@@ -359,8 +362,9 @@ export const getTasks = async (req: any, res: Response) => {
 
                 currentDate.add(1, 'day');
             }
-
-            taskObj.datewiseComments = datewiseComments; // Assigning the new field
+            taskObj.datewiseComments = Object.fromEntries(
+                Object.entries(datewiseComments).sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
+            );
             return taskObj; // Return the modified object
         });
 

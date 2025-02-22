@@ -295,7 +295,7 @@ const projectModel = new mongoose.Schema({
     },
     adminStatus: {
         type: String,
-        enum: ['Fail', 'Dropped after feasibility', 'Nosuppliermatched'],
+        enum: ['Fail', 'Dropped after feasibility', 'Nosuppliermatched', "Not Releted"],
         default: null
     },
     adminStatusDate: {

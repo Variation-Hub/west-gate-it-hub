@@ -68,7 +68,8 @@ export const projectStatus = {
     Pass: 'Pass',
     Fail: 'Fail',
     QueryRaised: "Query Raised",
-    NoDocuments: "No documents"
+    NoDocuments: "No documents",
+    NotReleted: "Not Releted"
 }
 
 export const BidManagerStatus = {
@@ -154,6 +155,11 @@ export const taskStatus = {
     MyDay: 'MyDay',
 }
 
+export const taskType = {
+    Project: 'Project',
+    Other: 'Other'
+}
+
 export const taskCategory = {
     High: 'High',
     Medium: 'Medium',
@@ -168,6 +174,7 @@ export const feasibilityStatus = {
 
 export const adminStatus = {
     Fail: 'Fail',
+    NotReleted: "Not Releted",
     DroppedAfterFeasibility: 'Dropped after feasibility',
     Nosuppliermatched: 'Nosuppliermatched'
 }
