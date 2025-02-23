@@ -506,6 +506,8 @@ export const getUserList = async (req: any, res: Response) => {
         const projectId = req.query.projectId;
         const taskCount = req.query.taskCount;
         const taskPage = req.query.taskPage;
+        const type = req.query.type;
+        const pickACategory = req.query.pickACategory;
 
         if (projectId) {
             const project = await projectModel.findById(projectId);
@@ -564,6 +566,12 @@ export const getUserList = async (req: any, res: Response) => {
                     { $project: { _id: 0, userId: "$_id", taskcount: "$count" } }
                 ]);
             } else {
+                if (type) {
+                    filter.push({ $match: { type: type } });
+                }
+                if (pickACategory) {
+                    filter.push({ $match: { pickACategory: pickACategory } });
+                }
                 if (taskPage === "Ongoing" || taskPage === "Completed") {
                     filter.push({ $match: { status: taskPage } });
                 }
@@ -575,7 +583,6 @@ export const getUserList = async (req: any, res: Response) => {
                 );
 
                 result = await taskModel.aggregate(filter);
-
             }
 
             // console.log(result)
