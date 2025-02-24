@@ -1088,7 +1088,7 @@ export const getProjects = async (req: any, res: Response) => {
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ publishDate: -1, created: -1 })
+            .sort({ publishDate: -1, createdAt: -1 })
             .populate('sortListUserId')
         // .lean();
 
