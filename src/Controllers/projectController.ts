@@ -2757,7 +2757,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "DocumentsNotFound": 0,
                 "Passed": 0,
                 "Fail": 0,
-                "Nosuppliermatched": 0
+                "Not Releted": 0
             },
             FeasibilityStatusValue: {
                 "Awaiting": 0,
@@ -2766,7 +2766,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "DocumentsNotFound": 0,
                 "Passed": 0,
                 "Fail": 0,
-                "Nosuppliermatched": 0
+                "Not Releted": 0
             },
             BidStatusCount: {
                 "Shortlisted": 0,
