@@ -328,6 +328,10 @@ const projectModel = new mongoose.Schema({
         type: String,
         default: ""
     },
+    chatGptLink: {
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

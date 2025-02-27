@@ -1515,7 +1515,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason } = req.body
+        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason, chatGptLink } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1625,6 +1625,8 @@ export const updateProject = async (req: any, res: Response) => {
         project.password = password || project.password;
         project.linkToPortal = linkToPortal || project.linkToPortal;
         project.documentsLink = documentsLink || project.documentsLink;
+        project.chatGptLink = chatGptLink || project.chatGptLink;
+
         if (droppedAfterFeasibilityStatusReason?.length > 0) {
             droppedAfterFeasibilityStatusReason = droppedAfterFeasibilityStatusReason.map((item: any) => {
                 return {
