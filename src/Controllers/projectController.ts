@@ -51,8 +51,20 @@ export const createProject = async (req: any, res: Response) => {
         const updatedProjects = [];
         const casestudyData = await getCategoryWithUserIds();
 
+        const allowedProjectTypes = ["Product", "Development/Service", "Staff Augmentation"];
+
         for (const project of data) {
             try {
+                // Validate projectType
+                project.projectType = Array.isArray(project.projectType)
+                    ? project.projectType.filter((type: string) => allowedProjectTypes.includes(type))
+                    : [];
+
+                // If no valid projectType, set it to [""]
+                if (project.projectType.length === 0) {
+                    project.projectType = [""];
+                }
+
                 project.expiredData = (() => {
                     const matchedCategory = casestudyData.find(data =>
                         project.category.some((category: string) => category === data.category)
@@ -108,7 +120,8 @@ export const createProject = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+};
+
 
 export const getProject = async (req: any, res: Response) => {
     try {
