@@ -37,7 +37,6 @@ async function getCategoryWithUserIds() {
 
 export const createProject = async (req: any, res: Response) => {
     try {
-
         const { data } = req.body;
 
         if (!Array.isArray(data) || data.length === 0) {
@@ -49,16 +48,15 @@ export const createProject = async (req: any, res: Response) => {
         }
 
         const insertedProjects = [];
-        const skippedProjects = [];
-
+        const updatedProjects = [];
         const casestudyData = await getCategoryWithUserIds();
+
         for (const project of data) {
             try {
                 project.expiredData = (() => {
                     const matchedCategory = casestudyData.find(data =>
                         project.category.some((category: string) => category === data.category)
                     );
-
                     if (matchedCategory) {
                         return matchedCategory.userIds.map((userId: string) => ({
                             supplierId: userId,
@@ -67,46 +65,43 @@ export const createProject = async (req: any, res: Response) => {
                     }
                     return [];
                 })();
+
                 project.statusHistory = [{
                     status: projectStatus.Awaiting,
                     date: new Date(),
                     userId: req.user.id,
-                }]
-                const newProject = await projectModel.create(project);
-                insertedProjects.push(newProject);
-            } catch (err: any) {
-                if (err.code === 11000) {
-                    skippedProjects.push({
-                        project,
-                        reason: 'Duplicate BOSID - Skipped'
-                    });
+                }];
+
+                const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
+                if (existingProject) {
+                    // Update existing record
+                    const updatedProject = await projectModel.findOneAndUpdate(
+                        { BOSID: project.BOSID },
+                        { $set: project },
+                        { new: true }
+                    );
+                    updatedProjects.push(updatedProject);
                 } else {
-                    throw err;
+                    // Insert new record
+                    const newProject = await projectModel.create(project);
+                    insertedProjects.push(newProject);
                 }
+            } catch (err: any) {
+                return res.status(500).json({
+                    message: err.message,
+                    status: false,
+                    data: null
+                });
             }
         }
 
-        if (insertedProjects.length === 0) {
-            return res.status(400).json({
-                message: 'No projects were added. All provided data contained duplicates.',
-                status: false,
-                data: null,
-            });
-        }
-
         return res.status(200).json({
-            message: "Projects create success",
+            message: "Projects processed successfully",
             status: true,
-            data: insertedProjects
+            inserted: insertedProjects,
+            updated: updatedProjects
         });
     } catch (err: any) {
-        if (err.code === 11000) {
-            return res.status(500).send({
-                message: 'BOSID must be unique. This value already exists.',
-                status: false,
-                data: null
-            });
-        }
         return res.status(500).json({
             message: err.message,
             status: false,

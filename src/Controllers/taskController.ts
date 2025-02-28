@@ -350,23 +350,26 @@ export const getTasks = async (req: any, res: Response) => {
             let currentDate = createdAt.clone();
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                const commentsForDate = taskObj.comments.filter((comment: any) =>
-                    moment(comment.date).isSame(currentDate, 'day')
-                );
 
-                if (commentsForDate.length > 0) {
-                    datewiseComments[dateStr] = commentsForDate;
-                } else {
-                    datewiseComments[dateStr] = "No comments available for this date";
+                // Check if the current date is a weekend (Saturday or Sunday)
+                if (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7) {
+                    const commentsForDate = taskObj.comments.filter((comment: any) =>
+                        moment(comment.date).isSame(currentDate, 'day')
+                    );
+
+                    datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
                 }
 
                 currentDate.add(1, 'day');
             }
+
             taskObj.datewiseComments = Object.fromEntries(
                 Object.entries(datewiseComments).sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
             );
+
             return taskObj; // Return the modified object
         });
+
 
         return res.status(200).json({
             message: "Tasks fetch success",

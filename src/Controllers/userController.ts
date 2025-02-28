@@ -826,103 +826,111 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
         const uniqueCategories = await caseStudy.distinct("category");
         // const projectCategory = await projectModel.distinct("category");
 
+        const obj: any = {}
         projects.forEach((project: any) => {
-            data.projectsPosted.maxValue += project.maxValue;
-            if (project.status === projectStatus.Won) {
-                data.projectsClosed.count += 1;
-                data.projectsClosed.maxValue += project.maxValue;
-            }
-            else if (project.status === projectStatus.Awaiting) {
-                data.projectsAwaiting.count += 1;
-                data.projectsAwaiting.maxValue += project.maxValue;
-            } else if (project.status === projectStatus.InSolution) {
-                data.projectsInProgress.count += 1;
-                data.projectsInProgress.maxValue += project.maxValue;
-            } else if (project.status === projectStatus.Inhold) {
-                data.projectsInHold.count += 1;
-                data.projectsInHold.maxValue += project.maxValue;
-            } else if (project.status === projectStatus.DocumentsNotFound) {
-                data.TotalDocumentsNotFound.count += 1;
-                data.TotalDocumentsNotFound.maxValue += project.maxValue;
-            } else if (project.status === projectStatus.Passed) {
-                data.projectsPassed.count += 1;
-                data.projectsPassed.maxValue += project.maxValue;
-            } else if (project.status === projectStatus.Fail) {
-                data.projectsFail.count += 1;
-                data.projectsFail.maxValue += project.maxValue;
-            }
+            if (project.status !== projectStatus.NotReleted) {
+                if (project.categorisation === "DPS/Framework") {
+                    obj[project.status] = obj[project.status] + 1 || 0
+                }
+                data.projectsPosted.maxValue += project.maxValue;
+                if (project.status === projectStatus.Won) {
+                    data.projectsClosed.count += 1;
+                    data.projectsClosed.maxValue += project.maxValue;
+                }
+                else if (project.status === projectStatus.Awaiting) {
+                    data.projectsAwaiting.count += 1;
+                    data.projectsAwaiting.maxValue += project.maxValue;
+                } else if (project.status === projectStatus.InSolution) {
+                    data.projectsInProgress.count += 1;
+                    data.projectsInProgress.maxValue += project.maxValue;
+                } else if (project.status === projectStatus.Inhold) {
+                    data.projectsInHold.count += 1;
+                    data.projectsInHold.maxValue += project.maxValue;
+                } else if (project.status === projectStatus.DocumentsNotFound) {
+                    data.TotalDocumentsNotFound.count += 1;
+                    data.TotalDocumentsNotFound.maxValue += project.maxValue;
+                } else if (project.status === projectStatus.Passed) {
+                    data.projectsPassed.count += 1;
+                    data.projectsPassed.maxValue += project.maxValue;
+                } else if (project.status === projectStatus.Fail) {
+                    data.projectsFail.count += 1;
+                    data.projectsFail.maxValue += project.maxValue;
+                }
 
-            if (project.bidManagerStatus === BidManagerStatus.Awaiting) {
-                data.projectsBidStatusAwaiting.count += 1;
-                data.projectsBidStatusAwaiting.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.InSolution) {
-                data.projectsBidStatusInSolution.count += 1;
-                data.projectsBidStatusInSolution.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.WaitingForResult) {
-                data.projectsBidStatusWaitingForResult.count += 1;
-                data.projectsBidStatusWaitingForResult.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
-                data.projectsBidStatusDroppedAfterFeasibility.count += 1;
-                data.projectsBidStatusDroppedAfterFeasibility.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.Awarded) {
-                data.projectsBidStatusAwarded.count += 1;
-                data.projectsBidStatusAwarded.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.NotAwarded) {
-                data.projectsBidStatusNotAwarded.count += 1;
-                data.projectsBidStatusNotAwarded.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
-                data.projectsBidStatusToAction.count += 1;
-                data.projectsBidStatusToAction.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
-                data.projectsBidStatusNosuppliermatched.count += 1;
-                data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage1) {
-                data.projectsBidStatusGoNoGoStage1.count += 1;
-                data.projectsBidStatusGoNoGoStage1.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.SupplierConfirmation) {
-                data.projectsBidStatusSupplierConfirmation.count += 1;
-                data.projectsBidStatusSupplierConfirmation.maxValue += project.maxValue;
-            } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage2) {
-                data.projectsBidStatusGoNoGoStage2.count += 1;
-                data.projectsBidStatusGoNoGoStage2.maxValue += project.maxValue;
-            }
+                if (project.bidManagerStatus === BidManagerStatus.Awaiting) {
+                    data.projectsBidStatusAwaiting.count += 1;
+                    data.projectsBidStatusAwaiting.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.InSolution) {
+                    data.projectsBidStatusInSolution.count += 1;
+                    data.projectsBidStatusInSolution.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.WaitingForResult) {
+                    data.projectsBidStatusWaitingForResult.count += 1;
+                    data.projectsBidStatusWaitingForResult.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+                    data.projectsBidStatusDroppedAfterFeasibility.count += 1;
+                    data.projectsBidStatusDroppedAfterFeasibility.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.Awarded) {
+                    data.projectsBidStatusAwarded.count += 1;
+                    data.projectsBidStatusAwarded.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.NotAwarded) {
+                    data.projectsBidStatusNotAwarded.count += 1;
+                    data.projectsBidStatusNotAwarded.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
+                    data.projectsBidStatusToAction.count += 1;
+                    data.projectsBidStatusToAction.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                    data.projectsBidStatusNosuppliermatched.count += 1;
+                    data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage1) {
+                    data.projectsBidStatusGoNoGoStage1.count += 1;
+                    data.projectsBidStatusGoNoGoStage1.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.SupplierConfirmation) {
+                    data.projectsBidStatusSupplierConfirmation.count += 1;
+                    data.projectsBidStatusSupplierConfirmation.maxValue += project.maxValue;
+                } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage2) {
+                    data.projectsBidStatusGoNoGoStage2.count += 1;
+                    data.projectsBidStatusGoNoGoStage2.maxValue += project.maxValue;
+                }
 
-            // if (project.category.length) {
-            //     project.category.forEach((category: any) => {
-            //         if (data.categoryWise[category]) {
-            //             data.categoryWise[category]++;
-            //         } else {
-            //             data.categoryWise[category] = 1;
-            //         }
-            //     });
-            // }
+                // if (project.category.length) {
+                //     project.category.forEach((category: any) => {
+                //         if (data.categoryWise[category]) {
+                //             data.categoryWise[category]++;
+                //         } else {
+                //             data.categoryWise[category] = 1;
+                //         }
+                //     });
+                // }
 
-            if (project.projectType.length > 0) {
-                project.projectType.forEach((type: any) => {
-                    if (data.projectTypeWise[type]) {
-                        data.projectTypeWise[type]++;
+                if (project.projectType.length > 0) {
+                    project.projectType.forEach((type: any) => {
+                        if (data.projectTypeWise[type]) {
+                            data.projectTypeWise[type]++;
+                        } else {
+                            data.projectTypeWise[type] = 1;
+                        }
+                    });
+                }
+                if (project.categorisation === "DPS/Framework") {
+                    data.categorisationWise["DPS/Framework"]++
+                } else if (project.categorisation === "DTD") {
+                    data.categorisationWise["DTD"]++
+                } else if (project.categorisation === "") {
+                    if (data.categorisationWise[""]) {
+                        data.categorisationWise[""]++
                     } else {
-                        data.projectTypeWise[type] = 1;
+                        data.categorisationWise[""] = 1;
                     }
-                });
-            }
-            if (project.categorisation === "DPS/Framework") {
-                data.categorisationWise["DPS/Framework"]++
-            } else if (project.categorisation === "DTD") {
-                data.categorisationWise["DTD"]++
-            } else if (project.categorisation === "") {
-                if (data.categorisationWise[""]) {
-                    data.categorisationWise[""]++
-                } else {
-                    data.categorisationWise[""] = 1;
+                }
+
+                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
+                    data.projectsMatched.count += 1;
+                    data.projectsMatched.maxValue += project.maxValue;
                 }
             }
-
-            if (project.category.some((category: string) => uniqueCategories.includes(category))) {
-                data.projectsMatched.count += 1;
-                data.projectsMatched.maxValue += project.maxValue;
-            }
         })
+
+        data.categorisationWise["DPS/Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => acc + curr) || data.categorisationWise["DPS/Framework"]
 
         return res.status(200).json({
             message: "Admin dashboard data fetch success",
