@@ -930,7 +930,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             }
         })
 
-        data.categorisationWise["DPS/Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => acc + curr) || data.categorisationWise["DPS/Framework"]
+        data.categorisationWise["DPS/Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["DPS/Framework"]
 
         return res.status(200).json({
             message: "Admin dashboard data fetch success",
