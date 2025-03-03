@@ -621,7 +621,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard } = req.query as any
 
         category = category?.split(',');
         industry = industry?.split(',');
@@ -1091,6 +1091,9 @@ export const getProjects = async (req: any, res: Response) => {
         }
         if (categorisation || categorisation === "") {
             filter.categorisation = categorisation
+        }
+        if(notRelatedDashboard == "true") {
+            filter.status = { $ne: projectStatus.NotReleted };
         }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
