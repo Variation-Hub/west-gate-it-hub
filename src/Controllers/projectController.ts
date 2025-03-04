@@ -10,6 +10,7 @@ import summaryQuestionModel from "../Models/summaryQuestionModel";
 import { mailForFeasibleTimeline, mailForNewProject } from "../Util/nodemailer";
 import { addReviewQuestion } from "./summaryQuestionController";
 import taskModel from "../Models/taskModel";
+import { format } from "fast-csv";
 
 async function getCategoryWithUserIds() {
     try {
@@ -619,6 +620,57 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
     }
 }
 
+export const exportProjectsToCSV = async (req : any, res : any) => {
+    try {
+        // Fetch projects from MongoDB
+        const projects = await projectModel.find().lean();
+
+        if (!projects.length) {
+            return res.status(404).json({ message: "No projects found." });
+        }
+
+        // Set response headers for direct file download
+        res.setHeader("Content-Disposition", "attachment; filename=projects.csv");
+        res.setHeader("Content-Type", "text/csv");
+
+        // Create CSV stream
+        const csvStream = format({ headers: true });
+
+        // Pipe CSV data directly to response (no frontend modifications needed)
+        csvStream.pipe(res);
+
+        // Add project data to CSV
+        projects.forEach(project => {
+            csvStream.write({
+                projectName: project?.projectName,
+                BOSID: project?.BOSID,
+                publishDate: project?.publishDate,
+                category: project?.category.join(", "),
+                industry: project?.industry.join(", "),
+                status: project?.status,
+                dueDate: project?.dueDate,
+                clientName: project?.clientName,
+                minValue: project?.minValue,
+                maxValue: project?.maxValue,
+                website: project?.website,
+                link: project?.link,
+                CPVCodes: project?.CPVCodes,
+                noticeReference: project?.noticeReference,
+                projectType: project?.projectType,
+                mailID: project?.mailID,
+                clientType: project?.clientType,
+                categorisation: project?.categorisation
+            });
+        });
+
+        csvStream.end(); // End CSV stream
+
+    } catch (error) {
+        console.error("Error exporting CSV:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 export const getProjects = async (req: any, res: Response) => {
     try {
         let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard } = req.query as any
@@ -1092,7 +1144,7 @@ export const getProjects = async (req: any, res: Response) => {
         if (categorisation || categorisation === "") {
             filter.categorisation = categorisation
         }
-        if(notRelatedDashboard == "true") {
+        if (notRelatedDashboard == "true") {
             filter.status = { $ne: projectStatus.NotReleted };
         }
         const count = await projectModel.countDocuments(filter);
