@@ -2110,7 +2110,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm } = req.body
+        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm , westGetDocument } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -2151,14 +2151,14 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         }
 
         const fieldsToUpdate = {
-            category, industry, clientDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
+            category, industry, clientDocument, westGetDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
                 let logEntry: any = {}
-                if (field === "statusComment" || field === "clientDocument" || field === "FeasibilityOtherDocuments") {
+                if (field === "statusComment" || field === "clientDocument" || field === "westGetDocument" || field === "FeasibilityOtherDocuments") {
                     if (areArraysEqual(newValue, oldValue)) {
                         continue;
                     }
@@ -2201,6 +2201,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         project.industry = industry || project.industry;
         project.bidsubmissiontime = bidsubmissiontime || project.bidsubmissiontime;
         project.clientDocument = clientDocument || project.clientDocument;
+        project.westGetDocument = westGetDocument || project.westGetDocument;
         project.status = status || project.status;
         project.statusComment = statusComment || project.statusComment;
         project.failStatusImage = failStatusImage || project.failStatusImage;
