@@ -3344,7 +3344,7 @@ async function processData1(Data: any[]) {
 
 export const getGapAnalysisData = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword, categorisation } = req.query;
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
 
         let createdAtFilter: any = {
             status: projectStatus.Fail
@@ -3359,10 +3359,15 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
                 },
             };
         }
+
         if (categorisation || categorisation === "") {
             createdAtFilter.categorisation = categorisation
         }
 
+        if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
 
         let Data: any = await projectModel.aggregate([
             {
@@ -3447,7 +3452,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
 
 export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword, categorisation } = req.query;
+        const { startDate, endDate, keyword, categorisation , projectType} = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.DroppedAfterFeasibility
@@ -3465,6 +3470,13 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
         if (categorisation || categorisation === "") {
             createdAtFilter.categorisation = categorisation
         }
+
+         // Filter by projectType (Multiple values supported)
+         if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
+
         let Data: any = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
@@ -3548,7 +3560,7 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
 
 export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword, categorisation } = req.query;
+        const { startDate, endDate, keyword, categorisation , projectType } = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.Nosuppliermatched
@@ -3566,6 +3578,13 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
         if (categorisation || categorisation === "") {
             createdAtFilter.categorisation = categorisation
         }
+        
+         // Filter by projectType (Multiple values supported)
+         if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
+
         let Data: any = await projectModel.aggregate([
             {
                 $match: createdAtFilter,
