@@ -3935,3 +3935,43 @@ export const deleteProjectnosuppliermatchedStatusReason = async (req: any, res: 
         });
     }
 };
+
+export const deleteDocument = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+
+        const { name, type } = req.body;
+
+        const project : any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        if(type == "clientDocument") {
+            project.clientDocument = project.clientDocument?.filter((element : any) => element.name.trim() !== name?.trim());
+        }
+
+        if(type == "westgateDocument") {
+            project.westGetDocument = project.westGetDocument?.filter((element : any) => element.name.trim() !== name?.trim());
+        }
+
+        const updatedProject = await project.save();
+        
+        return res.status(200).json({
+            message: "Document deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
