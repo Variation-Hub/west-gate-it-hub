@@ -58,8 +58,10 @@ export const createProject = async (req: any, res: Response) => {
             try {
                 // Validate projectType
                 project.projectType = Array.isArray(project.projectType)
-                    ? project.projectType.filter((type: string) => allowedProjectTypes.includes(type))
-                    : [];
+                    ? project.projectType
+                    .map((type: string) => type.replace(/^,|,$/g, "").trim()) 
+                    .filter((type: string) => allowedProjectTypes.includes(type))
+                : [];
 
                 // If no valid projectType, set it to [""]
                 if (project.projectType.length === 0) {
