@@ -1,14 +1,26 @@
 import mongoose from "mongoose";
-import fs from "fs-extra";
-import path from "path";
 import archiver from "archiver";
 import { format } from "fast-csv";
 
 // Function to fetch all collections from MongoDB
 const getCollections = async () => {
     const collections: any = await mongoose?.connection?.db?.listCollections().toArray();
-    console.log("collections", collections);
     return collections.map((col: any) => col.name);
+};
+
+// Function to format fields correctly for CSV export
+const formatForCSV = (value: any): string => {
+    if (Array.isArray(value)) {
+        return value.map((item) => {
+            if (typeof item === "object" && item !== null) {
+                return JSON.stringify(item); // Convert object to JSON string
+            }
+            return item; // Keep other values as-is
+        }).join(", "); // Join array items as CSV-friendly string
+    } else if (typeof value === "object" && value !== null) {
+        return JSON.stringify(value); // Convert plain objects to JSON string
+    }
+    return value; // Keep non-object values as-is
 };
 
 // Function to export a collection directly to ZIP stream
@@ -38,6 +50,12 @@ const exportCollectionToCSV = async (collectionName: string, archive: archiver.A
             // Write data to CSV stream
             data.forEach((doc: any) => {
                 delete doc._id; // Remove _id field if not needed
+
+                // Format all fields before writing to CSV
+                Object.keys(doc).forEach((key) => {
+                    doc[key] = formatForCSV(doc[key]);
+                });
+
                 csvStream.write(doc);
             });
 

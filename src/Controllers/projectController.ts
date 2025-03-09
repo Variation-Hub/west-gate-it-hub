@@ -59,9 +59,9 @@ export const createProject = async (req: any, res: Response) => {
                 // Validate projectType
                 project.projectType = Array.isArray(project.projectType)
                     ? project.projectType
-                    .map((type: string) => type.replace(/^,|,$/g, "").trim()) 
-                    .filter((type: string) => allowedProjectTypes.includes(type))
-                : [];
+                        .map((type: string) => type.replace(/^,|,$/g, "").trim())
+                        .filter((type: string) => allowedProjectTypes.includes(type))
+                    : [];
 
                 // If no valid projectType, set it to [""]
                 if (project.projectType.length === 0) {
@@ -86,6 +86,16 @@ export const createProject = async (req: any, res: Response) => {
                     date: new Date(),
                     userId: req.user.id,
                 }];
+
+                const loginUser: any = await userModel.findById(req.user._id);
+
+                const logEntry = {
+                    log: `${loginUser.name} was created project on ${new Date()}`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+
+                project['logs'] = [logEntry];
 
                 const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
                 if (existingProject) {
@@ -622,7 +632,7 @@ export const getProjectSelectUser = async (req: Request, res: Response) => {
     }
 }
 
-export const exportProjectsToCSV = async (req : any, res : any) => {
+export const exportProjectsToCSV = async (req: any, res: any) => {
     try {
         // Fetch projects from MongoDB
         const projects = await projectModel.find().lean();
@@ -2112,7 +2122,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm , westGetDocument } = req.body
+        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm, westGetDocument } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -3455,7 +3465,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
 
 export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword, categorisation , projectType} = req.query;
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.DroppedAfterFeasibility
@@ -3474,8 +3484,8 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
             createdAtFilter.categorisation = categorisation
         }
 
-         // Filter by projectType (Multiple values supported)
-         if (projectType) {
+        // Filter by projectType (Multiple values supported)
+        if (projectType) {
             const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
             createdAtFilter.projectType = { $in: projectTypeArray };
         }
@@ -3563,7 +3573,7 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
 
 export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, keyword, categorisation , projectType } = req.query;
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.Nosuppliermatched
@@ -3581,9 +3591,9 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
         if (categorisation || categorisation === "") {
             createdAtFilter.categorisation = categorisation
         }
-        
-         // Filter by projectType (Multiple values supported)
-         if (projectType) {
+
+        // Filter by projectType (Multiple values supported)
+        if (projectType) {
             const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
             createdAtFilter.projectType = { $in: projectTypeArray };
         }
@@ -3942,7 +3952,7 @@ export const deleteDocument = async (req: any, res: Response) => {
 
         const { name, type } = req.body;
 
-        const project : any = await projectModel.findById(id);
+        const project: any = await projectModel.findById(id);
 
         if (!project) {
             return res.status(404).json({
@@ -3952,16 +3962,16 @@ export const deleteDocument = async (req: any, res: Response) => {
             });
         }
 
-        if(type == "clientDocument") {
-            project.clientDocument = project.clientDocument?.filter((element : any) => element.name.trim() !== name?.trim());
+        if (type == "clientDocument") {
+            project.clientDocument = project.clientDocument?.filter((element: any) => element.name.trim() !== name?.trim());
         }
 
-        if(type == "westgateDocument") {
-            project.westGetDocument = project.westGetDocument?.filter((element : any) => element.name.trim() !== name?.trim());
+        if (type == "westgateDocument") {
+            project.westGetDocument = project.westGetDocument?.filter((element: any) => element.name.trim() !== name?.trim());
         }
 
         const updatedProject = await project.save();
-        
+
         return res.status(200).json({
             message: "Document deleted successfully",
             status: true,
