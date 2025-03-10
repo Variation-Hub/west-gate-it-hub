@@ -905,19 +905,6 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 //         }
                 //     });
                 // }
-
-                if (project.projectType.length > 0) {
-                    project.projectType.forEach((type: any) => {
-                      if (data.projectTypeWise.hasOwnProperty(type)) { 
-                        data.projectTypeWise[type]++;
-                      } else {
-                        data.projectTypeWise[type] = 1;
-                      }
-                    });
-                  } else {
-                      data.projectTypeWise['']++; //handle the case where projectType is empty
-                    }
-
                 if (project.categorisation === "DPS") {
                     data.categorisationWise["DPS"]++
                 } else if (project.categorisation === "Framework") {
@@ -937,6 +924,17 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                     data.projectsMatched.count += 1;
                     data.projectsMatched.maxValue += project.maxValue;
                 }
+            }
+                if (project.projectType.length > 0) {
+                    project.projectType.forEach((type: any) => {
+                      if (data.projectTypeWise.hasOwnProperty(type)) { 
+                        data.projectTypeWise[type]++;
+                      } else {
+                        data.projectTypeWise[type] = 1;
+                      }
+                    });
+                  } else {
+                      data.projectTypeWise['']++; //handle the case where projectType is empty
             }
         })
 

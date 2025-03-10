@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { AnyArray, Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
-import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, taskStatus, userRoles } from "../Util/contant";
+import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -3678,7 +3678,6 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
                 project.bidManagerStatus = project.adminStatus;
             } else if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted) {
                 project.status = project.adminStatus;
-                project.status = taskStatus.Completed;
             }
             project.adminStatus = null;
             project.adminStatusDate = null;
