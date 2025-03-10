@@ -11,6 +11,8 @@ export const createTask = async (req: any, res: Response) => {
         const { assignTo } = req.body
 
         if (req.body?.project && assignTo?.length > 0) {
+            await projectModel.findByIdAndUpdate(req.body?.project, { type: "Project" });
+            
             const alreadyTask = await taskModel.findOne({
                 assignTo: { $elemMatch: { userId: { $in: assignTo } } },
                 project: req.body.project
