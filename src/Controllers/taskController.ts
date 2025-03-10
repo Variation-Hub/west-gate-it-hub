@@ -11,8 +11,7 @@ export const createTask = async (req: any, res: Response) => {
         const { assignTo } = req.body
 
         if (req.body?.project && assignTo?.length > 0) {
-            await projectModel.findByIdAndUpdate(req.body?.project, { type: "Project" });
-            
+
             const alreadyTask = await taskModel.findOne({
                 assignTo: { $elemMatch: { userId: { $in: assignTo } } },
                 project: req.body.project
@@ -96,7 +95,7 @@ export const createTask = async (req: any, res: Response) => {
                 });
                 const data = await taskModel.findOneAndUpdate(
                     { _id: taskId },
-                    { $set: { assignTo: updatedAssignTo, dueDate: req.body.dueDate } },
+                    { $set: { assignTo: updatedAssignTo, dueDate: req.body.dueDate , type : "Project"} },
                     { new: true }
                 );
 
@@ -124,7 +123,8 @@ export const createTask = async (req: any, res: Response) => {
                 }
             })
         }
-        const task = await taskModel.create({ ...req.body, createdBy: req.user._id })
+        const task = await taskModel.create({ ...req.body, createdBy: req.user._id });
+        
         if (task?.project && task?.assignTo?.length === 1) {
             const user: any = await userModel.findById(assignTo[0])
             if (user.role === userRoles.ProjectManager) {
