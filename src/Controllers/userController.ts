@@ -667,10 +667,8 @@ export const getUserList = async (req: any, res: Response) => {
 
 export const getAdminDashboardData = async (req: any, res: Response) => {
     try {
-        const { duration, startDate, endDate } = req.query;
-
+        const { duration, startDate, endDate, categorisation } = req.query;
         let createdAtFilter = {};
-
         if (duration) {
             if (duration === "yearly") {
                 const currentDate = new Date();
@@ -836,6 +834,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 if (project.categorisation === "Framework") {
                     obj[project.status] = obj[project.status] + 1 || 0
                 }
+                if (!categorisation || project.categorisation === categorisation) {
                 data.projectsPosted.maxValue += project.maxValue;
                 if (project.status === projectStatus.Won) {
                     data.projectsClosed.count += 1;
@@ -905,6 +904,11 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 //         }
                 //     });
                 // }
+                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
+                    data.projectsMatched.count += 1;
+                    data.projectsMatched.maxValue += project.maxValue;
+                }
+            }        
                 if (project.categorisation === "DPS") {
                     data.categorisationWise["DPS"]++
                 } else if (project.categorisation === "Framework") {
@@ -920,11 +924,6 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                     }
                 }
 
-                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
-                    data.projectsMatched.count += 1;
-                    data.projectsMatched.maxValue += project.maxValue;
-                }
-            }
                 if (project.projectType.length > 0) {
                     project.projectType.forEach((type: any) => {
                       if (data.projectTypeWise.hasOwnProperty(type)) { 
@@ -935,6 +934,7 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                     });
                   } else {
                       data.projectTypeWise['']++; //handle the case where projectType is empty
+                }
             }
         })
 
