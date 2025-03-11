@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { AnyArray, Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
-import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, userRoles } from "../Util/contant";
+import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, taskStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -3674,6 +3674,10 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
             })
         }
         if (action === feasibilityStatus.approve) {
+            if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted || project.adminStatus === adminStatus.NotReleted || project.adminStatus === adminStatus.Nosuppliermatched) {
+                await taskModel.updateMany( { project: project._id }, { $set: { status: taskStatus.Completed } });
+            }
+
             if (project.adminStatus === adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
                 project.bidManagerStatus = project.adminStatus;
             } else if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted) {
