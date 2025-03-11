@@ -123,7 +123,7 @@ export const createTask = async (req: any, res: Response) => {
                 }
             })
         }
-        const task = await taskModel.create({ ...req.body, createdBy: req.user._id });
+        const task = await taskModel.create({ ...req.body, createdBy: req.user._id, type: req.body.project ? "Project" : req.body.type });
         
         if (task?.project && task?.assignTo?.length === 1) {
             const user: any = await userModel.findById(assignTo[0])

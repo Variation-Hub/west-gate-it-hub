@@ -3674,7 +3674,7 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
             })
         }
         if (action === feasibilityStatus.approve) {
-            if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted || project.adminStatus === adminStatus.NotReleted || project.adminStatus === adminStatus.Nosuppliermatched) {
+            if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted || adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
                 await taskModel.updateMany( { project: project._id }, { $set: { status: taskStatus.Completed } });
             }
 
