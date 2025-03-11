@@ -671,7 +671,13 @@ export const exportProjectsToCSV = async (req: any, res: any) => {
                 projectType: project?.projectType,
                 mailID: project?.mailID,
                 clientType: project?.clientType,
-                categorisation: project?.categorisation
+                categorisation: project?.categorisation,
+                description: project?.description,
+                linkToPortal: project?.linkToPortal,
+                documentsLink: project?.documentsLink,
+                chatGptLink: project?.chatGptLink,
+                loginID: project?.loginID,
+                password: project?.password
             });
         });
 
