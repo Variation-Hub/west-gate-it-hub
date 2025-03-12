@@ -827,13 +827,17 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
         const obj: any = {}
         projects.forEach((project: any) => {
+          
+            if (project.categorisation === "DPS/Framework") {
+                return; 
+            }
             if (project.status !== projectStatus.NotReleted) {
-                if (project.categorisation === "DPS") {
-                    obj[project.status] = obj[project.status] + 1 || 0
-                }
-                if (project.categorisation === "Framework") {
-                    obj[project.status] = obj[project.status] + 1 || 0
-                }
+                // if (project.categorisation === "DPS") {
+                //     data.categorisationWise["DPS"]++;
+                // }
+                // if (project.categorisation === "Framework") {
+                //     data.categorisationWise["Framework"]++;
+                // }
                 if (!categorisation || project.categorisation === categorisation) {
                 data.projectsPosted.maxValue += project.maxValue;
                 if (project.status === projectStatus.Won) {
