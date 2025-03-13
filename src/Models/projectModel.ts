@@ -313,7 +313,7 @@ const projectModel = new mongoose.Schema({
     },
     categorisation: {
         type: String,
-        enum: ['DPS/Framework', 'DTD', ''],
+        enum: ['DPS', 'DTD', 'Framework', ''],
         default: ''
     },
     loginID: {

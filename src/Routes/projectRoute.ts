@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile } from '../Controllers/projectController';
+import { addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile, exportProjectsToCSV, deleteDocument } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -20,6 +20,7 @@ projectRoutes.delete("/delete-failreason/:id", authorizeRoles(), deleteProjectFa
 projectRoutes.delete("/delete-bidstatuscomment/:id", authorizeRoles(), deleteProjectBidStatusComment);
 projectRoutes.delete("/delete-dafstatusreason/:id", authorizeRoles(), deleteProjectdroppedAfterFeasibilityStatusReason);
 projectRoutes.delete("/delete-nosuppliearmatchedreason/:id", authorizeRoles(), deleteProjectnosuppliermatchedStatusReason);
+projectRoutes.delete("/delete-document/:id", authorizeRoles(), deleteDocument);
 projectRoutes.patch("/sortlist", authorizeRoles(), sortList);
 projectRoutes.patch("/apply", authorizeRoles(), applyProject);
 projectRoutes.post("/mail-send", authorizeRoles(), mailSend);
@@ -59,6 +60,9 @@ projectRoutes.get("/ukwriter/supplier-user/:projectId", authorizeRoles(userRoles
 
 // Project Co-ordinator
 projectRoutes.get("/project-coordinator/dashboard", authorizeRoles(userRoles.ProjectCoOrdinator, userRoles.Admin), getDashboardDataProjectCoOrdinator);
+
+// export projects
+projectRoutes.get("/export-csv", exportProjectsToCSV);
 
 export default projectRoutes;
 

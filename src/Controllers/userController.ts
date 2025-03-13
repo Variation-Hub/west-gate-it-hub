@@ -667,10 +667,8 @@ export const getUserList = async (req: any, res: Response) => {
 
 export const getAdminDashboardData = async (req: any, res: Response) => {
     try {
-        const { duration, startDate, endDate } = req.query;
-
+        const { duration, startDate, endDate, categorisation } = req.query;
         let createdAtFilter = {};
-
         if (duration) {
             if (duration === "yearly") {
                 const currentDate = new Date();
@@ -817,8 +815,9 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
             // categoryWise: {},
             projectTypeWise: {},
             categorisationWise: {
-                "DPS/Framework": 0,
+                "DPS": 0,
                 "DTD": 0,
+                "Framework": 0
             },
         };
 
@@ -828,10 +827,18 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
         const obj: any = {}
         projects.forEach((project: any) => {
+          
+            if (project.categorisation === "DPS/Framework") {
+                return; 
+            }
             if (project.status !== projectStatus.NotReleted) {
-                if (project.categorisation === "DPS/Framework") {
-                    obj[project.status] = obj[project.status] + 1 || 0
-                }
+                // if (project.categorisation === "DPS") {
+                //     data.categorisationWise["DPS"]++;
+                // }
+                // if (project.categorisation === "Framework") {
+                //     data.categorisationWise["Framework"]++;
+                // }
+                if (!categorisation || project.categorisation === categorisation) {
                 data.projectsPosted.maxValue += project.maxValue;
                 if (project.status === projectStatus.Won) {
                     data.projectsClosed.count += 1;
@@ -901,18 +908,16 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 //         }
                 //     });
                 // }
-
-                if (project.projectType.length > 0) {
-                    project.projectType.forEach((type: any) => {
-                        if (data.projectTypeWise[type]) {
-                            data.projectTypeWise[type]++;
-                        } else {
-                            data.projectTypeWise[type] = 1;
-                        }
-                    });
+                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
+                    data.projectsMatched.count += 1;
+                    data.projectsMatched.maxValue += project.maxValue;
                 }
-                if (project.categorisation === "DPS/Framework") {
-                    data.categorisationWise["DPS/Framework"]++
+            }        
+                if (project.categorisation === "DPS") {
+                    data.categorisationWise["DPS"]++
+                } else if (project.categorisation === "Framework") {
+                    data.categorisationWise["Framework"]++;
+                    //data.categorisationWise["Framework"] = (data.categorisationWise["Framework"] || 0) + 1; // check if key is exists
                 } else if (project.categorisation === "DTD") {
                     data.categorisationWise["DTD"]++
                 } else if (project.categorisation === "") {
@@ -923,14 +928,22 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                     }
                 }
 
-                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
-                    data.projectsMatched.count += 1;
-                    data.projectsMatched.maxValue += project.maxValue;
+                if (project.projectType.length > 0) {
+                    project.projectType.forEach((type: any) => {
+                      if (data.projectTypeWise.hasOwnProperty(type)) { 
+                        data.projectTypeWise[type]++;
+                      } else {
+                        data.projectTypeWise[type] = 1;
+                      }
+                    });
+                  } else {
+                      data.projectTypeWise['']++; //handle the case where projectType is empty
                 }
             }
         })
 
-        data.categorisationWise["DPS/Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["DPS/Framework"]
+        data.categorisationWise["DPS"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["DPS"];
+        data.categorisationWise["Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["Framework"];
 
         return res.status(200).json({
             message: "Admin dashboard data fetch success",

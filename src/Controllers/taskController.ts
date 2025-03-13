@@ -20,6 +20,7 @@ export const createTask = async (req: any, res: Response) => {
         }
 
         if (req.body?.project && assignTo?.length > 0) {
+
             const alreadyTask = await taskModel.findOne({
                 assignTo: { $elemMatch: { userId: { $in: assignTo } } },
                 project: req.body.project
@@ -33,6 +34,19 @@ export const createTask = async (req: any, res: Response) => {
             }
 
             const user: any = await userModel.findById(assignTo[0]).select('name role');
+
+            const projectDetails: any = await projectModel.findById(req.body?.project);
+
+            const loginUser: any = await userModel.findById(req.user._id);
+
+            const logEntry = {
+                log: `${loginUser.name} was assign project to ${user.name}`,
+                userId: req.user._id,
+                date: new Date()
+            };
+            projectDetails.logs = [...projectDetails?.logs, logEntry];
+
+            await projectDetails.save();
 
             let otherUserTask: any = await taskModel.aggregate([
                 {
@@ -90,7 +104,7 @@ export const createTask = async (req: any, res: Response) => {
                 });
                 const data = await taskModel.findOneAndUpdate(
                     { _id: taskId },
-                    { $set: { assignTo: updatedAssignTo, dueDate: req.body.dueDate } },
+                    { $set: { assignTo: updatedAssignTo, dueDate: req.body.dueDate , type : "Project"} },
                     { new: true }
                 );
 
@@ -100,6 +114,7 @@ export const createTask = async (req: any, res: Response) => {
                 } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
                     await projectModel.findByIdAndUpdate(req.body?.project, { status: projectStatus.Awaiting })
                 }
+
 
                 return res.status(200).json({
                     message: "New user assigned to project successfully",
@@ -132,6 +147,7 @@ export const createTask = async (req: any, res: Response) => {
             data: task
         });
     } catch (err: any) {
+        console.log("err", err);
         return res.status(500).json({
             message: err.message,
             status: false,
@@ -451,6 +467,19 @@ export const addCommentToTask = async (req: any, res: Response) => {
         })
 
         await task.save();
+
+        const projectDetails: any = await projectModel.findById(task?.project);
+
+        const loginUser: any = await userModel.findById(req.user._id);
+
+        const logEntry = {
+            log: `${loginUser.name} was added comment : ${comment}`,
+            userId: req.user._id,
+            date: new Date()
+        };
+        projectDetails.logs = [...projectDetails?.logs, logEntry];
+
+        await projectDetails.save();
 
         return res.send({
             message: "Task updated successfully",
