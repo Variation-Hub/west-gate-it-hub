@@ -8,7 +8,16 @@ import moment from 'moment';
 
 export const createTask = async (req: any, res: Response) => {
     try {
-        const { assignTo } = req.body
+        let { assignTo } = req.body
+        
+        // Ensure assignTo is always an array if provided
+        if (assignTo && !Array.isArray(assignTo)) {
+            assignTo = [assignTo]; // Convert single value to array
+            req.body.assignTo = assignTo;
+        } else if (!assignTo) {
+            assignTo = []; // Default to empty array if not provided
+            req.body.assignTo = assignTo;
+        }
 
         if (req.body?.project && assignTo?.length > 0) {
 
@@ -28,16 +37,23 @@ export const createTask = async (req: any, res: Response) => {
 
             const projectDetails: any = await projectModel.findById(req.body?.project);
 
-            const loginUser: any = await userModel.findById(req.user._id);
+            // Check if projectDetails exists before trying to access/modify its properties
+            if (projectDetails) {
+                const loginUser: any = await userModel.findById(req.user._id);
 
-            const logEntry = {
-                log: `${loginUser.name} was assign project to ${user.name}`,
-                userId: req.user._id,
-                date: new Date()
-            };
-            projectDetails.logs = [...projectDetails?.logs, logEntry];
+                const logEntry = {
+                    log: `${loginUser.name} was assign project to ${user.name}`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+                
+                // Ensure logs is an array before spreading it
+                projectDetails.logs = Array.isArray(projectDetails?.logs) 
+                    ? [...projectDetails.logs, logEntry] 
+                    : [logEntry];
 
-            await projectDetails.save();
+                await projectDetails.save();
+            }
 
             let otherUserTask: any = await taskModel.aggregate([
                 {
@@ -115,7 +131,7 @@ export const createTask = async (req: any, res: Response) => {
 
             }
         }
-        if (assignTo?.length) {
+        if (Array.isArray(assignTo) && assignTo.length > 0) {
             req.body.assignTo = assignTo.map((userId: string) => {
                 return {
                     userId,
@@ -123,13 +139,12 @@ export const createTask = async (req: any, res: Response) => {
                 }
             })
         }
-        const task = await taskModel.create({ ...req.body, createdBy: req.user._id, type: req.body.project ? "Project" : req.body.type });
-        
-        if (task?.project && task?.assignTo?.length === 1) {
+        const task = await taskModel.create({ ...req.body, createdBy: req.user._id })
+        if (task?.project && task?.assignTo?.length === 1 && Array.isArray(assignTo) && assignTo.length > 0) {
             const user: any = await userModel.findById(assignTo[0])
-            if (user.role === userRoles.ProjectManager) {
+            if (user && user.role === userRoles.ProjectManager) {
                 await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.Awaiting })
-            } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
+            } else if (user && (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser)) {
                 await projectModel.findByIdAndUpdate(task.project, { status: projectStatus.Awaiting })
             }
         }
@@ -460,20 +475,29 @@ export const addCommentToTask = async (req: any, res: Response) => {
 
         await task.save();
 
-        const projectDetails: any = await projectModel.findById(task?.project);
+        // Only try to update project logs if the task has a project associated
+        if (task?.project) {
+            const projectDetails: any = await projectModel.findById(task.project);
+            
+            // Check if projectDetails exists before trying to access/modify its properties
+            if (projectDetails) {
+                const loginUser: any = await userModel.findById(req.user._id);
 
-        const loginUser: any = await userModel.findById(req.user._id);
+                const logEntry = {
+                    log: `${loginUser.name} was added comment : ${comment}`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+                
+                // Ensure logs is an array before spreading it
+                projectDetails.logs = Array.isArray(projectDetails?.logs) 
+                    ? [...projectDetails.logs, logEntry] 
+                    : [logEntry];
 
-        const logEntry = {
-            log: `${loginUser.name} was added comment : ${comment}`,
-            userId: req.user._id,
-            date: new Date()
-        };
-        if (projectDetails) {
-            projectDetails.logs = [...projectDetails?.logs, logEntry];
-
-            await projectDetails.save();
+                await projectDetails.save();
+            }
         }
+
         return res.send({
             message: "Task updated successfully",
             status: true,
