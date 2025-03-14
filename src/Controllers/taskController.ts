@@ -469,10 +469,11 @@ export const addCommentToTask = async (req: any, res: Response) => {
             userId: req.user._id,
             date: new Date()
         };
-        projectDetails.logs = [...projectDetails?.logs, logEntry];
+        if (projectDetails) {
+            projectDetails.logs = [...projectDetails?.logs, logEntry];
 
-        await projectDetails.save();
-
+            await projectDetails.save();
+        }
         return res.send({
             message: "Task updated successfully",
             status: true,
