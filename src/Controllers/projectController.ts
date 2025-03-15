@@ -1222,16 +1222,24 @@ export const getProjects = async (req: any, res: Response) => {
 
         projects = await Promise.all(
             projects.map(async (project: any) => {
-                if (project.statusHistory.length > 0) {
-                    const { userId } = project.statusHistory.at(-1);
-                    const user = await userModel
-                        .findById(userId)
-                        .select("name email role mobileNumber companyName");
+                if (project.statusHistory && project.statusHistory.length > 0) {
+                    project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                    project._doc.statusChangeUser = user;
-                } else {
+                    const latestStatus = project.statusHistory.at(-1);
+
+                    if (latestStatus?.userId) {
+                        const user = await userModel
+                            .findById(latestStatus.userId)
+                            .select("name email role mobileNumber companyName");
+
+                        project._doc.statusChangeUser = user;
+                    } else {
+                        project._doc.statusChangeUser = null;
+
+                    }
+                }
+                else {
                     project._doc.statusChangeUser = null;
-
                 }
                 return project;
             })
