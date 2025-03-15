@@ -81,7 +81,7 @@ export const createProject = async (req: any, res: Response) => {
                     return [];
                 })();
 
-                project.statusHistory = [{
+                const newStatusHistory = [{
                     status: projectStatus.Awaiting,
                     date: new Date(),
                     userId: req.user.id,
@@ -94,19 +94,22 @@ export const createProject = async (req: any, res: Response) => {
                     userId: req.user._id,
                     date: new Date()
                 };
-
-                project['logs'] = [logEntry];
-
                 const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
                 if (existingProject) {
+
+                    const { statusHistory, logs, ...projectWithoutArrays } = project;
                     // Update existing record
                     const updatedProject = await projectModel.findOneAndUpdate(
                         { BOSID: project.BOSID },
-                        { $set: project },
+                        { $set: projectWithoutArrays },
                         { new: true }
                     );
                     updatedProjects.push(updatedProject);
                 } else {
+
+                    project.statusHistory = newStatusHistory;
+                    project['logs'] = [logEntry];
+
                     // Insert new record
                     const newProject = await projectModel.create(project);
                     insertedProjects.push(newProject);
@@ -1222,16 +1225,24 @@ export const getProjects = async (req: any, res: Response) => {
 
         projects = await Promise.all(
             projects.map(async (project: any) => {
-                if (project.statusHistory.length > 0) {
-                    const { userId } = project.statusHistory.at(-1);
-                    const user = await userModel
-                        .findById(userId)
-                        .select("name email role mobileNumber companyName");
+                if (project.statusHistory && project.statusHistory.length > 0) {
+                    project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-                    project._doc.statusChangeUser = user;
-                } else {
+                    const latestStatus = project.statusHistory.at(-1);
+
+                    if (latestStatus?.userId) {
+                        const user = await userModel
+                            .findById(latestStatus.userId)
+                            .select("name email role mobileNumber companyName");
+
+                        project._doc.statusChangeUser = user;
+                    } else {
+                        project._doc.statusChangeUser = null;
+
+                    }
+                }
+                else {
                     project._doc.statusChangeUser = null;
-
                 }
                 return project;
             })
