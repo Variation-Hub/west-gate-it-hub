@@ -81,7 +81,7 @@ export const createProject = async (req: any, res: Response) => {
                     return [];
                 })();
 
-                project.statusHistory = [{
+                const newStatusHistory = [{
                     status: projectStatus.Awaiting,
                     date: new Date(),
                     userId: req.user.id,
@@ -94,19 +94,22 @@ export const createProject = async (req: any, res: Response) => {
                     userId: req.user._id,
                     date: new Date()
                 };
-
-                project['logs'] = [logEntry];
-
                 const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
                 if (existingProject) {
+
+                    const { statusHistory, logs, ...projectWithoutArrays } = project;
                     // Update existing record
                     const updatedProject = await projectModel.findOneAndUpdate(
                         { BOSID: project.BOSID },
-                        { $set: project },
+                        { $set: projectWithoutArrays },
                         { new: true }
                     );
                     updatedProjects.push(updatedProject);
                 } else {
+
+                    project.statusHistory = newStatusHistory;
+                    project['logs'] = [logEntry];
+
                     // Insert new record
                     const newProject = await projectModel.create(project);
                     insertedProjects.push(newProject);
