@@ -1657,6 +1657,12 @@ export const updateProject = async (req: any, res: Response) => {
                 project.adminStatus = bidManagerStatus;
                 project.adminStatusDate = new Date();
                 bidManagerStatus = undefined;
+            } else {
+                project.statusHistory.push({
+                    bidManagerStatus: project.bidManagerStatus,
+                    date: new Date(),
+                    userId: req.user.id,
+                });
             }
         }
 
