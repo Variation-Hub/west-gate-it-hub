@@ -104,6 +104,23 @@ export const createProject = async (req: any, res: Response) => {
                         { $set: projectWithoutArrays },
                         { new: true }
                     );
+
+                     // Add bidManagerStatus entry to statusHistory if it's updated
+                     if (project.bidManagerStatus && project.bidManagerStatus !== existingProject.bidManagerStatus) {
+                        await projectModel.findOneAndUpdate(
+                            { BOSID: project.BOSID },
+                            {
+                                $push: {
+                                    statusHistory: {
+                                        bidManagerStatus: project.bidManagerStatus,
+                                        date: new Date(),
+                                        userId: req.user.id
+                                    }
+                                }
+                            }
+                        );
+                    }
+
                     updatedProjects.push(updatedProject);
                 } else {
 
@@ -326,6 +343,9 @@ export const getProject = async (req: any, res: Response) => {
             const users = await userModel.find({
                 _id: { $in: userIds }
             }).select("name email role mobileNumber companyName");
+
+            // Sort statusHistory in descending order by date
+            project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
             const updatedStatusHistory = await Promise.all(
                 project.statusHistory.map(async (item: any) => {
