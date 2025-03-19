@@ -185,7 +185,7 @@ export const uploadFile = async (req: any, res: Response) => {
     try {
         const userId = req.user?.id;
         //console.log(req.user)
-        const { expertise } = req.body;
+        const { expertise, supplierId } = req.body;
         const files = req.files;
 
         if (!userId) {
@@ -193,7 +193,7 @@ export const uploadFile = async (req: any, res: Response) => {
         }
         //console.log(files)
         if (!files || !expertise) {
-            return res.status(400).json({ message: "File & tag are required", status: false });
+            return res.status(400).json({ message: "File & expertise are required", status: false });
         }
 
         const user: any = await userModel.findOne({ _id: userId })
@@ -202,6 +202,20 @@ export const uploadFile = async (req: any, res: Response) => {
             return res.status(404).json({ message: "user not found", status: false })
         }
 
+        if (!supplierId) {
+            return res.status(400).json({
+                message: "Supplier ID is required",
+                status: false
+            });
+        }
+
+        const supplier = await userModel.findById(supplierId);
+        if (!supplier) {
+            return res.status(404).json({
+                message: "Supplier not found",
+                status: false
+            });
+        }
         // if (!user?.expertise.includes(expertise)) {
         //     return res.status(400).json({ message: "Invalid tag. Use a tag from your registered list.", status: false });
         // }
@@ -218,6 +232,7 @@ export const uploadFile = async (req: any, res: Response) => {
 
             const newFile = new FileModel({
                 userId,
+                supplierId,
                 expertise,
                 fileUrl: uploadedFile.url,
                 fileName: uploadedFile.fileName,

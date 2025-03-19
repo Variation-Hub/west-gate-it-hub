@@ -6,6 +6,11 @@ const fileSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
+    supplierId: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'User', 
+        required: true 
+    },
     expertise: {
         type: String,
         required: true,
