@@ -11,6 +11,7 @@ import { connectUser } from "../socket/socketEvent"
 import LoginModel from "../Models/LoginModel"
 import caseStudy from "../Models/caseStudy"
 import taskModel from "../Models/taskModel"
+import FileModel from "../Models/fileModel"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -474,6 +475,7 @@ export const getSupplierDetails = async (req: any, res: Response) => {
     try {
 
         const userID = req.params.id;
+        const { expertise } = req.query; 
 
         const user = await userModel.findById(userID).select({ password: 0 });;
 
@@ -485,10 +487,18 @@ export const getSupplierDetails = async (req: any, res: Response) => {
             })
         }
 
+        let files = await FileModel.find({ userId: userID });
+
+        if (expertise) {
+            files = files.filter(file => file.expertise?.includes(expertise));
+        }
+
         return res.status(200).json({
             message: "User detail fetch success",
             status: true,
-            data: user
+            data: user,
+            expertiseList: user?.expertise || [],
+            files: files
         });
     } catch (err: any) {
         return res.status(500).json({
