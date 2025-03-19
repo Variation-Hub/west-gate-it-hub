@@ -202,9 +202,9 @@ export const uploadFile = async (req: any, res: Response) => {
             return res.status(404).json({ message: "user not found", status: false })
         }
 
-        if (!user?.expertise.includes(expertise)) {
-            return res.status(400).json({ message: "Invalid tag. Use a tag from your registered list.", status: false });
-        }
+        // if (!user?.expertise.includes(expertise)) {
+        //     return res.status(400).json({ message: "Invalid tag. Use a tag from your registered list.", status: false });
+        // }
 
         let uploadedFilesData = [];
 
