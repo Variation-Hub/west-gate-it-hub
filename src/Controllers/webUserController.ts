@@ -6,6 +6,8 @@ import { fromMail, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { userRoles } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
+import FileModel from "../Models/fileModel"
+import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 
 const sendMail = async (data: any) => {
 
@@ -46,6 +48,10 @@ export const registerWebUser = async (req: Request, res: Response) => {
                 status: false,
                 data: null
             })
+        }
+
+        if (!Array.isArray(req.body?.expertise)) {
+            return res.status(400).json({ message: "Expertise must be an array", status: false });
         }
 
         req.body.role = userRoles.SupplierAdmin
@@ -174,3 +180,99 @@ export const getWebUser = async (req: any, res: Response) => {
         });
     }
 }
+
+export const uploadFile = async (req: any, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        //console.log(req.user)
+        const { expertise } = req.body;
+        const files = req.files;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized", status: false });
+        }
+        //console.log(files)
+        if (!files || !expertise) {
+            return res.status(400).json({ message: "File & tag are required", status: false });
+        }
+
+        const user: any = await userModel.findOne({ _id: userId })
+
+        if (!user) {
+            return res.status(404).json({ message: "user not found", status: false })
+        }
+
+        if (!user?.expertise.includes(expertise)) {
+            return res.status(400).json({ message: "Invalid tag. Use a tag from your registered list.", status: false });
+        }
+
+        let uploadedFilesData = [];
+
+        for (const file of files) {
+            const fileData = {
+                originalname: file.originalname,
+                buffer: file.buffer
+            };
+
+            const uploadedFile = await uploadToBackblazeB2(file, `user_${userId}`);
+
+            const newFile = new FileModel({
+                userId,
+                expertise,
+                fileUrl: uploadedFile.url,
+                fileName: uploadedFile.fileName,
+                key: uploadedFile.key
+            });
+
+            await newFile.save();
+            uploadedFilesData.push(newFile);
+        }
+
+        return res.status(201).json({
+            message: "File uploaded successfully",
+            status: true,
+            data: uploadedFilesData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
+    }
+};
+
+export const deleteFile = async (req: Request, res: Response) => {
+    try {
+        const { fileId } = req.body;
+
+        if (!fileId) {
+            return res.status(400).json({ message: "File ID is required", status: false });
+        }
+
+        // Find file record in the database
+        const file = await FileModel.findById(fileId);
+        if (!file) {
+            return res.status(404).json({ message: "File not found", status: false });
+        }
+
+        // Delete from BackblazeB2
+        const fileKey = { key: file.key }; 
+        const deleteResponse = await deleteFromBackblazeB2(fileKey);
+        
+        // Remove file from database
+        await FileModel.deleteOne({ _id: fileId });
+
+        return res.status(200).json({
+            message: "File deleted successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
+    }
+};
+
+
+

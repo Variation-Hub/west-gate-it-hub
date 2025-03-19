@@ -277,6 +277,7 @@ const userModel = new mongoose.Schema({
         type: String,
         default: ""
     },
+    expertise: { type: [String], default: [] },
     createdAt: {
         type: Date,
         default: Date.now
