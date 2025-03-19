@@ -476,7 +476,7 @@ export const getSupplierDetails = async (req: any, res: Response) => {
 
         const userID = req.params.id;
         const { expertise } = req.query; 
-
+        const loggedInUser = req.user;
         const user = await userModel.findById(userID).select({ password: 0 });;
 
         if (!user) {
@@ -486,11 +486,15 @@ export const getSupplierDetails = async (req: any, res: Response) => {
                 data: null
             })
         }
+        let files: any = [];
+        
+        if (loggedInUser.role === userRoles.Admin || loggedInUser.id === userID) {
+            files = await FileModel.find({ supplierId: userID });
+            
+            if (expertise) {
+                files = files.filter((file: any) => file.expertise?.includes(expertise));
 
-        let files = await FileModel.find({ userId: userID });
-
-        if (expertise) {
-            files = files.filter(file => file.expertise?.includes(expertise));
+            }
         }
 
         return res.status(200).json({
