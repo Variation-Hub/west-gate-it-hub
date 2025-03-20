@@ -293,10 +293,8 @@ export const getAllExpertise = async (req: any, res: Response) => {
     try {
         const { search } = req.query;
 
-        const allExpertise = await userModel.distinct("expertise");
-
-        const expertiseCounts = await FileModel.aggregate([
-            { $unwind: "$expertise" }, 
+        const expertiseCounts = await userModel.aggregate([
+            { $unwind: "$expertise" },
             {
                 $group: {
                     _id: "$expertise",
@@ -305,23 +303,20 @@ export const getAllExpertise = async (req: any, res: Response) => {
             }
         ]);
 
-        const expertiseMap = new Map(expertiseCounts.map(exp => [exp._id, exp.count]));
-
-        const finalExpertiseList = allExpertise.map(exp => ({
-            expertise: exp,
-            count: expertiseMap.has(exp) ? expertiseMap.get(exp) : 0
+        let finalExpertiseList = expertiseCounts.map(exp => ({
+            expertise: exp._id,
+            count: exp.count
         }));
 
-        let filteredList = finalExpertiseList;
         if (search) {
             const searchRegex = new RegExp(search as string, "i");
-            filteredList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
+            finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
         }
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
             status: true,
-            data: filteredList
+            data: finalExpertiseList
         });
 
     } catch (err: any) {
@@ -344,23 +339,54 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
             });
         }
 
-        const suppliers = await userModel.find({ expertise: expertise }, {_id: 1, expertise: 1, name: 1, }).select({ password: 0 });
+        const suppliersWithFiles = await userModel.aggregate([
+            {
+                $match: { expertise: { $in: [expertise] } }
+            },
+            {
+                $lookup: {
+                    from: "files", 
+                    localField: "_id",
+                    foreignField: "supplierId",
+                    as: "files"
+                }
+            },
+            {
+                $addFields: {
+                    files: {
+                        $filter: {
+                            input: "$files",
+                            as: "file",
+                            cond: { $eq: ["$$file.expertise", expertise] }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    supplier: {
+                        _id: "$_id",
+                        name: "$name",
+                        expertise: "$expertise"
+                    },
+                    files: 1
+                }
+            }
+        ]);
 
-        if (suppliers.length === 0) {
+        if (suppliersWithFiles.length === 0) {
             return res.status(404).json({
                 message: "No suppliers found with this expertise",
                 status: false
             });
         }
 
-        const supplierIds = suppliers.map(supplier => supplier._id);
-        const files = await FileModel.find({ supplierId: { $in: supplierIds } });
 
         return res.status(200).json({
             message: "Suppliers and files fetched successfully",
             status: true,
-            suppliers: suppliers,
-            files: files
+            data: suppliersWithFiles        
         });
 
     } catch (err: any) {
