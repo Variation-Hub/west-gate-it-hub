@@ -928,14 +928,18 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 }
                 if (project.projectType.length > 0) {
                     project.projectType.forEach((type: any) => {
-                      if (data.projectTypeWise.hasOwnProperty(type)) { 
-                        data.projectTypeWise[type]++;
-                      } else {
-                        data.projectTypeWise[type] = 1;
-                      }
+                        const key = !type || type.trim() === "" ? "Unknown ProjectType" : type; // Handle null, undefined, ""
+                
+                        if (data.projectTypeWise.hasOwnProperty(key)) { 
+                            data.projectTypeWise[key]++;
+                        } else {
+                            data.projectTypeWise[key] = 1;
+                        }
                     });
-                  } else {
-                      data.projectTypeWise['']++; //handle the case where projectType is empty
+                } else {
+                    if (!data.projectTypeWise["Unknown ProjectType"]) {
+                        data.projectTypeWise["Unknown ProjectType"] = 0;
+                    }
                 }
             }        
                 if (project.categorisation === "DPS") {
@@ -946,16 +950,23 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 } else if (project.categorisation === "DTD") {
                     data.categorisationWise["DTD"]++
                 } else if (project.categorisation === "") {
-                    if (data.categorisationWise[""]) {
-                        data.categorisationWise[""]++
+                    if (data.categorisationWise["Unknown Category"]) {
+                        data.categorisationWise["Unknown Category"]++
                     } else {
-                        data.categorisationWise[""] = 1;
+                        data.categorisationWise["Unknown Category"] = 1;
                     }
                 }
 
             }
         })
-
+        
+        Object.keys(data.projectTypeWise).forEach((key) => {
+            if (data.projectTypeWise[key] === 0) delete data.projectTypeWise[key];
+        });
+        
+        Object.keys(data.categorisationWise).forEach((key) => {
+            if (data.categorisationWise[key] === 0) delete data.categorisationWise[key];
+        });
         data.categorisationWise["DPS"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["DPS"];
         data.categorisationWise["Framework"] = Object.values(obj)?.reduce((acc: any, curr: any) => (acc + curr), 0) || data.categorisationWise["Framework"];
 
