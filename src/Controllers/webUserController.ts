@@ -289,5 +289,86 @@ export const deleteFile = async (req: Request, res: Response) => {
     }
 };
 
+export const getAllExpertise = async (req: any, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const allExpertise = await userModel.distinct("expertise");
+
+        const expertiseCounts = await FileModel.aggregate([
+            { $unwind: "$expertise" }, 
+            {
+                $group: {
+                    _id: "$expertise",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const expertiseMap = new Map(expertiseCounts.map(exp => [exp._id, exp.count]));
+
+        const finalExpertiseList = allExpertise.map(exp => ({
+            expertise: exp,
+            count: expertiseMap.has(exp) ? expertiseMap.get(exp) : 0
+        }));
+
+        let filteredList = finalExpertiseList;
+        if (search) {
+            const searchRegex = new RegExp(search as string, "i");
+            filteredList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
+        }
+
+        return res.status(200).json({
+            message: "Expertise list fetched successfully",
+            status: true,
+            data: filteredList
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const getSuppliersByExpertise = async (req: any, res: Response) => {
+    try {
+        const { expertise } = req.query;
+
+        if (!expertise) {
+            return res.status(400).json({
+                message: "Expertise is required",
+                status: false
+            });
+        }
+
+        const suppliers = await userModel.find({ expertise: expertise }, {_id: 1, expertise: 1, name: 1, }).select({ password: 0 });
+
+        if (suppliers.length === 0) {
+            return res.status(404).json({
+                message: "No suppliers found with this expertise",
+                status: false
+            });
+        }
+
+        const supplierIds = suppliers.map(supplier => supplier._id);
+        const files = await FileModel.find({ supplierId: { $in: supplierIds } });
+
+        return res.status(200).json({
+            message: "Suppliers and files fetched successfully",
+            status: true,
+            suppliers: suppliers,
+            files: files
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
+    }
+};
 
 
