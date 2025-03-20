@@ -105,8 +105,8 @@ export const createProject = async (req: any, res: Response) => {
                         { new: true }
                     );
 
-                     // Add bidManagerStatus entry to statusHistory if it's updated
-                     if (project.bidManagerStatus && project.bidManagerStatus !== existingProject.bidManagerStatus) {
+                    // Add bidManagerStatus entry to statusHistory if it's updated
+                    if (project.bidManagerStatus && project.bidManagerStatus !== existingProject.bidManagerStatus) {
                         await projectModel.findOneAndUpdate(
                             { BOSID: project.BOSID },
                             {
@@ -3718,13 +3718,18 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
         }
         if (action === feasibilityStatus.approve) {
             if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted || adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
-                await taskModel.updateMany( { project: project._id }, { $set: { status: taskStatus.Completed } });
+                await taskModel.updateMany({ project: project._id }, { $set: { status: taskStatus.Completed } });
             }
 
             if (project.adminStatus === adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
                 project.bidManagerStatus = project.adminStatus;
             } else if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted) {
                 project.status = project.adminStatus;
+                project.statusHistory.push({
+                    status: project.adminStatus,
+                    date: new Date(),
+                    userId: null,
+                })
             }
             project.adminStatus = null;
             project.adminStatusDate = null;
