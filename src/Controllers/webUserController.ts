@@ -337,7 +337,7 @@ export const getAllExpertise = async (req: any, res: Response) => {
         return res.status(200).json({
             message: "Expertise list fetched successfully",
             status: true,
-            data: expertiseData
+            data: finalExpertiseList
         });
 
     } catch (err: any) {
