@@ -277,7 +277,12 @@ const userModel = new mongoose.Schema({
         type: String,
         default: ""
     },
-    expertise: { type: [String], default: [] },
+    expertise: [
+        {
+            name: { type: String, required: true },
+            subExpertise: [{ type: String }]
+        }
+    ],
     poc_details: { type: mongoose.Schema.Types.Mixed, default: {} },
     certifications:{ type: mongoose.Schema.Types.Mixed, default: {} },
     createdAt: {

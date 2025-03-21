@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 
@@ -13,5 +13,6 @@ webUserRoutes.post("/uploadByTag", authorizeRoles(), multipleFileUpload('files',
 webUserRoutes.delete("/deleteFile", authorizeRoles(), deleteFile);
 webUserRoutes.get("/expertise-list", authorizeRoles(), getAllExpertise);
 webUserRoutes.get("/get-suppliers", authorizeRoles(), getSuppliersByExpertise);
+webUserRoutes.post("/add-expertise", authorizeRoles(), updateSupplierExpertise);
 
 export default webUserRoutes;

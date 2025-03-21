@@ -185,15 +185,15 @@ export const uploadFile = async (req: any, res: Response) => {
     try {
         const userId = req.user?.id;
         //console.log(req.user)
-        const { expertise, supplierId } = req.body;
+        const { expertise, subExpertise, supplierId } = req.body;
         const files = req.files;
 
         if (!userId) {
             return res.status(401).json({ message: "Unauthorized", status: false });
         }
         //console.log(files)
-        if (!files || !expertise) {
-            return res.status(400).json({ message: "File & expertise are required", status: false });
+        if (!files || !expertise || !subExpertise) {
+            return res.status(400).json({ message: "File, expertise, and sub-expertise are required", status: false });
         }
 
         const user: any = await userModel.findOne({ _id: userId })
@@ -216,24 +216,25 @@ export const uploadFile = async (req: any, res: Response) => {
                 status: false
             });
         }
-        // if (!user?.expertise.includes(expertise)) {
-        //     return res.status(400).json({ message: "Invalid tag. Use a tag from your registered list.", status: false });
-        // }
+        
+        const expertiseData = supplier.expertise.find(exp => exp.name === expertise);
+        if (!expertiseData) {
+            return res.status(400).json({ message: `Expertise '${expertise}' does not exist for this supplier.`, status: false });
+        }
+        if (!expertiseData.subExpertise.includes(subExpertise)) {
+            return res.status(400).json({ message: `Sub-expertise '${subExpertise}' does not exist under '${expertise}'.`, status: false });
+        }
 
         let uploadedFilesData = [];
 
         for (const file of files) {
-            const fileData = {
-                originalname: file.originalname,
-                buffer: file.buffer
-            };
-
             const uploadedFile = await uploadToBackblazeB2(file, `user_${userId}`);
 
             const newFile = new FileModel({
                 userId,
                 supplierId,
                 expertise,
+                subExpertise,
                 fileUrl: uploadedFile.url,
                 fileName: uploadedFile.fileName,
                 key: uploadedFile.key
@@ -293,30 +294,50 @@ export const getAllExpertise = async (req: any, res: Response) => {
     try {
         const { search } = req.query;
 
-        const expertiseCounts = await userModel.aggregate([
+        const expertiseData = await userModel.aggregate([
+
             { $unwind: "$expertise" },
+            { $unwind: "$expertise.subExpertise" },
             {
                 $group: {
-                    _id: "$expertise",
-                    count: { $sum: 1 }
+                    _id: {
+                        expertiseName: "$expertise.name",
+                        subExpertiseName: "$expertise.subExpertise"
+                    },
+                    supplierCount: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.expertiseName",
+                    subExpertise: {
+                        $push: {
+                            name: "$_id.subExpertiseName",
+                            supplierCount: "$supplierCount"
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    expertise: "$_id",
+                    subExpertise: 1
                 }
             }
         ]);
 
-        let finalExpertiseList = expertiseCounts.map(exp => ({
-            expertise: exp._id,
-            count: exp.count
-        }));
 
+        let finalExpertiseList = expertiseData;
         if (search) {
             const searchRegex = new RegExp(search as string, "i");
-            finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
-        }
+            finalExpertiseList = expertiseData.filter(exp => searchRegex.test(exp.expertise));
+        } 
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
             status: true,
-            data: finalExpertiseList
+            data: expertiseData
         });
 
     } catch (err: any) {
@@ -330,7 +351,7 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getSuppliersByExpertise = async (req: any, res: Response) => {
     try {
-        const { expertise } = req.query;
+        const { expertise, subExpertise } = req.query;
 
         if (!expertise) {
             return res.status(400).json({
@@ -338,14 +359,18 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
                 status: false
             });
         }
+        const matchCriteria: any = { "expertise.name": expertise };
+        if (subExpertise) {
+            matchCriteria["expertise.subExpertise"] = subExpertise;
+        }
 
         const suppliersWithFiles = await userModel.aggregate([
             {
-                $match: { expertise: { $in: [expertise] } }
+                $match: matchCriteria
             },
             {
                 $lookup: {
-                    from: "files", 
+                    from: "files",
                     localField: "_id",
                     foreignField: "supplierId",
                     as: "files"
@@ -357,7 +382,12 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
                         $filter: {
                             input: "$files",
                             as: "file",
-                            cond: { $eq: ["$$file.expertise", expertise] }
+                            cond: {
+                                $and: [
+                                    { $eq: ["$$file.expertise", expertise] },
+                                    subExpertise ? { $eq: ["$$file.subExpertise", subExpertise] } : {}
+                                ]
+                            }
                         }
                     }
                 }
@@ -377,7 +407,7 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
 
         if (suppliersWithFiles.length === 0) {
             return res.status(404).json({
-                message: "No suppliers found with this expertise",
+                message: "No suppliers found with this expertise and subExpertise",
                 status: false
             });
         }
@@ -396,5 +426,48 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
         });
     }
 };
+
+export const updateSupplierExpertise = async (req: any, res: Response) => {
+    try {
+        const { supplierId, expertise, subExpertise } = req.body;
+
+        if (!supplierId || !expertise) {
+            return res.status(400).json({
+                message: "Supplier ID and expertise are required",
+                status: false
+            });
+        }
+
+        const updatedSupplier = await userModel.findByIdAndUpdate(
+            supplierId,
+            {
+                $addToSet: { 
+                    "expertise": { name: expertise, subExpertise: subExpertise || [] }
+                }
+            },
+            { new: true }
+        );
+
+        if (!updatedSupplier) {
+            return res.status(404).json({
+                message: "Supplier not found",
+                status: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Expertise updated successfully",
+            status: true,
+            data: updatedSupplier.expertise
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
+    }
+};
+
 
 
