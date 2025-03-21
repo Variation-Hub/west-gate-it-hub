@@ -283,8 +283,8 @@ const userModel = new mongoose.Schema({
             subExpertise: [{ type: String }]
         }
     ],
-    poc_details: { type: mongoose.Schema.Types.Mixed, default: {} },
-    certifications:{ type: mongoose.Schema.Types.Mixed, default: {} },
+    poc_details: { type: String, default: "" },
+    certifications: { type: String, default: "" },
     createdAt: {
         type: Date,
         default: Date.now
