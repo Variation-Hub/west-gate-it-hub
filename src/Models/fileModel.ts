@@ -25,10 +25,18 @@ const fileSchema = new mongoose.Schema({
         required: true
     },
     key: {
-        type: String, // This is required for deletion from Backblaze B2
+        type: String, // This is required for deletion from BackblazeB2
         required: true
     },
+    subExpertise: { 
+        type: String, 
+        required: true 
+    },
     createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
         type: Date,
         default: Date.now
     }
