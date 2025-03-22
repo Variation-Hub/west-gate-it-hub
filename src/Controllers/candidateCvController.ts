@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
 
-export const createCandidateCV = async (req: Request, res: Response) => {
+export const createCandidateCV = async (req: any, res: Response) => {
     try {
         const { data } = req.body;
 
@@ -21,12 +21,19 @@ export const createCandidateCV = async (req: Request, res: Response) => {
     }
 };
 
-export const getAllCandidates = async (req: Request, res: Response) => {
+export const getAllCandidates = async (req: any, res: Response) => {
     try {
-        const filter = {}; // Add filtering logic if needed
-        const count = await CandidateCvModel.countDocuments(filter);
+        const { search, value} = req.query;
 
-        const candidates = await CandidateCvModel.find(filter)
+        const queryObj: any = {}; 
+
+        if (search && value) {
+            queryObj[search] = { $regex: value, $options: "i" };
+        }
+
+        const count = await CandidateCvModel.countDocuments(queryObj);
+
+        const candidates = await CandidateCvModel.find(queryObj)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -51,7 +58,7 @@ export const getAllCandidates = async (req: Request, res: Response) => {
     }
 };
 
-export const getCandidateById = async (req: Request, res: Response) => {
+export const getCandidateById = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -70,7 +77,7 @@ export const getCandidateById = async (req: Request, res: Response) => {
     }
 };
 
-export const updateCandidate = async (req: Request, res: Response) => {
+export const updateCandidate = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
         const { data } = req.body;
@@ -95,7 +102,7 @@ export const updateCandidate = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteCandidate = async (req: Request, res: Response) => {
+export const deleteCandidate = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -112,3 +119,44 @@ export const deleteCandidate = async (req: Request, res: Response) => {
         return res.status(500).json({ message: error.message, status: false });
     }
 };
+
+export const getCandidatesBySupplierId = async (req: any, res: Response) => {
+    try {
+      const { supplierId } = req.params;
+  
+      if (!supplierId) {
+        return res.status(400).json({
+          message: "Supplier ID is required",
+          status: false,
+        });
+      }
+  
+      const candidates = await CandidateCvModel.find({ supplierId })
+        .limit(req.pagination?.limit as number)
+        .skip(req.pagination?.skip as number)
+        .sort({ createdAt: -1, _id: -1 });
+  
+      const count = await CandidateCvModel.countDocuments({ supplierId });
+  
+      return res.status(200).json({
+        message: "Candidates successfully fetched",
+        status: true,
+        data: {
+          data: candidates,
+          meta_data: {
+            page: req.pagination?.page,
+            items: count,
+            page_size: req.pagination?.limit,
+            pages: Math.ceil(count / (req.pagination?.limit as number)),
+          },
+        },
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: "Error fetching candidates",
+        status: false,
+        error: error.message,
+      });
+    }
+  };
+  

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const CandidateCVSchema = new mongoose.Schema({
+    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     fullName: { type: String, required: true },
     gender: { type: String },
     nationality: { type: String },
