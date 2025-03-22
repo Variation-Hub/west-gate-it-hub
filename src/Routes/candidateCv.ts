@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { createCandidateCV, updateCandidate, getAllCandidates, getCandidateById, deleteCandidate } from '../Controllers/candidateCvController';
+import { createCandidateCV, updateCandidate, getAllCandidates, getCandidateById, deleteCandidate, getCandidatesBySupplierId } from '../Controllers/candidateCvController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
@@ -10,5 +10,6 @@ candidateCvRoute.get("/get-list", authorizeRoles(), paginationMiddleware, getAll
 candidateCvRoute.get("/get/:id", authorizeRoles(), getCandidateById);       
 candidateCvRoute.patch("/update/:id", authorizeRoles(),updateCandidate);         
 candidateCvRoute.delete("/delete/:id", authorizeRoles(), deleteCandidate);
+candidateCvRoute.get("/list/:supplierId", authorizeRoles(), paginationMiddleware, getCandidatesBySupplierId);
 
 export default candidateCvRoute;
