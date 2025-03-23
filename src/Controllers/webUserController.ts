@@ -222,7 +222,7 @@ export const uploadFile = async (req: any, res: Response) => {
         if (!expertiseData) {
             return res.status(400).json({ message: `Expertise '${expertise}' does not exist for this supplier.`, status: false });
         }
-        if (!expertiseData.subExpertise.includes(subExpertise)) {
+        if (!expertiseData.subExpertise || !expertiseData.subExpertise.includes(subExpertise)) {
             return res.status(400).json({ message: `Sub-expertise '${subExpertise}' does not exist under '${expertise}'.`, status: false });
         }
 
@@ -446,27 +446,39 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
             });
         }
 
-        const updatedSupplier = await userModel.findByIdAndUpdate(
-            supplierId,
-            {
-                $addToSet: { 
-                    "expertise": { name: expertise, subExpertise: subExpertise || [] }
-                }
-            },
-            { new: true }
-        );
-
-        if (!updatedSupplier) {
+        const supplier = await userModel.findById(supplierId);
+        if (!supplier) {
             return res.status(404).json({
                 message: "Supplier not found",
                 status: false
             });
         }
 
+        const expertiseIndex = supplier.expertise.findIndex(exp => exp.name.toLowerCase() === expertise.toLowerCase());
+
+        if (expertiseIndex !== -1) {
+            const existingSubExpertise = supplier.expertise[expertiseIndex].subExpertise || [];
+
+            const newSubExpertise = subExpertise.filter((sub: any) => !existingSubExpertise.includes(sub));
+
+            if (newSubExpertise.length === 0) {
+                return res.status(400).json({
+                    message: `Expertise and All sub-expertise already exist for '${expertise}'. Nothing to update.`,
+                    status: false
+                });
+            }
+
+            supplier.expertise[expertiseIndex].subExpertise.push(...newSubExpertise);
+        } else {
+            supplier.expertise.push({ name: expertise, subExpertise: subExpertise || [] });
+        }
+
+        await supplier.save();
+
         return res.status(200).json({
             message: "Expertise updated successfully",
             status: true,
-            data: updatedSupplier.expertise
+            data: supplier.expertise
         });
 
     } catch (err: any) {
