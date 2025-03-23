@@ -8,6 +8,7 @@ import { userRoles } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
 import FileModel from "../Models/fileModel"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
+import mongoose from "mongoose";
 
 const sendMail = async (data: any) => {
 
@@ -292,12 +293,17 @@ export const deleteFile = async (req: Request, res: Response) => {
 
 export const getAllExpertise = async (req: any, res: Response) => {
     try {
-        const { search } = req.query;
+        const { search, supplierId } = req.query;
+
+        const matchStage: any = {};
+        if (supplierId) {
+            matchStage._id = new mongoose.Types.ObjectId(supplierId);            ;
+        }
 
         const expertiseData = await userModel.aggregate([
-
-            { $unwind: "$expertise" },
-            { $unwind: "$expertise.subExpertise" },
+            { $match: matchStage },
+            { $unwind: { path: "$expertise", preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: "$expertise.subExpertise", preserveNullAndEmptyArrays: true } },
             {
                 $group: {
                     _id: {
@@ -315,24 +321,26 @@ export const getAllExpertise = async (req: any, res: Response) => {
                             name: "$_id.subExpertiseName",
                             supplierCount: "$supplierCount"
                         }
-                    }
+                    },
+                    totalSubExpertise: { $sum: 1 }
                 }
             },
             {
                 $project: {
                     _id: 0,
                     expertise: "$_id",
+                    totalSubExpertise: 1,
                     subExpertise: 1
                 }
             }
         ]);
 
 
-        let finalExpertiseList = expertiseData;
+        let finalExpertiseList = expertiseData.filter(exp => exp.expertise !== null);
         if (search) {
             const searchRegex = new RegExp(search as string, "i");
-            finalExpertiseList = expertiseData.filter(exp => searchRegex.test(exp.expertise));
-        } 
+            finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
+        }
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",

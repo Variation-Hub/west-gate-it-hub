@@ -23,12 +23,12 @@ export const createCandidateCV = async (req: any, res: Response) => {
 
 export const getAllCandidates = async (req: any, res: Response) => {
     try {
-        const { search, value} = req.query;
+        const { search } = req.query;
 
         const queryObj: any = {}; 
 
-        if (search && value) {
-            queryObj[search] = { $regex: value, $options: "i" };
+        if (search) {
+            queryObj["fullName"] = { $regex: search, $options: "i" };
         }
 
         const count = await CandidateCvModel.countDocuments(queryObj);
