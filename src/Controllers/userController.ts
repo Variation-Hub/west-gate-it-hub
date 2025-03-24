@@ -497,11 +497,19 @@ export const getSupplierDetails = async (req: any, res: Response) => {
             }
         }
 
+        const expertiseCount = user.expertise?.map(exp => ({
+            _id: exp._id,
+            name: exp.name,
+            subExpertise: exp.subExpertise,
+            subExpertiseCount: exp.subExpertise?.length || 0
+        })) || [];
+
         return res.status(200).json({
             message: "User detail fetch success",
             status: true,
             data: user,
-            expertiseList: user?.expertise || [],
+            expertiseCount,
+            totalExpertiseCount: expertiseCount?.length,
             files: files
         });
     } catch (err: any) {
