@@ -16,6 +16,7 @@ import taskRouter from './taskRoute';
 import projectDetailTitleRouter from './projectDetailTitleRoute';
 import databaseRoute from './databaseRoute';
 import candidateCvRoute from './candidateCv';
+import roleRoute from './roleRoute';
 
 const Routes = express.Router();
 
@@ -36,5 +37,6 @@ Routes.use("/task", taskRouter);
 Routes.use("/project-detail-title", projectDetailTitleRouter);
 Routes.use("/database", databaseRoute);
 Routes.use("/candidate", candidateCvRoute);
+Routes.use("/roles", roleRoute);
 
 export default Routes; 

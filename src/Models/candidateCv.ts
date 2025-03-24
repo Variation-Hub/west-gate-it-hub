@@ -9,6 +9,7 @@ const CandidateCVSchema = new mongoose.Schema({
     yearOfGraduation: { type: Number },
     totalExperience: { type: Number },
     jobTitle: { type: String },
+    otherJobTitle: {type: String},
     startDate: { type: Date },
     keyResponsibilities: { type: String },
     previousEmployers: { type: [String] },
@@ -20,6 +21,7 @@ const CandidateCVSchema = new mongoose.Schema({
     hourlyRate: { type: Number },
     workingHoursPerWeek: { type: Number },
     overtimeCharges: { type: Number },
+    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', required: true },
     projectsWorkedOn: [{
         projectName: { type: String },
         clientName: { type: String },
