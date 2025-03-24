@@ -82,7 +82,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
 export const getlistByRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const candidates = await CandidateCvModel.find({ roleId: id });
+        const candidates = await CandidateCvModel.find({ roleId: id }).populate("roleId", "name");
         res.status(200).json({ message: 'Candidates fetched successfully', status: true, data: candidates });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });
