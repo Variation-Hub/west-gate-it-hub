@@ -33,7 +33,7 @@ export const getAllCandidates = async (req: any, res: Response) => {
 
         const count = await CandidateCvModel.countDocuments(queryObj);
 
-        const candidates = await CandidateCvModel.find(queryObj)
+        const candidates = await CandidateCvModel.find(queryObj).populate("roleId", "name")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -62,7 +62,7 @@ export const getCandidateById = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
-        const candidate = await CandidateCvModel.findById(id);
+        const candidate = await CandidateCvModel.findById(id).populate("roleId", "name");
         if (!candidate) {
             return res.status(404).json({ message: "Candidate not found", status: false });
         }
@@ -131,7 +131,7 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         });
       }
   
-      const candidates = await CandidateCvModel.find({ supplierId })
+      const candidates = await CandidateCvModel.find({ supplierId }).populate("roleId", "name")
         .limit(req.pagination?.limit as number)
         .skip(req.pagination?.skip as number)
         .sort({ createdAt: -1, _id: -1 });
