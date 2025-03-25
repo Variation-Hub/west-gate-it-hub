@@ -6,6 +6,9 @@ const RoleSchema = new mongoose.Schema({
         required: true, 
         unique: true 
     },
+    otherRole: [
+        { type: String }
+    ] 
 }, { timestamps: true, versionKey: false, minimize: false });
 
 const Role = mongoose.model("Role", RoleSchema);

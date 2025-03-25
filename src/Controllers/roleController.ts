@@ -1,16 +1,16 @@
 import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
 import RoleModel from "../Models/roleModel"
-
+import mongoose from "mongoose";
 export const createRole = async (req: Request, res: Response) => {
     try {
-        const { name } = req.body;
+        const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
         
         const existingRole = await RoleModel.findOne({ name });
         if (existingRole) return res.status(400).json({ message: 'Role already exists', status: false });
         
-        const newRole = new RoleModel({ name });
+        const newRole = new RoleModel({ name, otherRole: otherRole || [] });
         await newRole.save();
         res.status(201).json({ message: 'Role created successfully', status: true, data: newRole });
     } catch (err: any) {
@@ -21,10 +21,10 @@ export const createRole = async (req: Request, res: Response) => {
 export const updateRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name } = req.body;
+        const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
         
-        const updatedRole = await RoleModel.findByIdAndUpdate(id, { name }, { new: true });
+        const updatedRole = await RoleModel.findByIdAndUpdate(id, { name, otherRole: otherRole || [] }, { new: true });
         if (!updatedRole) return res.status(404).json({ message: 'Role not found', status: false });
         
         res.status(200).json({ message: 'Role updated successfully', status: true, data: updatedRole });
@@ -45,7 +45,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query;
+        const { search, startDate, endDate } = req.query;
         const limit = Number(req.pagination?.limit) || 10;
         const skip = Number(req.pagination?.skip) || 0;
     
@@ -54,10 +54,71 @@ export const getAllRoles = async (req: Request, res: Response) => {
             query.name = { $regex: search, $options: "i" };
         }
 
-        const roles = await RoleModel.find(query)
-          .limit(limit)
-          .skip(skip)
-          .sort({ createdAt: -1, _id: -1 });
+        if (startDate && endDate) {
+            const start = new Date(startDate as string);
+            const end = new Date(endDate as string);
+            end.setHours(23, 59, 59, 999);
+            query.createdAt = { $gte: start, $lte: end };
+        }
+
+        const roles = await RoleModel.aggregate([
+            { $match: query },
+            {
+                $lookup: {
+                    from: "candidatecvs",
+                    localField: "_id",
+                    foreignField: "roleId",
+                    as: "candidates"
+                }
+            },
+            {
+                $addFields: {
+                    totalCandidatesCount: { $size: "$candidates" },
+                    supplierIds: {
+                        $reduce: {
+                            input: "$candidates",
+                            initialValue: [],
+                            in: { $setUnion: ["$$value", { $cond: { if: { $isArray: "$$this.supplierId" }, then: "$$this.supplierId", else: ["$$this.supplierId"] } }] }
+                        }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users", 
+                    localField: "supplierIds",
+                    foreignField: "_id",
+                    as: "suppliers"
+                }
+            },
+            {
+                $addFields: {
+                    totalSuppliersCount: { $size: "$suppliers" },
+                    activeSuppliersCount: {
+                        $size: {
+                            $filter: {
+                                input: "$suppliers",
+                                as: "supplier",
+                                cond: { $eq: ["$$supplier.active", true] }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    createdAt: 1,
+                    totalCandidatesCount: 1,
+                    totalSuppliersCount: 1,
+                    activeSuppliersCount: 1
+                }
+            },
+            { $sort: { createdAt: -1, _id: -1 } },
+            { $skip: skip },
+            { $limit: limit }
+        ]);
     
         const totalRoles = await RoleModel.countDocuments(query);
     
@@ -82,7 +143,21 @@ export const getAllRoles = async (req: Request, res: Response) => {
 export const getlistByRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const candidates = await CandidateCvModel.find({ roleId: id }).populate("roleId", "name");
+        const { startDate, endDate } = req.query;
+
+        const matchStage: any = { roleId: new mongoose.Types.ObjectId(id) };
+
+        if (startDate && endDate) {
+            const start = new Date(startDate as string);
+            const end = new Date(endDate as string);
+            end.setHours(23, 59, 59, 999);
+            matchStage["createdAt"] = { $gte: start, $lte: end };
+        }
+
+        const candidates = await CandidateCvModel.find(matchStage)
+            .populate("roleId", "name")
+            .populate("supplierId", "name");
+
         res.status(200).json({ message: 'Candidates fetched successfully', status: true, data: candidates });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });

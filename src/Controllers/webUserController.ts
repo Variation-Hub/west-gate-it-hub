@@ -306,31 +306,20 @@ export const getAllExpertise = async (req: any, res: Response) => {
             { $unwind: { path: "$expertise.subExpertise", preserveNullAndEmptyArrays: true } },
             {
                 $group: {
-                    _id: {
-                        expertiseName: "$expertise.name",
-                        subExpertiseName: "$expertise.subExpertise"
-                    },
-                    supplierCount: { $sum: 1 }
+                    _id: "$expertise.name",                    
+                    totalSupplierCount: { $sum: 1 },
+                    activeSupplierCount: { $sum: { $cond: [{ $eq: ["$active", true] }, 1, 0] } },
+                    subExpertiseList: { $addToSet: "$expertise.subExpertise" }
                 }
             },
-            {
-                $group: {
-                    _id: "$_id.expertiseName",
-                    subExpertise: {
-                        $push: {
-                            name: "$_id.subExpertiseName",
-                            supplierCount: "$supplierCount"
-                        }
-                    },
-                    totalSubExpertise: { $sum: 1 }
-                }
-            },
+            
             {
                 $project: {
                     _id: 0,
                     expertise: "$_id",
-                    totalSubExpertise: 1,
-                    subExpertise: 1
+                    totalSupplierCount: 1,
+                    activeSupplierCount: 1,
+                    subExpertiseCount: { $size: "$subExpertiseList" } // Count of unique subExpertise
                 }
             }
         ]);
