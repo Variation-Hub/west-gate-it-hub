@@ -217,7 +217,7 @@ export const uploadFile = async (req: any, res: Response) => {
                 status: false
             });
         }
-        
+
         const expertiseData = supplier.expertise.find(exp => exp.name === expertise);
         if (!expertiseData) {
             return res.status(400).json({ message: `Expertise '${expertise}' does not exist for this supplier.`, status: false });
@@ -273,9 +273,9 @@ export const deleteFile = async (req: Request, res: Response) => {
         }
 
         // Delete from BackblazeB2
-        const fileKey = { key: file.key }; 
+        const fileKey = { key: file.key };
         const deleteResponse = await deleteFromBackblazeB2(fileKey);
-        
+
         // Remove file from database
         await FileModel.deleteOne({ _id: fileId });
 
@@ -293,11 +293,18 @@ export const deleteFile = async (req: Request, res: Response) => {
 
 export const getAllExpertise = async (req: any, res: Response) => {
     try {
-        const { search, supplierId } = req.query;
+        const { search, supplierId, startDate, endDate } = req.query;
 
         const matchStage: any = {};
         if (supplierId) {
-            matchStage._id = new mongoose.Types.ObjectId(supplierId);            ;
+            matchStage._id = new mongoose.Types.ObjectId(supplierId);;
+        }
+
+        if (startDate && endDate) {
+            const start = new Date(startDate as string);
+            const end = new Date(endDate as string);
+            end.setHours(23, 59, 59, 999);
+            matchStage.createdAt = { $gte: start, $lte: end };
         }
 
         const expertiseData = await userModel.aggregate([
@@ -306,13 +313,13 @@ export const getAllExpertise = async (req: any, res: Response) => {
             { $unwind: { path: "$expertise.subExpertise", preserveNullAndEmptyArrays: true } },
             {
                 $group: {
-                    _id: "$expertise.name",                    
+                    _id: "$expertise.name",
                     totalSupplierCount: { $sum: 1 },
                     activeSupplierCount: { $sum: { $cond: [{ $eq: ["$active", true] }, 1, 0] } },
                     subExpertiseList: { $addToSet: "$expertise.subExpertise" }
                 }
             },
-            
+
             {
                 $project: {
                     _id: 0,
@@ -413,7 +420,7 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
         return res.status(200).json({
             message: "Suppliers and files fetched successfully",
             status: true,
-            data: suppliersWithFiles        
+            data: suppliersWithFiles
         });
 
     } catch (err: any) {
