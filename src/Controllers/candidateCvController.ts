@@ -123,7 +123,7 @@ export const deleteCandidate = async (req: any, res: Response) => {
 export const getCandidatesBySupplierId = async (req: any, res: Response) => {
     try {
       const { supplierId } = req.params;
-  
+      const { startDate, endDate } = req.query;
       if (!supplierId) {
         return res.status(400).json({
           message: "Supplier ID is required",
@@ -131,12 +131,21 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         });
       }
   
-      const candidates = await CandidateCvModel.find({ supplierId }).populate("roleId", "name")
+      const query: any = { supplierId };
+
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt = { $gte: start, $lte: end };
+    }
+
+      const candidates = await CandidateCvModel.find(query).populate("roleId", "name")
         .limit(req.pagination?.limit as number)
         .skip(req.pagination?.skip as number)
         .sort({ createdAt: -1, _id: -1 });
   
-      const count = await CandidateCvModel.countDocuments({ supplierId });
+      const count = await CandidateCvModel.countDocuments(query);
   
       return res.status(200).json({
         message: "Candidates successfully fetched",

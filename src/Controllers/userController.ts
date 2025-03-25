@@ -337,10 +337,19 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
 
-        const count = await userModel.countDocuments({ role: userRoles.SupplierAdmin })
+        const { startDate, endDate } = req.query;
+        const query: any = { role: userRoles.SupplierAdmin }
 
-        const user = await userModel.find(
-            { role: userRoles.SupplierAdmin })
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.doj = { $gte: start, $lte: end };
+        }
+
+        const count = await userModel.countDocuments(query)
+
+        const user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
