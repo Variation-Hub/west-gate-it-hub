@@ -68,52 +68,36 @@ export const getAllRoles = async (req: Request, res: Response) => {
                     from: "candidatecvs",
                     localField: "_id",
                     foreignField: "roleId",
-                    as: "candidates"
-                }
-            },
-            {
-                $addFields: {
-                    totalCandidatesCount: { $size: "$candidates" },
-                    supplierIds: {
-                        $reduce: {
-                            input: "$candidates",
-                            initialValue: [],
-                            in: { $setUnion: ["$$value", { $cond: { if: { $isArray: "$$this.supplierId" }, then: "$$this.supplierId", else: ["$$this.supplierId"] } }] }
-                        }
-                    }
-                }
+                    as: "cvs",
+                },
             },
             {
                 $lookup: {
-                    from: "users", 
-                    localField: "supplierIds",
+                    from: "users",
+                    localField: "cvs.supplierId",
                     foreignField: "_id",
-                    as: "suppliers"
-                }
-            },
-            {
-                $addFields: {
-                    totalSuppliersCount: { $size: "$suppliers" },
-                    activeSuppliersCount: {
-                        $size: {
-                            $filter: {
-                                input: "$suppliers",
-                                as: "supplier",
-                                cond: { $eq: ["$$supplier.active", true] }
-                            }
-                        }
-                    }
-                }
+                    as: "suppliers",
+                },
             },
             {
                 $project: {
                     _id: 1,
                     name: 1,
+                    otherRole: 1,
                     createdAt: 1,
-                    totalCandidatesCount: 1,
-                    totalSuppliersCount: 1,
-                    activeSuppliersCount: 1
+                    updatedAt: 1,
+                    totalSuppliersCount: { $size: "$cvs" },
+                    activeSuppliersCount: {
+                        $size: {
+                            $filter: {
+                                input: "$suppliers",
+                                as: "supplier",
+                                cond: "$$supplier.active",
+                            
+                        }
+                    }
                 }
+            },
             },
             { $sort: { createdAt: -1, _id: -1 } },
             { $skip: skip },
