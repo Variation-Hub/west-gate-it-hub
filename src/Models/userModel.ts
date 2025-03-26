@@ -210,12 +210,12 @@ const userModel = new mongoose.Schema({
         default: null
     },
     typeOfCompany: {
-        type: String,
-        default: ""
+        type: [String],
+        default: [],
     },
     industry_Sector: {
-        type: String,
-        default: ""
+        type: [String],
+        default: [],
     },
     companyAddress: {
         type: String,
@@ -246,8 +246,8 @@ const userModel = new mongoose.Schema({
         default: ""
     },
     technologyStack: {
-        type: String,
-        default: ""
+        type: [String],
+        default: [],
     },
     licensingDetails: {
         type: String,
@@ -284,7 +284,22 @@ const userModel = new mongoose.Schema({
         }
     ],
     poc_details: { type: String, default: "" },
-    certifications: { type: String, default: "" },
+    certifications: { 
+        type: [String],
+        default: [],
+     },
+    logo: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+    },
+    country: {
+        type: String,
+        default: "",
+    },
+    keyClients: {
+        type: [String],
+        default: [],
+    },
     createdAt: {
         type: Date,
         default: Date.now
