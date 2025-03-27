@@ -672,8 +672,10 @@ export const pinComment = async (req: Request, res: Response) => {
 
         if (pin) {
             comment.pinnedAt = new Date();
+            comment.pin = true;
         } else {
             delete comment.pinnedAt;
+            comment.pin = false;
         }
         task.markModified('comments');
         await task.save();
@@ -681,6 +683,7 @@ export const pinComment = async (req: Request, res: Response) => {
         return res.status(200).json({
             message: pin ? "Comment pinned successfully" : "Comment unpinned successfully",
             status: true,
+            pin
         });
 
     } catch (err: any) {
