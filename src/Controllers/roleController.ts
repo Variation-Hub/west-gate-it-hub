@@ -80,24 +80,46 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 },
             },
             {
+                $addFields: {
+                    uniqueSuppliers: { $setUnion: ["$cvs.supplierId", []] },
+                    activeSuppliers: {
+                        $filter: {
+                            input: "$suppliers",
+                            as: "supplier",
+                            cond: { $eq: ["$$supplier.active", true] }
+                        }
+                    }
+                }
+            },
+            {
                 $project: {
                     _id: 1,
                     name: 1,
                     otherRole: 1,
                     createdAt: 1,
                     updatedAt: 1,
-                    totalSuppliersCount: { $size: "$cvs" },
-                    activeSuppliersCount: {
+                    totalSuppliersCount: { $size: "$uniqueSuppliers" },
+                    activeSuppliersCount: { $size: "$activeSuppliers" },
+                    totalCandidatesCount: { $size: "$cvs" },
+                    activeCandidatesCount: {
                         $size: {
                             $filter: {
-                                input: "$suppliers",
-                                as: "supplier",
-                                cond: "$$supplier.active",
-                            
+                                input: "$cvs",
+                                as: "candidate",
+                                cond: {
+                                    $and: [
+                                        { $eq: ["$$candidate.active", true] },
+                                        {
+                                            $in: ["$$candidate.supplierId", 
+                                                { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     }
                 }
-            },
             },
             { $sort: { createdAt: -1, _id: -1 } },
             { $skip: skip },
