@@ -363,13 +363,26 @@ export const getTasks = async (req: any, res: Response) => {
                     return obj;
                 });
 
+                task.comments.sort((a: any, b: any) => {
+                    if (a.pinnedAt && b.pinnedAt) {
+                        return b.pinnedAt - a.pinnedAt; 
+                    } else if (a.pinnedAt) {
+                        return -1; 
+                    } else if (b.pinnedAt) {
+                        return 1; 
+                    } else {
+                        return b.date - a.date; 
+                    }
+                });
+    
+
                 task.comments = task.comments.map((obj: any) => {
                     const user = usersMap[obj.userId];
                     if (user) {
                         obj.userDetail = user;
                     }
                     return obj;
-                }).reverse();
+                });
             });
         }
 
@@ -637,5 +650,40 @@ export const deleteCommentToTask = async (req: any, res: Response) => {
             status: false,
             data: null
         });
+    }
+};
+
+export const pinComment = async (req: Request, res: Response) => {
+    try {
+        const { taskId, commentId } = req.params;
+        const { pin } = req.body;
+
+        const task: any = await taskModel.findById(taskId);
+        if (!task) {
+            return res.status(404).json({ message: "Task not found", status: false });
+        }
+
+        const commentIndex = task.comments.findIndex((c: any) => c.commentId === Number(commentId));
+        if (commentIndex === -1) {
+            return res.status(404).json({ message: "Comment not found", status: false });
+        }
+
+        const comment = task.comments[commentIndex];
+
+        if (pin) {
+            comment.pinnedAt = new Date();
+        } else {
+            delete comment.pinnedAt;
+        }
+        task.markModified('comments');
+        await task.save();
+
+        return res.status(200).json({
+            message: pin ? "Comment pinned successfully" : "Comment unpinned successfully",
+            status: true,
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
     }
 };
