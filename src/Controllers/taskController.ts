@@ -695,3 +695,121 @@ export const pinComment = async (req: Request, res: Response) => {
         return res.status(500).json({ message: err.message, status: false });
     }
 };
+
+export const addSubTask = async (req: Request, res: Response) => {
+    const { taskId } = req.params;
+    const { title, description, dueDate, resources } = req.body;
+    try {
+        const newSubtask = {
+            title,
+            description,
+            dueDate,
+            resources: resources || [],
+        };
+
+        const updatedTask = await taskModel.findByIdAndUpdate(
+            taskId,
+            { $push: { subtasks: newSubtask } },
+            { new: true }
+        );
+
+        res.json({ success: true, task: updatedTask });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteSubTask = async (req: Request, res: Response) => {
+    const { taskId, subtaskId } = req.params;
+
+    try {
+        const updatedTask = await taskModel.findByIdAndUpdate(
+            taskId,
+            { $pull: { subtasks: { _id: subtaskId } } },
+            { new: true }
+        );
+
+        res.json({ success: true, task: updatedTask });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const addCandidate = async (req: Request, res: Response) => {
+    const { taskId, subtaskId } = req.params;
+    const { candidateId } = req.body;
+
+    try {
+        const updatedTask = await taskModel.findOneAndUpdate(
+            { _id: taskId, "subtasks._id": subtaskId },
+            { $push: { "subtasks.$.resources": { candidateId, assignedAt: new Date() } } },
+            { new: true }
+        );
+
+        res.json({ success: true, task: updatedTask });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const getSubTasks = async (req: Request, res: Response) => {
+    try {
+        const { taskId } = req.params;
+
+        if (!taskId) {
+            return res.status(400).json({
+                message: "Task ID is required",
+                status: false,
+                data: null
+            });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(taskId as string)) {
+            return res.status(400).json({
+                message: "Invalid Task ID",
+                status: false,
+                data: null
+            });
+        }
+
+        const task = await taskModel.findById(taskId)
+            .populate("subtasks.resources.candidateId", "fullName")
+            .exec();
+
+            if (!task || !task.subtasks) {
+                return res.status(404).json({
+                    message: "No subtasks found",
+                    status: false,
+                    data: []
+                });
+            }
+    
+            const sortedSubTasks = task.subtasks.sort((a: any, b: any) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+
+        return res.status(200).json({
+            message: "Subtasks fetched successfully",
+            status: true,
+            data: sortedSubTasks || []
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
