@@ -1,6 +1,48 @@
 import mongoose from "mongoose";
 import { taskCategory, taskStatus, taskType } from "../Util/contant";
 
+const SubTaskSchema = new mongoose.Schema({
+    title: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    description: {
+        type: String,
+        default: "",
+    },
+    status: {
+        type: String,
+        enum: taskStatus,
+        default: taskStatus.Ongoing,
+    },
+    dueDate: {
+        type: Date,
+        default: null,
+    },
+    resources: [
+        {
+            _id: false,
+            candidateId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'CandidateCv'
+            },
+            assignedAt: {
+                type: Date,
+                default: Date.now,
+            },
+        }
+    ],
+    createdAt: {
+        type: Date,
+        default: Date.now,
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now,
+    }
+}, { versionKey: false, minimize: false });
+
 const TaskModel = new mongoose.Schema({
     task: {
         type: String,
@@ -72,7 +114,8 @@ const TaskModel = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    subtasks: [SubTaskSchema],
 }, { versionKey: false, minimize: false });
 
 TaskModel.pre('save', async function (next) {
