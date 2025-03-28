@@ -390,56 +390,33 @@ export const getTasks = async (req: any, res: Response) => {
             const taskObj = task.toObject();
             const createdAt = moment(taskObj.createdAt).startOf('day');
             const today = moment().startOf('day');
-            const datewiseComments: any = {};
+            const datewiseComments: any = { pinnedComments: []};
 
-            taskObj.comments.forEach((comment: any) => {
-                const dateStr = moment(comment.date).format('YYYY-MM-DD');
-                if (!datewiseComments[dateStr]) {
-                    datewiseComments[dateStr] = [];
-                }
-                datewiseComments[dateStr].push(comment);
-            });
-
-            for (const date in datewiseComments) {
-                if (Array.isArray(datewiseComments[date])) {
-                    const pinnedComments = datewiseComments[date].filter((comment: any) => comment.pinnedAt);
-                    const unpinnedComments = datewiseComments[date].filter((comment: any) => !comment.pinnedAt);
-
-                    pinnedComments.sort((a: any, b: any) => b.pinnedAt - a.pinnedAt);
-                    unpinnedComments.sort((a: any, b: any) => a.date - b.date);
-
-                    // Reconstruct the date group with pinned comments first
-                    datewiseComments[date] = [...pinnedComments, ...unpinnedComments];
-                }
-            }
-
-            // Handle dates with no comments
             let currentDate = createdAt.clone();
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
                 if (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7) {
-                    if (!datewiseComments[dateStr]) {
-                        datewiseComments[dateStr] = "No comments available for this date";
-                    }
+                    const commentsForDate = taskObj.comments
+                    .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
+                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+                    datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
                 }
                 currentDate.add(1, 'day');
             }
+            datewiseComments.pinnedComments = taskObj.comments
+                .filter((comment: any) => comment.pin)
+                .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime()); 
 
-            const sortedDatewiseComments: any = Object.entries(datewiseComments).sort(([dateA, commentsA], [dateB, commentsB]) => {
-                const hasPinnedA = Array.isArray(commentsA) && commentsA.some((comment: any) => comment.pinnedAt);
-                const hasPinnedB = Array.isArray(commentsB) && commentsB.some((comment: any) => comment.pinnedAt);
-
-                if (hasPinnedA && !hasPinnedB) {
-                    return -1;
-                } else if (!hasPinnedA && hasPinnedB) {
-                    return 1;
-                } else {
-                    return moment(dateB).diff(moment(dateA));
-                }
-            });
-
-            taskObj.datewiseComments = Object.fromEntries(sortedDatewiseComments);
-
+            // Sort datewiseComments in descending order (pinned remains on top)
+            taskObj.datewiseComments = {
+                pinnedComments: datewiseComments.pinnedComments,
+                ...Object.fromEntries(
+                    Object.entries(datewiseComments)
+                        .filter(([key]) => key !== "pinnedComments")
+                        .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
+                )
+            };
             return taskObj; // Return the modified object
         });
 
