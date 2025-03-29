@@ -395,11 +395,11 @@ export const getTasks = async (req: any, res: Response) => {
             let currentDate = createdAt.clone();
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                if (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7) {
-                    const commentsForDate = taskObj.comments
-                    .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
-                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                const commentsForDate = taskObj.comments
+                .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
+                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
+                if (commentsForDate.length > 0 || (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7)) {
                     datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
                 }
                 currentDate.add(1, 'day');
