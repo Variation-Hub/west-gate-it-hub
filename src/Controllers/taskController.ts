@@ -489,6 +489,7 @@ export const addCommentToTask = async (req: any, res: Response) => {
             comment,
             date: new Date(),
             userId: userId.toString(),
+            pin: false
         })
 
         await task.save();
