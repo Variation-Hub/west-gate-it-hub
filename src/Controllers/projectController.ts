@@ -1518,13 +1518,25 @@ export const getProjects = async (req: any, res: Response) => {
                             return map;
                         }, {});
 
+                        task.comments.sort((a: any, b: any) => {
+                            if (a.pinnedAt && b.pinnedAt) {
+                                return b.pinnedAt - a.pinnedAt; 
+                            } else if (a.pinnedAt) {
+                                return -1; 
+                            } else if (b.pinnedAt) {
+                                return 1; 
+                            } else {
+                                return b.date - a.date; 
+                            }
+                        });
+
                         task.comments = task.comments.map((obj: any) => {
                             const user = usersMap[obj.userId];
                             if (user) {
                                 obj.userDetail = user;
                             }
                             return obj;
-                        }).reverse();
+                        });
                     }
                 }
                 if (feasibilitylatestTask.length > 0) {
