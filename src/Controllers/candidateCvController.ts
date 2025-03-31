@@ -9,6 +9,12 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid data format", status: false });
         }
 
+        data.forEach(candidate => {
+            if (!Array.isArray(candidate.roleId)) {
+                throw new Error("roleId must be an array");
+            }
+        });
+
         const candidates = await CandidateCvModel.insertMany(data);
 
         return res.status(201).json({
@@ -33,7 +39,8 @@ export const getAllCandidates = async (req: any, res: Response) => {
 
         const count = await CandidateCvModel.countDocuments(queryObj);
 
-        const candidates = await CandidateCvModel.find(queryObj).populate("roleId", "name")
+        const candidates = await CandidateCvModel.find(queryObj)
+            .populate("roleId", "name")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -84,6 +91,26 @@ export const updateCandidate = async (req: any, res: Response) => {
 
         if (!data || typeof data !== "object") {
             return res.status(400).json({ message: "Invalid data format", status: false });
+        }
+
+        const existingCandidate = await CandidateCvModel.findById(id);
+        if (!existingCandidate) {
+            return res.status(404).json({ message: "Candidate not found", status: false });
+        }
+        
+        if (data.roleId && !Array.isArray(data.roleId)) {
+            return res.status(400).json({ message: "roleId must be an array", status: false });
+        }
+
+        if (data.active === false) {
+            if (!data.inactiveComment) {
+                return res.status(400).json({ message: "Inactive comment is required", status: false });
+            }
+            data.inactiveDate = new Date();
+            data.inactiveLogs = [
+                ...(existingCandidate.inactiveLogs || []),
+                { inactiveComment: data.inactiveComment, inactiveDate: data.inactiveDate }
+            ];
         }
 
         const updatedCandidate = await CandidateCvModel.findByIdAndUpdate(id, data, { new: true });
@@ -167,5 +194,5 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         error: error.message,
       });
     }
-  };
+};
   

@@ -17,8 +17,14 @@ const CandidateCVSchema = new mongoose.Schema({
     availableFrom: { type: Date },
     availableTo: { type: Date },
     hourlyRate: { type: Number },
-    roleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Role', required: true },
+    roleId: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Role', required: true }],
     active: { type: Boolean, default: true },
+    inactiveComment: { type: String },
+    inactiveDate: { type: Date },
+    inactiveLogs: [{
+        inactiveComment: String,
+        inactiveDate: Date
+    }],
     projectsWorkedOn: [{
         projectName: { type: String },
         clientName: { type: String },

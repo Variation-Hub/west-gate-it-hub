@@ -79,6 +79,24 @@ const caseStudyModel = new mongoose.Schema({
         required: false,
         default: null
     },
+    problem: {
+        type: String,
+        default: null
+    },
+    solutionProvided: { 
+        type: String,
+        trim: true
+    },
+    resultAchieved: {   
+        type: String,
+        trim: true,
+        required: true
+    },
+    lessonsLearned: {   
+        type: String,
+        trim: true,
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now
