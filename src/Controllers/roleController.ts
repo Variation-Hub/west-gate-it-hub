@@ -149,9 +149,9 @@ export const getAllRoles = async (req: Request, res: Response) => {
 export const getlistByRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, active } = req.query;
 
-        const matchStage: any = { roleId: new mongoose.Types.ObjectId(id) };
+        const matchStage: any = { roleId: { $in: [new mongoose.Types.ObjectId(id)] } };
 
         if (startDate && endDate) {
             const start = new Date(startDate as string);
@@ -160,11 +160,27 @@ export const getlistByRole = async (req: Request, res: Response) => {
             matchStage["createdAt"] = { $gte: start, $lte: end };
         }
 
+        if (active !== undefined) {
+            matchStage["active"] = active === "true";
+        }
+
+        const totalCandidates = await CandidateCvModel.countDocuments(matchStage);
+        const activeCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: true });
+
+
         const candidates = await CandidateCvModel.find(matchStage)
             .populate("roleId", "name")
             .populate("supplierId", "name");
 
-        res.status(200).json({ message: 'Candidates fetched successfully', status: true, data: candidates });
+        res.status(200).json({
+            message: 'Candidates fetched successfully',
+            status: true,
+            data: candidates,
+            meta_data: {
+                totalCandidates,
+                activeCandidates
+            }
+        });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });
     }
@@ -175,7 +191,7 @@ export const getCount =  async (req: Request, res: Response) => {
         const roles = await RoleModel.find();
         
         const roleCounts = await Promise.all(roles.map(async (role) => {
-            const count = await CandidateCvModel.countDocuments({ roleId: role._id });
+            const count = await CandidateCvModel.countDocuments({ roleId: { $in: [role._id] } } );
             return { name: role.name, id: role._id, candidateCount: count };
         }));
 

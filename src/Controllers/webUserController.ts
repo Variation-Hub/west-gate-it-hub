@@ -328,7 +328,8 @@ export const getAllExpertise = async (req: any, res: Response) => {
                     activeSupplierCount: 1,
                     subExpertiseCount: { $size: "$subExpertiseList" } // Count of unique subExpertise
                 }
-            }
+            },
+            { $sort: { expertise: 1 } }
         ]);
 
 

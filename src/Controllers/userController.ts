@@ -337,7 +337,7 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
 
-        const { startDate, endDate } = req.query;
+        const { startDate, endDate, search } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
         if (startDate && endDate) {
@@ -347,18 +347,29 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.doj = { $gte: start, $lte: end };
         }
 
+        if(search){
+            query.name = { $regex: search, $options: "i" };
+        }
         const count = await userModel.countDocuments(query)
+        
+        const totalCount = await userModel.countDocuments(query);
+
+        const activeCount = await userModel.countDocuments({ ...query, active: true });
 
         const user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1 });
+            .sort({ active: -1, createdAt: -1 });
 
         return res.status(200).json({
             message: "User fetch success",
             status: true,
             data: {
                 data: user,
+                count: {
+                    total: totalCount,
+                    active: activeCount
+                },
                 meta_data: {
                     page: req.pagination?.page,
                     items: count,
