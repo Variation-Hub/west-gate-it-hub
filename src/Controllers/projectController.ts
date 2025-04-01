@@ -70,7 +70,8 @@ export const createProject = async (req: any, res: Response) => {
 
                 project.expiredData = (() => {
                     const matchedCategory = casestudyData.find(data =>
-                        project.category.some((category: string) => category === data.category)
+                        data.category === project.category 
+                       // project.category.some((category: string) => category === data.category)
                     );
                     if (matchedCategory) {
                         return matchedCategory.userIds.map((userId: string) => ({
