@@ -356,6 +356,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
         const activeCount = await userModel.countDocuments({ ...query, active: true });
 
+        const inActiveCount = await userModel.countDocuments({ ...query, active: false });
+
         const user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
@@ -368,7 +370,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 data: user,
                 count: {
                     total: totalCount,
-                    active: activeCount
+                    active: activeCount,
+                    inActive: inActiveCount
                 },
                 meta_data: {
                     page: req.pagination?.page,
