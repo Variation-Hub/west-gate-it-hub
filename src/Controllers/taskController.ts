@@ -130,6 +130,7 @@ export const createTask = async (req: any, res: Response) => {
                 });
 
             }
+            req.body.type = "Project"
         }
         if (Array.isArray(assignTo) && assignTo.length > 0) {
             req.body.assignTo = assignTo.map((userId: string) => {
