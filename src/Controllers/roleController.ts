@@ -169,8 +169,9 @@ export const getlistByRole = async (req: Request, res: Response) => {
 
 
         const candidates = await CandidateCvModel.find(matchStage)
-            .populate("roleId", "name")
-            .populate("supplierId", "name");
+            .populate("roleId", "name", "otherRole")
+            .populate("supplierId", "name")
+            .sort({ active: -1, createdAt: -1 });
 
         res.status(200).json({
             message: 'Candidates fetched successfully',

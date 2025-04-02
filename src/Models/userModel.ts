@@ -283,7 +283,9 @@ const userModel = new mongoose.Schema({
             subExpertise: [{ type: String }]
         }
     ],
-    poc_details: { type: String, default: "" },
+    poc_name: { type: String, default: "" },
+    poc_phone: { type: String, default: "" },
+    poc_email: { type: String, default: "" },
     certifications: { 
         type: [String],
         default: [],

@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
+import userModel from "../Models/userModel"
 
 export const createCandidateCV = async (req: any, res: Response) => {
     try {
@@ -40,7 +41,7 @@ export const getAllCandidates = async (req: any, res: Response) => {
         const count = await CandidateCvModel.countDocuments(queryObj);
 
         const candidates = await CandidateCvModel.find(queryObj)
-            .populate("roleId", "name")
+            .populate("roleId", "name", "otherRole")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -69,7 +70,7 @@ export const getCandidateById = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
-        const candidate = await CandidateCvModel.findById(id).populate("roleId", "name");
+        const candidate = await CandidateCvModel.findById(id).populate("roleId", "name", "otherRole");
         if (!candidate) {
             return res.status(404).json({ message: "Candidate not found", status: false });
         }
@@ -111,6 +112,18 @@ export const updateCandidate = async (req: any, res: Response) => {
                 ...(existingCandidate.inactiveLogs || []),
                 { inactiveComment: data.inactiveComment, inactiveDate: data.inactiveDate }
             ];
+        }
+
+        if (data.active === true) {
+            const supplier = await userModel.findById(existingCandidate.supplierId);
+            console.log(supplier?._id, supplier?.active)
+            if (!supplier || supplier.active === false) {
+                return res.status(400).json({
+                    message: "Cannot activate candidate because the supplier is inactive",
+                    status: false,
+                    data: null
+                });
+            }
         }
 
         const updatedCandidate = await CandidateCvModel.findByIdAndUpdate(id, data, { new: true });
@@ -167,7 +180,7 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         query.createdAt = { $gte: start, $lte: end };
     }
 
-      const candidates = await CandidateCvModel.find(query).populate("roleId", "name")
+      const candidates = await CandidateCvModel.find(query).populate("roleId", "name", "otherRole")
         .limit(req.pagination?.limit as number)
         .skip(req.pagination?.skip as number)
         .sort({ createdAt: -1, _id: -1 });
