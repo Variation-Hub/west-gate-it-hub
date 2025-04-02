@@ -300,6 +300,7 @@ const userModel = new mongoose.Schema({
         type: [String],
         default: [],
     },
+    inactiveDate: { type: Date },
     createdAt: {
         type: Date,
         default: Date.now
