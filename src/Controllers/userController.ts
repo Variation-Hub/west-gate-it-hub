@@ -246,7 +246,7 @@ export const userPasswordChange = async (req: Request, res: Response) => {
                 data: null
             })
         }
-        if (!(await comparepassword(oldPassword, user.password))) {
+        if (!(await comparepassword(oldPassword, user?.password || ""))) {
             return res.status(400).json({
                 message: "please enter valid old password",
                 status: false,
