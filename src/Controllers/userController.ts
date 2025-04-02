@@ -12,6 +12,7 @@ import LoginModel from "../Models/LoginModel"
 import caseStudy from "../Models/caseStudy"
 import taskModel from "../Models/taskModel"
 import FileModel from "../Models/fileModel"
+import CandidateCvModel from "../Models/candidateCv"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -173,6 +174,8 @@ export const updateUser = async (req: Request, res: Response) => {
         console.log(updateData.active)
         if (updateData.active === false) {
             user.inactiveDate = new Date();
+
+            await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
         }
         // Update fields dynamically
         Object.keys(updateData).forEach((key) => {
@@ -203,6 +206,8 @@ export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.query;
         const deleteUser = await userModel.findByIdAndDelete(id);
+
+        await CandidateCvModel.deleteMany({ supplierId: id });
 
         if (!deleteUser) {
             return res.status(404).json({

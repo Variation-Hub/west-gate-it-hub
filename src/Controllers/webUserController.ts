@@ -316,7 +316,11 @@ export const getAllExpertise = async (req: any, res: Response) => {
                     _id: "$expertise.name",
                     totalSupplierCount: { $sum: 1 },
                     activeSupplierCount: { $sum: { $cond: [{ $eq: ["$active", true] }, 1, 0] } },
-                    subExpertiseList: { $addToSet: "$expertise.subExpertise" }
+                    subExpertiseList: { 
+                        $addToSet: { 
+                            $cond: { if: { $ne: ["$expertise.subExpertise", null] }, then: "$expertise.subExpertise", else: "$$REMOVE" } 
+                        }
+                    }
                 }
             },
 
@@ -326,18 +330,31 @@ export const getAllExpertise = async (req: any, res: Response) => {
                     expertise: "$_id",
                     totalSupplierCount: 1,
                     activeSupplierCount: 1,
-                    subExpertiseCount: { $size: "$subExpertiseList" } // Count of unique subExpertise
+                    subExpertiseList: { $ifNull: ["$subExpertiseList", []] },  // Ensure it's an array
+                    subExpertiseCount: { $size: { $ifNull: ["$subExpertiseList", []] } }
                 }
             },
             { $sort: { expertise: 1 } }
         ]);
 
+        const files = await FileModel.find({});
 
-        let finalExpertiseList = expertiseData.filter(exp => exp.expertise !== null);
-        if (search) {
-            const searchRegex = new RegExp(search as string, "i");
-            finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
-        }
+// Attach related files to subExpertise
+let finalExpertiseList = expertiseData.map(exp => {
+    const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
+        const relatedFiles = files.filter(file => file.subExpertise?.includes(subExp));
+        return { name: subExp, files: relatedFiles };
+    });
+
+    return { ...exp, subExpertiseList: updatedSubExpertiseList };
+});
+
+finalExpertiseList = finalExpertiseList.filter(exp => exp.expertise !== null);
+
+if (search) {
+    const searchRegex = new RegExp(search as string, "i");
+    finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
+}
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
