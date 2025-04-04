@@ -715,7 +715,11 @@ export const addSubTask = async (req: Request, res: Response) => {
             { new: true }
         );
 
-        res.json({ success: true, task: updatedTask });
+        return res.status(200).json({
+            message: "Subtasks added successfully",
+            success: true, 
+            task: updatedTask 
+        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message,
@@ -735,7 +739,11 @@ export const deleteSubTask = async (req: Request, res: Response) => {
             { new: true }
         );
 
-        res.json({ success: true, task: updatedTask });
+        return res.status(200).json({
+            message: "Subtasks deleted successfully", 
+            success: true, 
+            task: updatedTask 
+        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message,
@@ -756,7 +764,11 @@ export const addCandidate = async (req: Request, res: Response) => {
             { new: true }
         );
 
-        res.json({ success: true, task: updatedTask });
+        return res.status(200).json({
+            message: "Added candidate to Subtasks successfully", 
+            success: true, 
+            task: updatedTask 
+        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message,
