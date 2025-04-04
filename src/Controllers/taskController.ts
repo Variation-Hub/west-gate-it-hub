@@ -685,7 +685,7 @@ export const pinComment = async (req: Request, res: Response) => {
             comment.pin = false;
         }
         task.markModified('comments');
-        await task.save();
+        await task.save({ validateBeforeSave: false });
 
         return res.status(200).json({
             message: pin ? "Comment pinned successfully" : "Comment unpinned successfully",
