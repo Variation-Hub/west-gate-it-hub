@@ -472,7 +472,7 @@ export const deleteTask = async (req: any, res: Response) => {
 export const addCommentToTask = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { comment } = req.body;
+        const { comment, timeStart, timeEnd, date } = req.body;
         const userId = req.user._id
 
         const task: any = await taskModel.findById(id);
@@ -484,10 +484,30 @@ export const addCommentToTask = async (req: any, res: Response) => {
                 data: null
             });
         }
+
+        const isOverlapping = task.comments.some((c: any) => {
+            return (
+              c.userId === userId &&
+              moment(c.date).isSame(date, 'day') &&
+              (
+                (timeStart >= c.timeStart && timeStart < c.timeEnd) ||
+                (timeEnd > c.timeStart && timeEnd <= c.timeEnd) ||
+                (timeStart <= c.timeStart && timeEnd >= c.timeEnd)
+              )
+            );
+          });
+          
+          if (isOverlapping) {
+            return res.status(400).json({ message: "Overlapping time range not allowed" });
+          }
+
+          
         const commentId = task.comments[task?.comments?.length - 1]?.commentId + 1 || 1;
         task.comments.push({
             commentId,
             comment,
+            timeStart,
+            timeEnd,
             date: new Date(),
             userId: userId.toString(),
             pin: false
@@ -824,6 +844,126 @@ export const getSubTasks = async (req: Request, res: Response) => {
             message: err.message,
             status: false,
             data: null
+        });
+    }
+};
+
+export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) => {
+    try {
+        const userId = req.user._id;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const tasks = await taskModel.find({ "assignTo.userId": userId });
+
+        for (const task of tasks) {
+            // Get all comments by this user on this task for today
+            const todayComments = task.comments.filter((c: any) => {
+                const commentDate = new Date(c.date);
+                commentDate.setHours(0, 0, 0, 0);
+                return c.userId === userId.toString() && commentDate.getTime() === today.getTime();
+            });
+
+            // If no comment for today, add auto comment
+            if (todayComments.length === 0) {
+                const commentId = task.comments[task.comments.length - 1]?.commentId + 1 || 1;
+
+                task.comments.push({
+                    commentId,
+                    comment: "No activity logged for the selected day.",
+                    date: new Date(),
+                    userId: userId.toString(),
+                    timeStart: null,
+                    timeEnd: null,
+                    auto: true
+                });
+
+                await task.save();
+            }
+        }
+
+        return res.status(200).json({
+            message: "Logout successfully",
+            status: true
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false
+        });
+    }
+}; 
+
+export const getCommentBoxData = async (req: any, res: Response) => {
+    try {
+        const userId = req.user._id;
+
+        const tasks = await taskModel.find({ "assignTo.userId": userId });
+
+        const responseData = [];
+
+        for (const task of tasks) {
+            const userComments = task.comments.filter(
+                (comment: any) => comment.userId === userId.toString()
+            );
+
+            let totalHours = 0;
+            const formattedComments = [];
+
+            const hasRealComment = userComments.some((c: any) => !c.auto);
+
+            for (const comment of userComments) {
+                if (comment.auto     && hasRealComment) continue;
+
+                let hours = 0;
+
+                const baseDate = moment(comment.date).format("YYYY-MM-DD");
+
+                const start = comment.timeStart
+                    ? moment(`${baseDate}T${comment.timeStart}`)
+                    : null;
+
+                const end = comment.timeEnd
+                    ? moment(`${baseDate}T${comment.timeEnd}`)
+                    : null;
+
+                if (start && end && start.isValid() && end.isValid()) {
+                    const duration = moment.duration(end.diff(start)).asHours();
+                    totalHours += duration;
+                }
+
+                formattedComments.push({
+                    comment: comment.comment,
+                    timeStart: comment.timeStart,
+                    timeEnd: comment.timeEnd,
+                    auto: comment.auto || false,
+                });
+            }
+
+            // Fetch subtask title if subTaskId exists
+            let subTaskTitle = null;
+            const firstSubtaskTitle = task.subtasks && task.subtasks.length > 0
+            ? task.subtasks[0].title
+            : null;
+
+            responseData.push({
+                taskId: task._id,
+                taskName: task.task,
+                firstSubtaskTitle: firstSubtaskTitle,
+                totalHours: Math.round(totalHours * 10) / 10,
+                comments: formattedComments,
+            });
+        }
+
+        return res.status(200).json({
+            message: "Comments fetched successfully",
+            status: true,
+            data: responseData,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            status: false,
+            message: error.message,
         });
     }
 };
