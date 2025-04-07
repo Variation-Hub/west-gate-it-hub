@@ -819,7 +819,7 @@ export const getSubTasks = async (req: Request, res: Response) => {
         }
 
         const task = await taskModel.findById(taskId)
-            .populate("subtasks.resources.candidateId", "fullName")
+            .populate("subtasks.resources.candidateId", "name")
             .exec();
 
             if (!task || !task.subtasks) {

@@ -159,13 +159,15 @@ export const getlistByRole = async (req: Request, res: Response) => {
             end.setHours(23, 59, 59, 999);
             matchStage["createdAt"] = { $gte: start, $lte: end };
         }
-
-        if (active !== undefined) {
-            matchStage["active"] = active === "true";
-        }
-
         const totalCandidates = await CandidateCvModel.countDocuments(matchStage);
+        if (active === "true") {
+            matchStage["active"] = true;
+        } else if (active === "false") {
+            matchStage["active"] = false;
+        }
+        
         const activeCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: true });
+        const inActiveCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: false });
 
 
         const candidates = await CandidateCvModel.find(matchStage)
@@ -179,7 +181,8 @@ export const getlistByRole = async (req: Request, res: Response) => {
             data: candidates,
             meta_data: {
                 totalCandidates,
-                activeCandidates
+                activeCandidates,
+                inActiveCandidates
             }
         });
     } catch (err: any) {
