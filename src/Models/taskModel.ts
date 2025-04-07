@@ -25,7 +25,7 @@ const SubTaskSchema = new mongoose.Schema({
             _id: false,
             candidateId: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'CandidateCv'
+                ref: 'User'
             },
             assignedAt: {
                 type: Date,
