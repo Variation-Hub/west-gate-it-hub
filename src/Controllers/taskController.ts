@@ -485,22 +485,37 @@ export const addCommentToTask = async (req: any, res: Response) => {
             });
         }
 
-        const isOverlapping = task.comments.some((c: any) => {
-            return (
-              c.userId === userId &&
-              moment(c.date).isSame(date, 'day') &&
-              (
-                (timeStart >= c.timeStart && timeStart < c.timeEnd) ||
-                (timeEnd > c.timeStart && timeEnd <= c.timeEnd) ||
-                (timeStart <= c.timeStart && timeEnd >= c.timeEnd)
-              )
-            );
-          });
-          
-          if (isOverlapping) {
-            return res.status(400).json({ message: "Overlapping time range not allowed" });
-          }
+        const allTasks = await taskModel.find({
+            "comments.userId": userId,
+            "comments.date": {
+                $gte: moment(date).startOf('day').toDate(),
+                $lte: moment(date).endOf('day').toDate()
+            }
+        });
 
+        let isOverlapping = false;
+
+        for (const t of allTasks) {
+            for (const c of t.comments) {
+                if (
+                    c.userId.toString() === userId.toString() &&
+                    moment(c.date).isSame(date, 'day') &&
+                    (
+                        (timeStart >= c.timeStart && timeStart < c.timeEnd) ||
+                        (timeEnd > c.timeStart && timeEnd <= c.timeEnd) ||
+                        (timeStart <= c.timeStart && timeEnd >= c.timeEnd)
+                    )
+                ) {
+                    isOverlapping = true;
+                    break;
+                }
+            }
+            if (isOverlapping) break;
+        }
+
+        if (isOverlapping) {
+            return res.status(400).json({ message: "This time slot is already taken in another task. Please choose a different time." });
+        }
           
         const commentId = task.comments[task?.comments?.length - 1]?.commentId + 1 || 1;
         task.comments.push({
@@ -928,6 +943,9 @@ export const getCommentBoxData = async (req: any, res: Response) => {
                     : null;
 
                 if (start && end && start.isValid() && end.isValid()) {
+                    if (end.isBefore(start)) {
+                        end.add(1, 'day');
+                    }
                     const duration = moment.duration(end.diff(start)).asHours();
                     totalHours += duration;
                 }
