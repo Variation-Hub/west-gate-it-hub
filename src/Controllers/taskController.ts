@@ -324,12 +324,12 @@ export const getTasks = async (req: any, res: Response) => {
 
         let Tasks = await taskModel.find(filter)
             .populate("project", "projectName status bidManagerStatus")
-            // .limit(req.pagination?.limit as number)
-            // .skip(req.pagination?.skip as number)
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
             .sort(sortOptions)
             .exec()
 
-        // const count = await taskModel.countDocuments(filter);
+        const count = await taskModel.countDocuments(filter);
         if (keyword) {
             Tasks = Tasks.filter((task: any) =>
                 task.task?.toLowerCase().includes(keyword.toLowerCase()) ||
@@ -421,18 +421,70 @@ export const getTasks = async (req: any, res: Response) => {
             return taskObj; // Return the modified object
         });
 
+        type DailySummary = {
+            totalWorkingHours: number;
+            summaryLine: string;
+            lines?: string[];
+        };
+        
+        const dailySummaries: Record<string, DailySummary> = {};
+
+
+        Tasks.forEach((task: any) => {
+            for (const [date, value] of Object.entries(task.datewiseComments)) {
+                if (date === 'pinnedComments') continue;
+
+                const comments = Array.isArray(value) ? value : [];
+                comments.forEach((comment: any) => {
+                    if (comment.timeStart && comment.timeEnd) {
+                        const start = moment(comment.timeStart, 'HH:mm');
+                        const end = moment(comment.timeEnd, 'HH:mm');
+                        const duration = moment.duration(end.diff(start)).asHours();
+
+                        if (!dailySummaries[date]) {
+                            dailySummaries[date] = {
+                                totalWorkingHours: 0,
+                                summaryLine: ''
+                            };
+                        }
+
+                        dailySummaries[date].totalWorkingHours += duration;
+
+                        if (!dailySummaries[date].lines) {
+                            dailySummaries[date].lines = [];
+                        }
+
+                        dailySummaries[date].lines.push(`${task.task} – ${duration.toFixed(1)} hours (${comment.timeStart} to ${comment.timeEnd})`);
+                    }
+                });
+            }
+        });
+
+        for (const [date, data] of Object.entries(dailySummaries)) {
+            if (data.lines && data.lines.length > 0) {
+                const numberedLines = data.lines.map((line: string, index: number) => `${index + 1}. ${line}`).join('\n');
+                data.summaryLine =
+                    `I did not perform any action on this today because I was focused on the following tasks:\n` +
+                    numberedLines +
+                    `\nWorked on the above tasks for a total of ${data.totalWorkingHours.toFixed(1)} hours.`;
+
+                delete data.lines;
+            }
+        }
+
 
         return res.status(200).json({
             message: "Tasks fetch success",
             status: true,
             data: {
                 data: Tasks,
-                // meta_data: {
-                //     page: req.pagination?.page,
-                //     items: count,
-                //     page_size: req.pagination?.limit,
-                //     pages: Math.ceil(count / (req.pagination?.limit as number))
-                // }
+                dailySummaries,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
             }
         });
     } catch (err: any) {
@@ -442,7 +494,7 @@ export const getTasks = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+}   
 
 export const deleteTask = async (req: any, res: Response) => {
     try {
