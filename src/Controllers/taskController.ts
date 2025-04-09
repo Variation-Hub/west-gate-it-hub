@@ -421,56 +421,6 @@ export const getTasks = async (req: any, res: Response) => {
             return taskObj; // Return the modified object
         });
 
-        type DailySummary = {
-            totalWorkingHours: number;
-            summaryLine: string;
-            lines?: string[];
-        };
-        
-        const dailySummaries: Record<string, DailySummary> = {};
-
-
-        Tasks.forEach((task: any) => {
-            for (const [date, value] of Object.entries(task.datewiseComments)) {
-                if (date === 'pinnedComments') continue;
-
-                const comments = Array.isArray(value) ? value : [];
-                comments.forEach((comment: any) => {
-                    if (comment.timeStart && comment.timeEnd) {
-                        const start = moment(comment.timeStart, 'HH:mm');
-                        const end = moment(comment.timeEnd, 'HH:mm');
-                        const duration = moment.duration(end.diff(start)).asHours();
-
-                        if (!dailySummaries[date]) {
-                            dailySummaries[date] = {
-                                totalWorkingHours: 0,
-                                summaryLine: ''
-                            };
-                        }
-
-                        dailySummaries[date].totalWorkingHours += duration;
-
-                        if (!dailySummaries[date].lines) {
-                            dailySummaries[date].lines = [];
-                        }
-
-                        dailySummaries[date].lines.push(`${task.task} – ${duration.toFixed(1)} hours (${comment.timeStart} to ${comment.timeEnd})`);
-                    }
-                });
-            }
-        });
-
-        for (const [date, data] of Object.entries(dailySummaries)) {
-            if (data.lines && data.lines.length > 0) {
-                const numberedLines = data.lines.map((line: string, index: number) => `${index + 1}. ${line}`).join('\n');
-                data.summaryLine =
-                    `I did not perform any action on this today because I was focused on the following tasks:\n` +
-                    numberedLines +
-                    `\nWorked on the above tasks for a total of ${data.totalWorkingHours.toFixed(1)} hours.`;
-
-                delete data.lines;
-            }
-        }
 
 
         return res.status(200).json({
@@ -478,7 +428,6 @@ export const getTasks = async (req: any, res: Response) => {
             status: true,
             data: {
                 data: Tasks,
-                dailySummaries,
                 meta_data: {
                     page: req.pagination?.page,
                     items: count,
@@ -920,8 +869,42 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
         const userId = req.user._id;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const todayStr = moment(today).format('YYYY-MM-DD');
 
         const tasks = await taskModel.find({ "assignTo.userId": userId });
+
+        let totalWorkingHours = 0;
+        const workedTasksSummary: string[] = [];
+
+        tasks.forEach((task: any) => {
+            task.comments.forEach((comment: any) => {
+                const commentDate = moment(comment.date).format('YYYY-MM-DD');
+                if (
+                    comment.userId === userId &&
+                    commentDate === todayStr &&
+                    comment.timeStart &&
+                    comment.timeEnd
+                ) {
+                    const start = moment(comment.timeStart, 'HH:mm');
+                    const end = moment(comment.timeEnd, 'HH:mm');
+                    const duration = moment.duration(end.diff(start)).asHours();
+                    totalWorkingHours += duration;
+
+                    workedTasksSummary.push(
+                        `${task.task} – ${duration.toFixed(1)} hours (${comment.timeStart} to ${comment.timeEnd})`
+                    );
+                }
+            });
+        });
+
+        let summaryLine = '';
+        if (workedTasksSummary.length > 0) {
+            const numberedLines = workedTasksSummary.map((line, i) => `${i + 1}. ${line}`).join('\n');
+            summaryLine =
+                `I did not perform any action on this today because I was focused on the following tasks:\n` +
+                numberedLines +
+                `\nWorked on the above tasks for a total of ${totalWorkingHours.toFixed(1)} hours.`;
+        }
 
         for (const task of tasks) {
             // Get all comments by this user on this task for today
@@ -937,7 +920,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
 
                 task.comments.push({
                     commentId,
-                    comment: "No activity logged for the selected day.",
+                    comment: summaryLine,
                     date: new Date(),
                     userId: userId.toString(),
                     timeStart: null,
