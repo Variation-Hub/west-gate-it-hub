@@ -494,6 +494,12 @@ export const addCommentToTask = async (req: any, res: Response) => {
             }
         });
 
+        if (timeEnd <= timeStart) {
+            return res.status(400).json({
+                message: "End time must be greater than start time",
+                status: false
+            });
+        }        
         let isOverlapping = false;
 
         for (const t of allTasks) {
@@ -899,13 +905,16 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
 
         let summaryLine = '';
         if (workedTasksSummary.length > 0) {
-            const numberedLines = workedTasksSummary.map((line, i) => `${i + 1}. ${line}`).join('\n');
+            const numberedLines = workedTasksSummary.map((line, i) => `${i + 1}. ${line}`).join('<br>');
             summaryLine =
-                `I did not perform any action on this today because I was focused on the following tasks:\n` +
+                `I did not perform any action on this today because I was focused on the following tasks:<br>` +
                 numberedLines +
-                `\nWorked on the above tasks for a total of ${totalWorkingHours.toFixed(1)} hours.`;
+                `<br>Worked on the above tasks for a total of ${totalWorkingHours.toFixed(1)} hours.`;
         }
-
+        else {
+            summaryLine = "I did not perform any action on this today.";
+        }
+        
         for (const task of tasks) {
             // Get all comments by this user on this task for today
             const todayComments = task.comments.filter((c: any) => {
