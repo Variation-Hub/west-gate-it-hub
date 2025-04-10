@@ -1,7 +1,8 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise, getAlldata } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
+import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
 const webUserRoutes = express.Router();
 
@@ -15,4 +16,6 @@ webUserRoutes.get("/expertise-list", authorizeRoles(), getAllExpertise);
 webUserRoutes.get("/get-suppliers", authorizeRoles(), getSuppliersByExpertise);
 webUserRoutes.post("/add-expertise", authorizeRoles(), updateSupplierExpertise);
 
+// drop down data
+webUserRoutes.get("/drop-down", authorizeRoles(), paginationMiddleware, getAlldata);
 export default webUserRoutes;

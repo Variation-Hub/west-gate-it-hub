@@ -126,7 +126,8 @@ export const userRoles = {
     ProjectCoOrdinator: 'ProjectCoOrdinator',
     User: 'User',
     ProcessManagerAdmin: 'ProcessManagerAdmin',
-    SubAdmin: 'SubAdmin'
+    SubAdmin: 'SubAdmin',
+    SubSupplier: 'SubSupplier'
 }
 
 export const userStatus = {

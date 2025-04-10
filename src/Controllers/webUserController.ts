@@ -9,6 +9,7 @@ import LoginModel from "../Models/LoginModel"
 import FileModel from "../Models/fileModel"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import mongoose from "mongoose";
+import masterList from "../Models/masterList"
 
 const sendMail = async (data: any) => {
 
@@ -503,5 +504,39 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
     }
 };
 
+export const getAlldata = async (req: any, res: Response) => {
+    try {
+        const { type } = req.query;
 
+        const queryObj: any = {}; 
 
+        if (type) {
+            queryObj["type"] = { $regex: type, $options: "i" };
+        }
+
+        const count = await masterList.countDocuments(queryObj);
+
+        const data = await masterList.find(queryObj)
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            message: "Data successfully fetched",
+            status: true,
+            data: data,
+            meta_data: {
+                page: req.pagination?.page,
+                items: count,
+                page_size: req.pagination?.limit,
+                pages: Math.ceil(count / (req.pagination?.limit as number))
+            }
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching candidates",
+            status: false,
+            error: error.message
+        });
+    }
+};

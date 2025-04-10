@@ -1020,3 +1020,31 @@ export const getCommentBoxData = async (req: any, res: Response) => {
         });
     }
 };
+
+export const getTask = async (req: any, res: Response) => {
+    try {
+        const {id} = req.params;
+
+        const task: any = await taskModel.findById(id).populate("project",  "projectName");;
+
+        if (!task) {
+            return res.status(404).json({
+                message: "Task not found",
+                status: false,
+                data: null
+            });
+        }
+
+        return res.send({
+            message: "Task fetched successfully",
+            status: true,
+            data: task
+        })
+    } catch (error: any) {
+        return res.status(500).json({
+            message: error.message,
+            status: false,
+            data: null
+        });
+    }
+}
