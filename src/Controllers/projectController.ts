@@ -816,6 +816,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter.myList = { $ne: req.user.id }
             } else {
                 filter.sortListUserId = req.user.id;
+                filter.selectedUserId = req.user.id;
             }
         }
 
@@ -4055,3 +4056,109 @@ export const deleteDocument = async (req: any, res: Response) => {
         });
     }
 }
+
+export const removeFromSortList = async (req: any, res: Response) => {
+    try {
+        const { userId, projectId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const index = project.sortListUserId.indexOf(userId);
+        if (index > -1) {
+            project.sortListUserId.splice(index, 1);
+
+            const user: any = await userModel.findById(userId);
+            const logEntry = {
+                log: `<strong>${req.user?.name}</strong> removed <strong>${user?.name}</strong> from the shortlist for the project: <strong>${project.projectName}</strong>.`,
+                userId: req.user._id,
+                date: new Date()
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
+
+            await project.save();
+        }
+
+        return res.status(200).json({
+            message: "User removed from sortlist successfully",
+            status: true
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const selectUserForProject = async (req: any, res: Response) => {
+    try {
+        const { projectId, userId, isSelected } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const user: any = await userModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            });
+        }
+
+        if (isSelected) {
+            if (!project.selectedUserId.includes(userId)) {
+                project.selectedUserId.push(userId);
+
+                // const logEntry = {
+                //     log: `<strong>${user.name}</strong> was selected for the project: ${project.projectName} by <strong>${req.user?.name}</strong>.`,
+                //     userId: req.user._id,
+                //     date: new Date()
+                // };
+                // project.logs = [logEntry, ...(project.logs || [])];
+            }
+        } else {
+            const index = project.selectedUserId.indexOf(userId);
+            if (index > -1) {
+                project.selectedUserId.splice(index, 1);
+
+                // const logEntry = {
+                //     log: `<strong>${user.name}</strong> was unselected from the project: ${project.projectName} by <strong>${req.user?.name}</strong>.`,
+                //     userId: req.user._id,
+                //     date: new Date()
+                // };
+                // project.logs = [logEntry, ...(project.logs || [])];
+            }
+        }
+
+        //await project.save();
+
+        return res.status(200).json({
+            message: isSelected ? "User selected for project" : "User unselected from project",
+            status: true
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};

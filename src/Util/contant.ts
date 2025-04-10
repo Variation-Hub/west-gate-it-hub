@@ -127,7 +127,7 @@ export const userRoles = {
     User: 'User',
     ProcessManagerAdmin: 'ProcessManagerAdmin',
     SubAdmin: 'SubAdmin',
-    SubSupplier: 'SubSupplier'
+    SalesManager: "SalesManager"
 }
 
 export const userStatus = {
