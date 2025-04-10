@@ -1850,7 +1850,7 @@ export const deleteProjectMultiple = async (req: Request, res: Response) => {
 
 export const sortList = async (req: any, res: Response) => {
     try {
-        const { userId, projectId } = req.body;
+        const { userIds, projectId } = req.body;
 
         const project = await projectModel.findById(projectId);
 
@@ -1861,18 +1861,23 @@ export const sortList = async (req: any, res: Response) => {
                 data: null
             })
         }
+        const logs = [];
 
-        if (!project.sortListUserId.includes(userId)) {
-            project.sortListUserId = [...project.sortListUserId, userId];
+        for (const userId of userIds) {
+            if (!project.sortListUserId.includes(userId)) {
+                    project.sortListUserId.push(userId);
 
-            const user: any = await userModel.findById(userId);
-            const logEntry = {
-                log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
-                userId: req.user._id,
-                date: new Date()
-            };
-            project.logs = [logEntry, ...(project.logs || [])];
+                const user: any = await userModel.findById(userId);
+                const logEntry = {
+                    log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
+                    userId: req.user._id,
+                    date: new Date()
+                };
+                logs.push(logEntry);
+
+            }
         }
+        project.logs = [...(logs || []), ...(project.logs || [])];
         project.save();
 
         return res.status(200).json({
