@@ -371,11 +371,34 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
 
+        const userIds = user.map(u => u._id);
+
+        const projects = await projectModel.find({
+            bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
+            selectedUserIds: {
+                $elemMatch: {
+                    userId: { $in: userIds },
+                    isSelected: true
+                }
+            }
+        }).select("projectName bidManagerStatus selectedUserIds");
+
+        const userWithProjects = user.map(u => {
+            const assignedProjects = projects.filter(project =>
+                project.selectedUserIds.some(sel =>
+                    sel.userId?.toString() === u._id.toString() && sel.isSelected === true
+                )
+            );
+            return {
+                ...u.toObject(),
+                assignedProjects
+            };
+        });
         return res.status(200).json({
             message: "User fetch success",
             status: true,
             data: {
-                data: user,
+                data: userWithProjects,
                 count: {
                     total: totalCount,
                     active: activeCount,
