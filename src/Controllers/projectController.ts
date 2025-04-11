@@ -601,6 +601,19 @@ export const getProject = async (req: any, res: Response) => {
             ];
         }
 
+        if (project?.selectedUserIds?.length) {
+            const userIds = project.selectedUserIds.map((u:any) => u.userId);
+            
+            const users = await userModel.find({ _id: { $in: userIds } }).select("name");
+            project.selectedUserIds = project.selectedUserIds.map((sel: any) => {
+                const user = users.find(u => u._id.toString() === sel.userId.toString());
+                return {
+                    ...sel,
+                    name: user?.name || null
+                };
+            });
+        }
+        
         return res.status(200).json({
             message: "project fetch success",
             status: true,
@@ -816,7 +829,7 @@ export const getProjects = async (req: any, res: Response) => {
                 filter.myList = { $ne: req.user.id }
             } else {
                 filter.sortListUserId = req.user.id;
-                filter.selectedUserId = req.user.id;
+                //filter.selectedUserId = req.user.id;
             }
         }
 
@@ -1196,6 +1209,10 @@ export const getProjects = async (req: any, res: Response) => {
             .skip(req.pagination?.skip as number)
             .sort({ publishDate: -1, createdAt: -1 })
             .populate('sortListUserId')
+            .populate({
+                path: 'selectedUserIds.userId',
+                select: '_id name' 
+            });
         // .lean();
 
         if (categorygroup) {
@@ -1868,6 +1885,11 @@ export const sortList = async (req: any, res: Response) => {
             if (!project.sortListUserId.includes(userId)) {
                     project.sortListUserId.push(userId);
 
+                const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
+                
+                if (!alreadyExist) {
+                    project.selectedUserIds.push({ userId, isSelected: false });
+                }
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
                     log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
@@ -4075,6 +4097,9 @@ export const removeFromSortList = async (req: any, res: Response) => {
         if (index > -1) {
             project.sortListUserId.splice(index, 1);
 
+            // Also remove from selectedUserIds
+            project.set('selectedUserIds', project.selectedUserIds.filter((u: any) => u.userId.toString() !== userId.toString()));
+
             const user: any = await userModel.findById(userId);
             const logEntry = {
                 log: `<strong>${req.user?.name}</strong> removed <strong>${user?.name}</strong> from the shortlist for the project: <strong>${project.projectName}</strong>.`,
@@ -4122,32 +4147,36 @@ export const selectUserForProject = async (req: any, res: Response) => {
             });
         }
 
-        if (isSelected) {
-            if (!project.selectedUserId.includes(userId)) {
-                project.selectedUserId.push(userId);
+        const selectedUser = project.selectedUserIds.find(
+            (u: any) => u.userId.toString() === userId.toString()
+        );
 
-                // const logEntry = {
-                //     log: `<strong>${user.name}</strong> was selected for the project: ${project.projectName} by <strong>${req.user?.name}</strong>.`,
-                //     userId: req.user._id,
-                //     date: new Date()
-                // };
-                // project.logs = [logEntry, ...(project.logs || [])];
-            }
+        const logs = [];
+
+        if (selectedUser) {
+            selectedUser.isSelected = isSelected;
+
+            // const logEntry = {
+            //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
+            //     userId: req.user._id,
+            //     date: new Date()
+            // };
+            // logs.push(logEntry);
+
         } else {
-            const index = project.selectedUserId.indexOf(userId);
-            if (index > -1) {
-                project.selectedUserId.splice(index, 1);
+            project.selectedUserIds.push({ userId, isSelected });
 
-                // const logEntry = {
-                //     log: `<strong>${user.name}</strong> was unselected from the project: ${project.projectName} by <strong>${req.user?.name}</strong>.`,
-                //     userId: req.user._id,
-                //     date: new Date()
-                // };
-                // project.logs = [logEntry, ...(project.logs || [])];
-            }
+            // const logEntry = {
+            //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
+            //     userId: req.user._id,
+            //     date: new Date()
+            // };
+            // logs.push(logEntry);
         }
 
-        //await project.save();
+        //project.logs = [...logs, ...(project.logs || [])];
+        
+        await project.save();
 
         return res.status(200).json({
             message: isSelected ? "User selected for project" : "User unselected from project",
