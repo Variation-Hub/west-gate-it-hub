@@ -155,11 +155,18 @@ const projectModel = new mongoose.Schema({
         ref: 'User',
         default: [],
     },
-    selectedUserId: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',
-        default: [],
-    },
+    selectedUserIds: [
+        {
+          userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+          },
+          isSelected: {
+            type: Boolean,
+            default: false,
+          }
+        }
+    ],      
     applyUserId: {
         type: [mongoose.Schema.Types.ObjectId],
         default: [],
