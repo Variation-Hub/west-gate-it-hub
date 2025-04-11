@@ -4153,6 +4153,19 @@ export const selectUserForProject = async (req: any, res: Response) => {
 
         const logs = [];
 
+        if (isSelected) {
+            const alreadySelected = project.selectedUserIds.find(
+                (u: any) => u.isSelected === true && u.userId.toString() !== userId.toString()
+            );
+
+            if (alreadySelected) {
+                return res.status(400).json({
+                    message: "Another Supplier is already selected for this project.",
+                    status: false
+                });
+            }
+        }
+
         if (selectedUser) {
             selectedUser.isSelected = isSelected;
 
