@@ -893,11 +893,21 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
                 ) {
                     const start = moment(comment.timeStart, 'HH:mm');
                     const end = moment(comment.timeEnd, 'HH:mm');
-                    const duration = moment.duration(end.diff(start)).asHours();
-                    totalWorkingHours += duration;
+                    const durationMs = end.diff(start);
+                    const duration = moment.duration(durationMs);
+
+                    totalWorkingHours += duration.asHours();
+
+                    const hours = Math.floor(duration.asHours());
+                    const minutes = Math.round(duration.minutes());
+
+                    const timeDisplay = [
+                        hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : '',
+                        minutes > 0 ? `${minutes} minute${minutes > 1 ? 's' : ''}` : ''
+                    ].filter(Boolean).join(', ');
 
                     workedTasksSummary.push(
-                        `${task.task} – ${duration.toFixed(1)} hours (${comment.timeStart} to ${comment.timeEnd})`
+                        `${task.task} – ${timeDisplay} (${comment.timeStart} to ${comment.timeEnd})`
                     );
                 }
             });
@@ -906,12 +916,20 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
         let summaryLine = '';
         if (workedTasksSummary.length > 0) {
             const numberedLines = workedTasksSummary.map((line, i) => `${i + 1}. ${line}`).join('<br>');
+            const totalDuration = moment.duration(totalWorkingHours, 'hours');
+            const totalHours = Math.floor(totalDuration.asHours());
+            const totalMinutes = Math.round(totalDuration.minutes());
+
+            const totalDisplay = [
+                totalHours > 0 ? `${totalHours} hour${totalHours > 1 ? 's' : ''}` : '',
+                totalMinutes > 0 ? `${totalMinutes} minute${totalMinutes > 1 ? 's' : ''}` : ''
+            ].filter(Boolean).join(', ');
+
             summaryLine =
-                `I did not perform any action on this today because I was focused on the following tasks:<br>` +
+                `I did not perform any action on this today because I was focused on the following tasks:<br><br>` +
                 numberedLines +
-                `<br>Worked on the above tasks for a total of ${totalWorkingHours.toFixed(1)} hours.`;
-        }
-        else {
+                `<br><br>Worked on the above tasks for a total of ${totalDisplay}.`;
+        } else {
             summaryLine = "I did not perform any action on this today.";
         }
         
