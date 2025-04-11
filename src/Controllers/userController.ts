@@ -558,12 +558,23 @@ export const getSupplierDetails = async (req: any, res: Response) => {
             subExpertiseCount: exp.subExpertise?.length || 0
         })) || [];
 
+        const projects = await projectModel.find({
+            bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
+            selectedUserIds: {
+                $elemMatch: {
+                    userId: userID,
+                    isSelected: true
+                }
+            }
+        }).select("projectName bidManagerStatus selectedUserIds");
+
         expertiseCount.sort((a, b) => b.subExpertiseCount - a.subExpertiseCount);
 
         return res.status(200).json({
             message: "User detail fetch success",
             status: true,
             data: user,
+            assignedProjects: projects,
             expertiseCount,
             totalExpertiseCount: expertiseCount?.length,
             files: files
