@@ -1061,7 +1061,7 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (supplierId) {
-            filter.select = { $elemMatch: { supplierId: { $in: supplierId } } }
+           //filter.select = { $elemMatch: { supplierId: { $in: supplierId } } }
         }
 
         if (selectedSupplier) {
@@ -1885,11 +1885,11 @@ export const sortList = async (req: any, res: Response) => {
             if (!project.sortListUserId.includes(userId)) {
                     project.sortListUserId.push(userId);
 
-                const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
+                // const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
                 
-                if (!alreadyExist) {
-                    project.selectedUserIds.push({ userId, isSelected: false });
-                }
+                // if (!alreadyExist) {
+                //     project.selectedUserIds.push({ userId, isSelected: false });
+                // }
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
                     log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
@@ -4164,10 +4164,18 @@ export const selectUserForProject = async (req: any, res: Response) => {
                     status: false
                 });
             }
+            if (!selectedUser) {
+                project.selectedUserIds.push({ userId, isSelected: true });
+            } else {
+                selectedUser.isSelected = isSelected;
+            }
+        }
+        else {
+            project.selectedUserIds.pull({ userId });
         }
 
-        if (selectedUser) {
-            selectedUser.isSelected = isSelected;
+        // if (selectedUser) {
+        //     selectedUser.isSelected = isSelected;
 
             // const logEntry = {
             //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
@@ -4176,8 +4184,8 @@ export const selectUserForProject = async (req: any, res: Response) => {
             // };
             // logs.push(logEntry);
 
-        } else {
-            project.selectedUserIds.push({ userId, isSelected });
+        // } else {
+        //     project.selectedUserIds.pull({ userId });
 
             // const logEntry = {
             //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
@@ -4185,7 +4193,7 @@ export const selectUserForProject = async (req: any, res: Response) => {
             //     date: new Date()
             // };
             // logs.push(logEntry);
-        }
+        //}
 
         //project.logs = [...logs, ...(project.logs || [])];
         
