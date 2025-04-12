@@ -1199,3 +1199,88 @@ export const GetUserLogin = async (req: any, res: Response) => {
         });
     }
 };
+
+export const fetchSupplierWithProjectStatus = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, search, status } = req.query;
+
+        const allowedStatuses = ["InSolution", "WaitingForResult", "Awarded", "NotAwarded"];
+        const selectedStatus = status?.toString() || null;
+
+        if (selectedStatus && !allowedStatuses.includes(selectedStatus)) {
+            return res.status(400).json({
+                message: `Invalid status. Allowed values are: ${allowedStatuses.join(", ")}`,
+                status: false
+            });
+        }
+
+        const query: any = { };
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.doj = { $gte: start, $lte: end };
+        }
+
+        if (search) {
+            query.name = { $regex: search, $options: "i" };
+        }
+
+        const users = await userModel.find(query)
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort({ active: -1, createdAt: -1 });
+
+        const userIds = users.map(u => u._id);
+
+        const projectQuery: any = {
+            selectedUserIds: {
+                $elemMatch: {
+                    userId: { $in: userIds },
+                    isSelected: true
+                }
+            }
+        };
+
+        if (selectedStatus) {
+            projectQuery.bidManagerStatus = selectedStatus;
+        }
+
+        const projects = await projectModel.find(projectQuery)
+            .select("projectName bidManagerStatus selectedUserIds");
+
+        const userWithProjects = users.map(user => {
+            const assignedProjects = projects.filter(project =>
+                project.selectedUserIds.some(sel =>
+                    sel.userId?.toString() === user._id.toString() && sel.isSelected
+                )
+            );
+            return {
+                ...user.toObject(),
+                totalAssignedProjects: assignedProjects.length,
+                assignedProjects
+            };
+        });
+
+        return res.status(200).json({
+            message: "Suppliers with projects fetched successfully",
+            status: true,
+            data: {
+                data: userWithProjects,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: userWithProjects.length,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(userWithProjects.length / (req.pagination?.limit || 1))
+                }
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};

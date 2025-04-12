@@ -17,7 +17,8 @@ import {
     connectUserToSocket,
     fetchSuplierAdmin,
     getSupplierDetails,
-    GetUserLogin
+    GetUserLogin,
+    fetchSupplierWithProjectStatus
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -45,6 +46,7 @@ userRoutes.get("/suplier/list", authorizeRoles(), paginationMiddleware, fetchSup
 userRoutes.patch("/suplier/cv-upload", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), singleFileUpload("cv"),
     updateSuplierAdmin);
 userRoutes.get("/suplier/get/:id", authorizeRoles(), getSupplierDetails);
+userRoutes.get("/supplier/project/list", authorizeRoles(), paginationMiddleware, fetchSupplierWithProjectStatus);
 
 // Admin APIs
 userRoutes.get("/admin/dashboard", authorizeRoles(), getAdminDashboardData)
