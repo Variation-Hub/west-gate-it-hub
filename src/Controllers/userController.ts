@@ -1238,7 +1238,7 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
                     isSelected: true
                 }
             }
-        }).select("projectName bidManagerStatus selectedUserIds");
+        });
 
         // Filter projects by selected status (if provided)
         const filteredProjects = selectedStatus
