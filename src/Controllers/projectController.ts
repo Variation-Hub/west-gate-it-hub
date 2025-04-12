@@ -1203,6 +1203,16 @@ export const getProjects = async (req: any, res: Response) => {
         if (notRelatedDashboard == "true") {
             filter.status = { $ne: projectStatus.NotReleted };
         }
+        if(req.user.id === supplierId?.[0]) {
+           if ( bidManagerStatus?.includes(BidManagerStatus.InSolution) || bidManagerStatus?.includes(BidManagerStatus.WaitingForResult)){
+                filter.selectedUserIds = {
+                    $elemMatch: {
+                        userId: supplierId,
+                        isSelected: true
+                    }
+                };
+            }
+        }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
@@ -4148,14 +4158,14 @@ export const selectUserForProject = async (req: any, res: Response) => {
         }
 
         const selectedUser = project.selectedUserIds.find(
-            (u: any) => u.userId.toString() === userId.toString()
+            (u: any) => u.userId?.toString() === userId.toString()
         );
 
         const logs = [];
 
         if (isSelected) {
             const alreadySelected = project.selectedUserIds.find(
-                (u: any) => u.isSelected === true && u.userId.toString() !== userId.toString()
+                (u: any) => u.isSelected === true && u.userId?.toString() !== userId.toString()
             );
 
             if (alreadySelected) {
@@ -4173,29 +4183,6 @@ export const selectUserForProject = async (req: any, res: Response) => {
         else {
             project.selectedUserIds.pull({ userId });
         }
-
-        // if (selectedUser) {
-        //     selectedUser.isSelected = isSelected;
-
-            // const logEntry = {
-            //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
-            //     userId: req.user._id,
-            //     date: new Date()
-            // };
-            // logs.push(logEntry);
-
-        // } else {
-        //     project.selectedUserIds.pull({ userId });
-
-            // const logEntry = {
-            //     log: `<strong>${user.name}</strong> was ${isSelected ? 'selected' : 'unselected'} for the project: <strong>${project.projectName}</strong> by <strong>${req.user?.name}</strong>.`,
-            //     userId: req.user._id,
-            //     date: new Date()
-            // };
-            // logs.push(logEntry);
-        //}
-
-        //project.logs = [...logs, ...(project.logs || [])];
         
         await project.save();
 
