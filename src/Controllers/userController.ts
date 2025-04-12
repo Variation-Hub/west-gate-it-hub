@@ -1202,10 +1202,17 @@ export const GetUserLogin = async (req: any, res: Response) => {
 
 export const fetchSupplierWithProjectStatus = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, search, status } = req.query;
+        const { supplierId, status } = req.query;
 
         const allowedStatuses = ["InSolution", "WaitingForResult", "Awarded", "NotAwarded"];
         const selectedStatus = status?.toString() || null;
+
+        if (!supplierId) {
+            return res.status(400).json({
+                message: "Supplier ID is required",
+                status: false
+            });
+        }
 
         if (selectedStatus && !allowedStatuses.includes(selectedStatus)) {
             return res.status(400).json({
@@ -1214,66 +1221,53 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
             });
         }
 
-        const query: any = { };
+        const supplier = await userModel.findById(supplierId).lean();
 
-        if (startDate && endDate) {
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            end.setHours(23, 59, 59, 999);
-            query.doj = { $gte: start, $lte: end };
+        if (!supplier) {
+            return res.status(404).json({
+                message: "Supplier not found",
+                status: false
+            });
         }
 
-        if (search) {
-            query.name = { $regex: search, $options: "i" };
-        }
-
-        const users = await userModel.find(query)
-            .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number)
-            .sort({ active: -1, createdAt: -1 });
-
-        const userIds = users.map(u => u._id);
-
-        const projectQuery: any = {
+        // Fetch all relevant projects
+        const allProjects = await projectModel.find({
             selectedUserIds: {
                 $elemMatch: {
-                    userId: { $in: userIds },
+                    userId: supplierId,
                     isSelected: true
                 }
             }
+        }).select("projectName bidManagerStatus selectedUserIds");
+
+        // Filter projects by selected status (if provided)
+        const filteredProjects = selectedStatus
+            ? allProjects.filter(p => p.bidManagerStatus === selectedStatus)
+            : allProjects;
+
+        // Count projects by status
+        const projectStatusCounts: any = {
+            InSolution: 0,
+            WaitingForResult: 0,
+            Awarded: 0,
+            NotAwarded: 0
         };
 
-        if (selectedStatus) {
-            projectQuery.bidManagerStatus = selectedStatus;
-        }
-
-        const projects = await projectModel.find(projectQuery)
-            .select("projectName bidManagerStatus selectedUserIds");
-
-        const userWithProjects = users.map(user => {
-            const assignedProjects = projects.filter(project =>
-                project.selectedUserIds.some(sel =>
-                    sel.userId?.toString() === user._id.toString() && sel.isSelected
-                )
-            );
-            return {
-                ...user.toObject(),
-                totalAssignedProjects: assignedProjects.length,
-                assignedProjects
-            };
+        allProjects.forEach(project => {
+            const status = project.bidManagerStatus;
+            if (allowedStatuses.includes(status)) {
+                projectStatusCounts[status]++;
+            }
         });
 
         return res.status(200).json({
-            message: "Suppliers with projects fetched successfully",
+            message: "Supplier with projects fetched successfully",
             status: true,
             data: {
-                data: userWithProjects,
-                meta_data: {
-                    page: req.pagination?.page,
-                    items: userWithProjects.length,
-                    page_size: req.pagination?.limit,
-                    pages: Math.ceil(userWithProjects.length / (req.pagination?.limit || 1))
-                }
+                supplier,
+                totalAssignedProjects: filteredProjects.length,
+                assignedProjects: filteredProjects,
+                projectStatusCounts
             }
         });
     } catch (err: any) {
