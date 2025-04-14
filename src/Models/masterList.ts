@@ -9,7 +9,7 @@ const masterListSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ["expertise", "domain", "technology", "other"]
+    enum: ["domain", "technologies", "product", "domain-other", "technologies-other", "product-other"]
   },
   isSystem: {
     type: Boolean,
@@ -19,6 +19,6 @@ const masterListSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+},{ versionKey: false, minimize: false });
 
 export default mongoose.model("masterList", masterListSchema);

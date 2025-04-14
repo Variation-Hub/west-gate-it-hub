@@ -1154,42 +1154,25 @@ export const GetUserLogin = async (req: any, res: Response) => {
         const today = new Date();
         today.setHours(23, 59, 59, 999);
 
-        const daysInRange = [];
-        const startDate = new Date(oneWeekAgo);
-        startDate.setDate(oneWeekAgo.getDate() + 1);
-        for (let d = startDate; d <= today; d.setDate(d.getDate() + 1)) {
-
-            daysInRange.push(new Date(d).toISOString().split("T")[0]);
-        }
-
         const rawData = await LoginModel.find({
             userId,
             createdAt: { $gte: oneWeekAgo, $lte: today },
-        });
+        }).sort({ createdAt: -1 });;
 
-        const groupedData: Record<string, any[]> = {};
-        daysInRange.forEach((day) => {
-            groupedData[day] = [];
-        });
-
-        rawData.forEach((record: any) => {
-            const dateKey = new Date(record.createdAt).toISOString().split("T")[0];
+        const formattedData = rawData.map((record: any) => {
             const time = new Date(record.createdAt).toLocaleTimeString("en-IN", {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
                 timeZone: "Asia/Kolkata",
             });
-
-            if (groupedData[dateKey]) {
-                groupedData[dateKey].push({ loginTime: time });
-            }
+            return { loginTime: time, ...record.toObject() };
         });
 
         return res.status(200).json({
             message: "Day-wise login data fetched successfully",
             status: true,
-            data: groupedData,
+            data: formattedData,
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -1245,12 +1228,16 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
             ? allProjects.filter(p => p.bidManagerStatus === selectedStatus)
             : allProjects;
 
+        const sortProjects = await projectModel.find({
+            sortListUserId: { $in: supplierId }});
+    
         // Count projects by status
         const projectStatusCounts: any = {
             InSolution: 0,
             WaitingForResult: 0,
             Awarded: 0,
-            NotAwarded: 0
+            NotAwarded: 0,
+            SortListed: sortProjects.length
         };
 
         allProjects.forEach(project => {

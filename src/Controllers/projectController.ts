@@ -241,7 +241,7 @@ export const getProject = async (req: any, res: Response) => {
             {
                 $lookup: {
                     from: 'users',
-                    let: { sortListUserIds: '$sortListUserId' },
+                    let: { sortListUserIds: '$sortListUserId', selectedUsers: '$selectedUserIds' },
                     pipeline: [
                         {
                             $match: {
@@ -253,6 +253,28 @@ export const getProject = async (req: any, res: Response) => {
                                                 input: '$$sortListUserIds',
                                                 as: 'id',
                                                 in: { $toObjectId: '$$id' }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                isSelected: {
+                                    $in: [
+                                        '$_id',
+                                        {
+                                            $map: {
+                                                input: {
+                                                    $filter: {
+                                                        input: '$$selectedUsers',
+                                                        as: 'sel',
+                                                        cond: { $eq: ['$$sel.isSelected', true] }
+                                                    }
+                                                },
+                                                as: 's',
+                                                in: { $toObjectId: '$$s.userId' }
                                             }
                                         }
                                     ]
@@ -1060,8 +1082,26 @@ export const getProjects = async (req: any, res: Response) => {
             filter._id = { $in: projectIds }
         }
 
+        const bidStatuses = [
+            BidManagerStatus.InSolution,
+            BidManagerStatus.WaitingForResult,
+            BidManagerStatus.Awarded,
+            BidManagerStatus.NotAwarded
+        ];
+
+        const hasMatchingStatus = bidManagerStatus?.some((status: string) =>
+            bidStatuses.includes(status)
+        );
+
         if (supplierId) {
-           //filter.select = { $elemMatch: { supplierId: { $in: supplierId } } }
+            if (hasMatchingStatus) {
+                filter.selectedUserIds = {
+                    $elemMatch: {
+                        userId: { $in: supplierId },
+                        isSelected: true
+                    }
+                };
+            }
         }
 
         if (selectedSupplier) {
@@ -1202,16 +1242,6 @@ export const getProjects = async (req: any, res: Response) => {
         }
         if (notRelatedDashboard == "true") {
             filter.status = { $ne: projectStatus.NotReleted };
-        }
-        if(req.user.id === supplierId?.[0]) {
-           if ( bidManagerStatus?.includes(BidManagerStatus.InSolution) || bidManagerStatus?.includes(BidManagerStatus.WaitingForResult)){
-                filter.selectedUserIds = {
-                    $elemMatch: {
-                        userId: supplierId,
-                        isSelected: true
-                    }
-                };
-            }
         }
         const count = await projectModel.countDocuments(filter);
         let projects: any = await projectModel.find(filter)

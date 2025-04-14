@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise, getAlldata } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -18,4 +18,6 @@ webUserRoutes.post("/add-expertise", authorizeRoles(), updateSupplierExpertise);
 
 // drop down data
 webUserRoutes.get("/drop-down", authorizeRoles(), paginationMiddleware, getAlldata);
+webUserRoutes.post("/masterlist/promote", authorizeRoles(), promoteOtherItem);
+webUserRoutes.post("/masterlist/custom", authorizeRoles(), addCustomItem);
 export default webUserRoutes;
