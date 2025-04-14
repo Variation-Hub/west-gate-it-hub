@@ -510,8 +510,10 @@ export const getAlldata = async (req: any, res: Response) => {
 
         const queryObj: any = {}; 
 
-        if (type) {
-            queryObj["type"] = { $regex: type, $options: "i" };
+        if (type === "other") {
+            queryObj["type"] = { $regex: "-other$", $options: "i" };
+        } else if (type) {
+            queryObj["type"] = { $regex: `^${type}$`, $options: "i" };
         }
 
         const count = await masterList.countDocuments(queryObj);
@@ -540,3 +542,80 @@ export const getAlldata = async (req: any, res: Response) => {
         });
     }
 };
+
+export const promoteOtherItem = async (req: any, res: Response) => {
+    try {
+      const { itemId, promoteToType } = req.body;
+  
+      if (!itemId || !promoteToType) {
+        return res.status(400).json({ message: "Missing data", status: false });
+      }
+  
+      const validTypes = ["domain", "technologies", "product"];
+      if (!validTypes.includes(promoteToType)) {
+        return res.status(400).json({ message: "Invalid type", status: false });
+      }
+  
+      const updated = await masterList.findByIdAndUpdate(
+        itemId,
+        { type: promoteToType },
+        { new: true }
+      );
+  
+      if (!updated) {
+        return res.status(404).json({ message: "Item not found", status: false });
+      }
+  
+      return res.status(200).json({
+        message: "Item promoted successfully",
+        status: true,
+        data: updated,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: "Internal Server Error",
+        status: false,
+        error: error.message,
+      });
+    }
+  };
+
+  export const addCustomItem = async (req: any, res: Response) => {
+    try {
+      const { name, type } = req.body;
+  
+      if (!name || !type) {
+        return res.status(400).json({ message: "Name and type required", status: false });
+      }
+  
+      const validTypes = [ "domain", "technologies", "product" ];
+  
+      if (!validTypes.includes(type)) {
+        return res.status(400).json({ message: "Invalid type", status: false });
+      }
+  
+      const exists = await masterList.findOne({ name: name.trim(), type });
+      if (exists) {
+        return res.status(409).json({ message: "Item already exists", status: false });
+      }
+  
+      const newItem = await masterList.create({
+        name: name.trim(),
+        type,
+        isSystem: false,
+      });
+  
+      return res.status(201).json({
+        message: "Item added successfully",
+        status: true,
+        data: newItem,
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        message: "Error adding item",
+        status: false,
+        error: error.message,
+      });
+    }
+  };
+  
