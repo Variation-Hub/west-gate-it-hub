@@ -17,7 +17,7 @@ webUserRoutes.get("/get-suppliers", authorizeRoles(), getSuppliersByExpertise);
 webUserRoutes.post("/add-expertise", authorizeRoles(), updateSupplierExpertise);
 
 // drop down data
-webUserRoutes.get("/drop-down", authorizeRoles(), paginationMiddleware, getAlldata);
+webUserRoutes.get("/drop-down", authorizeRoles(), getAlldata);
 webUserRoutes.post("/masterlist/promote", authorizeRoles(), promoteOtherItem);
 webUserRoutes.post("/masterlist/custom", authorizeRoles(), addCustomItem);
 export default webUserRoutes;
