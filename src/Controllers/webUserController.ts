@@ -4,12 +4,12 @@ import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
 import { fromMail, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
-import { userRoles } from "../Util/contant"
+import { subExpertise, userRoles } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
 import FileModel from "../Models/fileModel"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import mongoose from "mongoose";
-import masterList from "../Models/masterList"
+import masterList from "../Models/masterList";
 
 const sendMail = async (data: any) => {
 
@@ -502,8 +502,7 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
         status: false
       });
     }
-  };
-  
+};
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
@@ -586,7 +585,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
     }
 };
 
-  export const addCustomItem = async (req: any, res: Response) => {
+export const addCustomItem = async (req: any, res: Response) => {
     try {
       const { name, type } = req.body;
   
@@ -624,4 +623,89 @@ export const promoteOtherItem = async (req: any, res: Response) => {
       });
     }
 };
+
+export const getAllSubExpertise = async (req: any, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        let filteredData = subExpertise;
+
+        if (search) {
+            const searchLower = search.toLowerCase();
+            filteredData = subExpertise.filter((item) =>
+                item.toLowerCase().includes(searchLower)
+            );
+        }
+
+        return res.status(200).json({
+            message: "Sub expertise list fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch sub expertise",
+            status: false,
+            data: []
+        });
+    }
+};
+
+export const addSubExpertiseToSupplier = async (req: any, res: Response) => {
+    try {
+      const { supplierId, expertise, subExpertise } = req.body;
+  
+      if (!supplierId || !expertise || !Array.isArray(subExpertise) || subExpertise.length === 0) {
+        return res.status(400).json({
+          message: "Supplier ID, expertise, and subExpertise array are required",
+          status: false
+        });
+      }
+  
+      const supplier = await userModel.findById(supplierId);
+      if (!supplier) {
+        return res.status(404).json({
+          message: "Supplier not found",
+          status: false
+        });
+      }
+  
+      const expertiseList = supplier.expertise.find(
+        (e: any) => e.name.toLowerCase() === expertise.toLowerCase()
+      );
+  
+      if (!expertiseList) {
+        return res.status(400).json({
+          message: `Expertise '${expertise}' not found for this supplier`,
+          status: false
+        });
+      }
+  
+      const existingSub = expertiseList.subExpertise || [];
+      const newSub = subExpertise.filter((s: string) => !existingSub.includes(s));
+  
+      if (newSub.length === 0) {
+        return res.status(400).json({
+          message: "All subExpertise already exist. Nothing to update.",
+          status: false
+        });
+      }
+  
+      expertiseList.subExpertise.push(...newSub);
+  
+      await supplier.save();
+  
+      return res.status(200).json({
+        message: "SubExpertise added successfully",
+        status: true,
+        data: supplier.expertise
+      });
+  
+    } catch (err: any) {
+      return res.status(500).json({
+        message: err.message || "Failed to add subExpertise",
+        status: false
+      });
+    }
+  };
   
