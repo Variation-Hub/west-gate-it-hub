@@ -15,6 +15,7 @@ const masterListSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  subExpertise: [{ type: String }],
   createdAt: {
     type: Date,
     default: Date.now
