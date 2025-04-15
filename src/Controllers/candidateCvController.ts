@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
 import userModel from "../Models/userModel"
+import mongoose from "mongoose";
 
 export const createCandidateCV = async (req: any, res: Response) => {
     try {
@@ -162,50 +163,81 @@ export const deleteCandidate = async (req: any, res: Response) => {
 
 export const getCandidatesBySupplierId = async (req: any, res: Response) => {
     try {
-      const { supplierId } = req.params;
-      const { startDate, endDate } = req.query;
-      if (!supplierId) {
-        return res.status(400).json({
-          message: "Supplier ID is required",
-          status: false,
+        const { supplierId } = req.params;
+        const { startDate, endDate, role } = req.query;
+        if (!supplierId) {
+            return res.status(400).json({
+                message: "Supplier ID is required",
+                status: false,
+            });
+        }
+
+        const matchStage: any = {
+            supplierId: new mongoose.Types.ObjectId(supplierId),
+        };
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            matchStage.createdAt = { $gte: start, $lte: end };
+        }
+
+        const pipeline: any[] = [
+            {
+                $match: matchStage,
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "roleId",
+                    foreignField: "_id",
+                    as: "roleId",
+                },
+            },
+        ];
+
+        if (role) {
+            pipeline.push({
+                $match: {
+                    "roleId.name": {
+                        $regex: role,
+                        $options: "i",
+                    },
+                },
+            });
+        }
+
+        const countPipeline = [...pipeline, { $count: "count" }];
+        const [{ count = 0 } = {}] = await CandidateCvModel.aggregate(countPipeline);
+
+        pipeline.push(
+            { $sort: { createdAt: -1, _id: -1 } },
+            { $skip: req.pagination?.skip || 0 },
+            { $limit: req.pagination?.limit || 10 }
+        );
+
+        const candidates = await CandidateCvModel.aggregate(pipeline);
+
+        return res.status(200).json({
+            message: "Candidates successfully fetched",
+            status: true,
+            data: {
+                data: candidates,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number)),
+                },
+            },
         });
-      }
-  
-      const query: any = { supplierId };
-
-      if (startDate && endDate) {
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.createdAt = { $gte: start, $lte: end };
-    }
-
-      const candidates = await CandidateCvModel.find(query).populate("roleId",  ["name", "otherRole"])
-        .limit(req.pagination?.limit as number)
-        .skip(req.pagination?.skip as number)
-        .sort({ createdAt: -1, _id: -1 });
-  
-      const count = await CandidateCvModel.countDocuments(query);
-  
-      return res.status(200).json({
-        message: "Candidates successfully fetched",
-        status: true,
-        data: {
-          data: candidates,
-          meta_data: {
-            page: req.pagination?.page,
-            items: count,
-            page_size: req.pagination?.limit,
-            pages: Math.ceil(count / (req.pagination?.limit as number)),
-          },
-        },
-      });
     } catch (error: any) {
-      return res.status(500).json({
-        message: "Error fetching candidates",
-        status: false,
-        error: error.message,
-      });
+        return res.status(500).json({
+            message: "Error fetching candidates",
+            status: false,
+            error: error.message,
+        });
     }
 };
   
