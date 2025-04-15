@@ -452,61 +452,62 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
 
 export const updateSupplierExpertise = async (req: any, res: Response) => {
     try {
-        const { supplierId, expertise, subExpertise } = req.body;
-
-        if (!supplierId || !expertise) {
-            return res.status(400).json({
-                message: "Supplier ID and expertise are required",
-                status: false
-            });
-        }
-
-        const supplier = await userModel.findById(supplierId);
-        if (!supplier) {
-            return res.status(404).json({
-                message: "Supplier not found",
-                status: false
-            });
-        }
-
-        const expertiseIndex = supplier.expertise.findIndex(exp => exp.name.toLowerCase() === expertise.toLowerCase());
-
-        if (expertiseIndex !== -1) {
-            const existingSubExpertise = supplier.expertise[expertiseIndex].subExpertise || [];
-
-            const newSubExpertise = subExpertise.filter((sub: any) => !existingSubExpertise.includes(sub));
-
-            if (newSubExpertise.length === 0) {
-                return res.status(400).json({
-                    message: `Expertise and All sub-expertise already exist for '${expertise}'. Nothing to update.`,
-                    status: false
-                });
-            }
-
-            supplier.expertise[expertiseIndex].subExpertise.push(...newSubExpertise);
-        } else {
-            supplier.expertise.push({ name: expertise, subExpertise: subExpertise || [] });
-        }
-
-        await supplier.save();
-
-        return res.status(200).json({
-            message: "Expertise updated successfully",
-            status: true,
-            data: supplier.expertise
+      const { supplierId, expertise } = req.body;
+  
+      if (!supplierId || !Array.isArray(expertise) || expertise.length === 0) {
+        return res.status(400).json({
+          message: "Supplier ID and expertise list are required",
+          status: false
         });
-
+      }
+  
+      const supplier = await userModel.findById(supplierId);
+      if (!supplier) {
+        return res.status(404).json({
+          message: "Supplier not found",
+          status: false
+        });
+      }
+  
+      const existingItemIds = supplier.expertise.map((e: any) => e.itemId.toString());
+  
+      const newExpertise = expertise
+        .filter((exp: any) => !existingItemIds.includes(exp.itemId))
+        .map((exp: any) => ({
+          itemId: exp.itemId,
+          name: exp.name,
+          type: exp.type,
+          subExpertise: []
+        }));
+  
+      if (newExpertise.length === 0) {
+        return res.status(400).json({
+          message: "All expertise already exist. Nothing to update.",
+          status: false
+        });
+      }
+  
+      supplier.expertise.push(...newExpertise);
+      await supplier.save();
+  
+      return res.status(200).json({
+        message: "Expertise updated successfully",
+        status: true,
+        data: supplier.expertise
+      });
+  
     } catch (err: any) {
-        return res.status(500).json({
-            message: err.message,
-            status: false
-        });
+      return res.status(500).json({
+        message: err.message,
+        status: false
+      });
     }
-};
+  };
+  
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
-        const { type } = req.query;
+        const { type, search } = req.query;
 
         const queryObj: any = {}; 
 
@@ -514,6 +515,11 @@ export const getAlldata = async (req: any, res: Response) => {
             queryObj["type"] = { $regex: "-other$", $options: "i" };
         } else if (type) {
             queryObj["type"] = { $regex: `^${type}$`, $options: "i" };
+        }
+
+        if (search) {
+            const searchRegex = new RegExp(search, "i");
+            queryObj["name"] = { $regex: searchRegex };
         }
 
         const count = await masterList.countDocuments(queryObj);
@@ -578,7 +584,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
         error: error.message,
       });
     }
-  };
+};
 
   export const addCustomItem = async (req: any, res: Response) => {
     try {
@@ -617,5 +623,5 @@ export const promoteOtherItem = async (req: any, res: Response) => {
         error: error.message,
       });
     }
-  };
+};
   
