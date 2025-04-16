@@ -250,7 +250,7 @@ export const getProject = async (req: any, res: Response) => {
                                         '$_id',
                                         {
                                             $map: {
-                                                input: '$$sortListUserIds',
+                                                input: { $ifNull: ['$$sortListUserIds', []] },
                                                 as: 'id',
                                                 in: { $toObjectId: '$$id' }
                                             }
@@ -268,7 +268,7 @@ export const getProject = async (req: any, res: Response) => {
                                             $map: {
                                                 input: {
                                                     $filter: {
-                                                        input: '$$selectedUsers',
+                                                        input: { $ifNull: ['$$selectedUsers', []] },
                                                         as: 'sel',
                                                         cond: { $eq: ['$$sel.isSelected', true] }
                                                     }
