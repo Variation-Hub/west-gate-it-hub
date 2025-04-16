@@ -543,7 +543,9 @@ export const getSupplierDetails = async (req: any, res: Response) => {
         let files: any = [];
         
         if (loggedInUser.role === userRoles.Admin || loggedInUser.id === userID) {
-            files = await FileModel.find({ supplierId: userID });
+            files = await FileModel.find({ supplierId: userID })
+                .populate({ path: "supplierId", select: "name" })
+                .populate({ path: "userId", select: "name" });
             
             if (expertise) {
                 files = files.filter((file: any) => file.expertise?.includes(expertise));

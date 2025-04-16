@@ -338,7 +338,7 @@ export const getAllExpertise = async (req: any, res: Response) => {
             { $sort: { expertise: 1 } }
         ]);
 
-        const files = await FileModel.find({}).populate("supplierId", "name");
+        const files = await FileModel.find({}).populate("supplierId", "name").populate("userId", "name");
 
         // Attach related files to subExpertise
         let finalExpertiseList = expertiseData.map(exp => {
@@ -711,8 +711,13 @@ export const addSubExpertiseToSupplier = async (req: any, res: Response) => {
 
 export const deleteExpertise = async (req: any, res: Response) => {
     try {
-        const userId = req.user.id;
+        const isAdmin = req.user?.role === userRoles.Admin;
         const { itemId } = req.params;
+        const { supplierId } = req.body;
+
+        if (!isAdmin) {
+            return res.status(403).json({ message: "Only superadmin can delete expertise", status: false });
+        }
 
         if (!mongoose.Types.ObjectId.isValid(itemId)) {
             return res.status(400).json({
@@ -721,19 +726,19 @@ export const deleteExpertise = async (req: any, res: Response) => {
             });
         }
 
-        const user: any = await userModel.findById(userId);
-        if (!user) return res.status(404).json({ status: false, message: "User not found" });
+        const supplier: any = await userModel.findById(supplierId);
+        if (!supplier) return res.status(404).json({ status: false, message: "supplierId not found" });
 
-        const expertiseItem = user.expertise.find((exp: any) => exp.itemId.toString() === itemId);
+        const expertiseItem = supplier.expertise.find((exp: any) => exp.itemId.toString() === itemId);
         if (!expertiseItem) return res.status(404).json({ status: false, message: "Expertise not found" });
 
         await userModel.updateOne(
-            { _id: userId },
+            { _id: supplierId },
             { $pull: { expertise: { itemId } } }
         );
 
         // delete related files
-        await FileModel.deleteMany({ supplierId: userId, expertise: expertiseItem.name });
+        await FileModel.deleteMany({ supplierId, expertise: expertiseItem.name });
 
         return res.status(200).json({
             message: "Expertise deleted successfully",
@@ -750,26 +755,29 @@ export const deleteExpertise = async (req: any, res: Response) => {
 
 export const deleteSubExpertise = async (req: any, res: Response) => {
     try {
-        const userId = req.user.id;
+        const isAdmin = req.user?.role === userRoles.Admin;
         const { itemId } = req.params;
-        const { subExpertise } = req.body;
+        const { subExpertise, supplierId } = req.body;
+
+        if (!isAdmin) {
+            return res.status(403).json({ message: "Only superadmin can delete sub-expertise", status: false });
+        }
 
         if (!subExpertise)
             return res.status(400).json({ message: "subExpertise is required", status: false });
 
-        const user: any = await userModel.findById(userId);
-        if (!user) return res.status(404).json({ message: "User not found", status: false });
+        const supplier: any = await userModel.findById(supplierId);
+        if (!supplier) return res.status(404).json({ message: "User not found", status: false });
 
-        const expertiseItem = user.expertise.find((exp: any) => exp.itemId.toString() === itemId);
+        const expertiseItem = supplier.expertise.find((exp: any) => exp.itemId.toString() === itemId);
         if (!expertiseItem) return res.status(404).json({ message: "Expertise not found", status: false });
-        console.log(expertiseItem)
+        
         await userModel.updateOne(
-            { _id: userId, "expertise.itemId": itemId },
+            { _id: supplierId, "expertise.itemId": itemId },
             { $pull: { "expertise.$.subExpertise": subExpertise } }
         );
-        console.log({userId, expertise: expertiseItem.name, subExpertise})
-        const result = await FileModel.deleteMany({ supplierId: userId, expertise: expertiseItem.name, subExpertise });
-        console.log(result)
+        
+        const result = await FileModel.deleteMany({ supplierId, expertise: expertiseItem.name, subExpertise });
 
         return res.status(200).json({
             message: "Sub-expertise deleted successfully",
