@@ -934,6 +934,10 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
         }
         
         for (const task of tasks) {
+
+            const taskStatus = task.status?.toLowerCase();
+
+            if (taskStatus === 'completed') continue;
             // Get all comments by this user on this task for today
             const todayComments = task.comments.filter((c: any) => {
                 const commentDate = new Date(c.date);
