@@ -278,10 +278,10 @@ const userModel = new mongoose.Schema({
     },
     expertise: [
         {
-          itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', required: true },
-          name: { type: String, required: true },
-          type: { type: String, required: true }, 
-          subExpertise: [{ type: String }]
+          itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
+          name: { type: String, default: "" },
+          type: { type: String, default: "" },
+          subExpertise: { type: [String], default: [] }
         }
     ],
     poc_name: { type: String, default: "" },
