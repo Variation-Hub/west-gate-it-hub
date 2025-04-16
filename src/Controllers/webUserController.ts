@@ -653,59 +653,134 @@ export const getAllSubExpertise = async (req: any, res: Response) => {
 
 export const addSubExpertiseToSupplier = async (req: any, res: Response) => {
     try {
-      const { supplierId, expertise, subExpertise } = req.body;
-  
-      if (!supplierId || !expertise || !Array.isArray(subExpertise) || subExpertise.length === 0) {
-        return res.status(400).json({
-          message: "Supplier ID, expertise, and subExpertise array are required",
-          status: false
+        const { supplierId, expertise, subExpertise } = req.body;
+
+        if (!supplierId || !expertise || !Array.isArray(subExpertise) || subExpertise.length === 0) {
+            return res.status(400).json({
+                message: "Supplier ID, expertise, and subExpertise array are required",
+                status: false
+            });
+        }
+
+        const supplier = await userModel.findById(supplierId);
+        if (!supplier) {
+            return res.status(404).json({
+                message: "Supplier not found",
+                status: false
+            });
+        }
+
+        const expertiseList = supplier.expertise.find(
+            (e: any) => e.name.toLowerCase() === expertise.toLowerCase()
+        );
+
+        if (!expertiseList) {
+            return res.status(400).json({
+                message: `Expertise '${expertise}' not found for this supplier`,
+                status: false
+            });
+        }
+
+        const existingSub = expertiseList.subExpertise || [];
+        const newSub = subExpertise.filter((s: string) => !existingSub.includes(s));
+
+        if (newSub.length === 0) {
+            return res.status(400).json({
+                message: "All subExpertise already exist. Nothing to update.",
+                status: false
+            });
+        }
+
+        expertiseList.subExpertise.push(...newSub);
+
+        await supplier.save();
+
+        return res.status(200).json({
+            message: "SubExpertise added successfully",
+            status: true,
+            data: supplier.expertise
         });
-      }
-  
-      const supplier = await userModel.findById(supplierId);
-      if (!supplier) {
-        return res.status(404).json({
-          message: "Supplier not found",
-          status: false
-        });
-      }
-  
-      const expertiseList = supplier.expertise.find(
-        (e: any) => e.name.toLowerCase() === expertise.toLowerCase()
-      );
-  
-      if (!expertiseList) {
-        return res.status(400).json({
-          message: `Expertise '${expertise}' not found for this supplier`,
-          status: false
-        });
-      }
-  
-      const existingSub = expertiseList.subExpertise || [];
-      const newSub = subExpertise.filter((s: string) => !existingSub.includes(s));
-  
-      if (newSub.length === 0) {
-        return res.status(400).json({
-          message: "All subExpertise already exist. Nothing to update.",
-          status: false
-        });
-      }
-  
-      expertiseList.subExpertise.push(...newSub);
-  
-      await supplier.save();
-  
-      return res.status(200).json({
-        message: "SubExpertise added successfully",
-        status: true,
-        data: supplier.expertise
-      });
-  
+
     } catch (err: any) {
-      return res.status(500).json({
-        message: err.message || "Failed to add subExpertise",
-        status: false
-      });
+        return res.status(500).json({
+            message: err.message || "Failed to add subExpertise",
+            status: false
+        });
     }
-  };
+};
+
+export const deleteExpertise = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id;
+        const { itemId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(itemId)) {
+            return res.status(400).json({
+              status: false,
+              message: 'Invalid itemId format',
+            });
+        }
+
+        const user: any = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ status: false, message: "User not found" });
+
+        const expertiseItem = user.expertise.find((exp: any) => exp.itemId.toString() === itemId);
+        if (!expertiseItem) return res.status(404).json({ status: false, message: "Expertise not found" });
+
+        await userModel.updateOne(
+            { _id: userId },
+            { $pull: { expertise: { itemId } } }
+        );
+
+        // delete related files
+        await FileModel.deleteMany({ supplierId: userId, expertise: expertiseItem.name });
+
+        return res.status(200).json({
+            message: "Expertise deleted successfully",
+            status: true
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Failed to delete expertise",
+            status: false,
+            error: error.message
+        });
+    }
+};
+
+export const deleteSubExpertise = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id;
+        const { itemId } = req.params;
+        const { subExpertise } = req.body;
+
+        if (!subExpertise)
+            return res.status(400).json({ message: "subExpertise is required", status: false });
+
+        const user: any = await userModel.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found", status: false });
+
+        const expertiseItem = user.expertise.find((exp: any) => exp.itemId.toString() === itemId);
+        if (!expertiseItem) return res.status(404).json({ message: "Expertise not found", status: false });
+        console.log(expertiseItem)
+        await userModel.updateOne(
+            { _id: userId, "expertise.itemId": itemId },
+            { $pull: { "expertise.$.subExpertise": subExpertise } }
+        );
+        console.log({userId, expertise: expertiseItem.name, subExpertise})
+        const result = await FileModel.deleteMany({ supplierId: userId, expertise: expertiseItem.name, subExpertise });
+        console.log(result)
+
+        return res.status(200).json({
+            message: "Sub-expertise deleted successfully",
+            status: true
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Failed to delete sub-expertise",
+            status: false,
+            error: error.message
+        });
+    }
+};
   
