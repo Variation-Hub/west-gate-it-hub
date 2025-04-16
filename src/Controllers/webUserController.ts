@@ -338,24 +338,24 @@ export const getAllExpertise = async (req: any, res: Response) => {
             { $sort: { expertise: 1 } }
         ]);
 
-        const files = await FileModel.find({});
+        const files = await FileModel.find({}).populate("supplierId", "name");
 
-// Attach related files to subExpertise
-let finalExpertiseList = expertiseData.map(exp => {
-    const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
-        const relatedFiles = files.filter(file => file.subExpertise?.includes(subExp));
-        return { name: subExp, files: relatedFiles };
-    });
+        // Attach related files to subExpertise
+        let finalExpertiseList = expertiseData.map(exp => {
+            const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
+                const relatedFiles = files.filter(file => file.subExpertise?.includes(subExp));
+                return { name: subExp, files: relatedFiles };
+            });
 
-    return { ...exp, subExpertiseList: updatedSubExpertiseList };
-});
+            return { ...exp, subExpertiseList: updatedSubExpertiseList };
+        });
 
-finalExpertiseList = finalExpertiseList.filter(exp => exp.expertise !== null);
+        finalExpertiseList = finalExpertiseList.filter(exp => exp.expertise !== null);
 
-if (search) {
-    const searchRegex = new RegExp(search as string, "i");
-    finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
-}
+        if (search) {
+            const searchRegex = new RegExp(search as string, "i");
+            finalExpertiseList = finalExpertiseList.filter(exp => searchRegex.test(exp.expertise));
+        }
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
