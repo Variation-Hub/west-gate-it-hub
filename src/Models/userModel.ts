@@ -305,6 +305,14 @@ const userModel = new mongoose.Schema({
         default: [],
     },
     inactiveDate: { type: Date },
+    resourceSharingSupplier: {
+        type: Boolean,
+        default: false
+    },
+    subcontractingSupplier: {
+        type: Boolean,
+        default: false
+    },      
     createdAt: {
         type: Date,
         default: Date.now

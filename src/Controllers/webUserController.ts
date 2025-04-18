@@ -52,8 +52,15 @@ export const registerWebUser = async (req: Request, res: Response) => {
             })
         }
 
-        if (!Array.isArray(req.body?.expertise)) {
+        if (req.body.expertise && !Array.isArray(req.body?.expertise)) {
             return res.status(400).json({ message: "Expertise must be an array", status: false });
+        }
+
+        if (typeof req.body.resourceSharingSupplier !== 'boolean') {
+            req.body.resourceSharingSupplier = false;
+        }
+        if (typeof req.body.subcontractingSupplier !== 'boolean') {
+            req.body.subcontractingSupplier = false;
         }
 
         req.body.role = userRoles.SupplierAdmin

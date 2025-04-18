@@ -345,7 +345,7 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
 
-        const { startDate, endDate, search } = req.query;
+        const { startDate, endDate, search, resourceSharing, subContracting, status } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
         if (startDate && endDate) {
@@ -358,6 +358,26 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         if(search){
             query.name = { $regex: search, $options: "i" };
         }
+
+        if (resourceSharing === "true") {
+            query.resourceSharingSupplier = true;
+        } else if (resourceSharing === "false") {
+            query.resourceSharingSupplier = false;
+        }
+        
+        // Subcontracting Filter
+        if (subContracting === "true") {
+            query.subcontractingSupplier = true;
+        } else if (subContracting === "false") {
+            query.subcontractingSupplier = false;
+        }
+
+        if (status === "true") {
+            query.active = true;
+        } else if (status === "false") {
+            query.active = false;
+        }
+        
         const count = await userModel.countDocuments(query)
         
         const totalCount = await userModel.countDocuments(query);
