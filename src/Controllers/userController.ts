@@ -177,17 +177,6 @@ export const updateUser = async (req: Request, res: Response) => {
 
             await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
         }
-        if (updateData.active === true) {
-            let countCaseStudy = await caseStudy.find({ userId: id })
-
-            if (countCaseStudy.length === 0) {
-                return res.status(400).json({
-                    message: "Supplier must have at least one Historical Data to be active.",
-                    status: false
-                });
-            }
-            updateData.isInHold = false
-        }
         // Update fields dynamically
         Object.keys(updateData).forEach((key) => {
             if (updateData[key] !== undefined) {

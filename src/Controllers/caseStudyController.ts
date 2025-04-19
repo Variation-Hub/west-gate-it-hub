@@ -2,6 +2,7 @@ import { Request, Response } from "express"
 import caseStudyModel from "../Models/caseStudy"
 import { uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel";
+import userModel from "../Models/userModel";
 
 async function handleProjectUpdate(category: string, userId: string) {
     try {
@@ -72,6 +73,13 @@ export const caseStudyList = async (req: any, res: Response) => {
     }
 }
 
+const updateSupplierStatus = async (userId: any, isInHold: boolean, active: boolean) => {
+    await userModel.updateOne(
+        { _id: userId },
+        { $set: { isInHold, active } }
+    );
+};
+
 export const createCaseStudy = async (req: any, res: Response) => {
     try {
         let { file } = req.body
@@ -85,6 +93,9 @@ export const createCaseStudy = async (req: any, res: Response) => {
 
         if (!existingCaseStudy.length) {
             const result = await handleProjectUpdate(req.body.category, userId)
+
+            await updateSupplierStatus(userId, true, true); 
+
         }
         return res.status(200).json({
             message: "CaseStudy create success",
@@ -129,6 +140,12 @@ export const createCaseStudyMultiple = async (req: Request, res: Response) => {
         }
 
         const saveData = await caseStudyModel.insertMany(data);
+
+        const remainingCaseStudies = await caseStudyModel.find({ userId });
+
+        if (remainingCaseStudies.length === data.length) {
+            await updateSupplierStatus(userId, true, true);
+        }
 
         return res.status(200).json({
             message: "CaseStudy create success",
@@ -189,6 +206,13 @@ export const deleteCaseStudy = async (req: Request, res: Response) => {
                 data: null
             });
         }
+
+        const remainingCaseStudies = await caseStudyModel.find({ userId: caseStudy.userId });
+        
+        if (remainingCaseStudies.length === 0) {
+            await updateSupplierStatus(caseStudy.userId, false, true);
+        }
+
         return res.status(200).json({
             message: "CaseStudy delete success",
             status: true,

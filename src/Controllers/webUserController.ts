@@ -65,7 +65,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
 
         req.body.role = userRoles.SupplierAdmin
         req.body.active = false
-        req.body.isInHold = true
+        req.body.isInHold = false
         const newUser: any = await userModel.create(req.body)
 
         await sendMail(req.body)
