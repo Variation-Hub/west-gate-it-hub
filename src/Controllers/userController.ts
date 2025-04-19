@@ -171,11 +171,22 @@ export const updateUser = async (req: Request, res: Response) => {
                 data: null
             });
         }
-        console.log(updateData.active)
+        
         if (updateData.active === false) {
             user.inactiveDate = new Date();
 
             await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
+        }
+        if (updateData.active === true) {
+            let countCaseStudy = await caseStudy.find({ userId: id })
+
+            if (countCaseStudy.length === 0) {
+                return res.status(400).json({
+                    message: "Supplier must have at least one Historical Data to be active.",
+                    status: false
+                });
+            }
+            updateData.isInHold = false
         }
         // Update fields dynamically
         Object.keys(updateData).forEach((key) => {
@@ -205,7 +216,15 @@ export const updateUser = async (req: Request, res: Response) => {
 export const deleteUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.query;
-        const deleteUser = await userModel.findByIdAndDelete(id);
+
+        const findUser = await userModel.findOne({ _id: id })
+
+        if (findUser?.isDeleted === false) {
+            await userModel.findByIdAndUpdate(id, { isDeleted: true });
+        }
+        else {
+            await userModel.findByIdAndDelete(id);
+        }
 
         await CandidateCvModel.deleteMany({ supplierId: id });
 
@@ -345,7 +364,7 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
 
-        const { startDate, endDate, search, resourceSharing, subContracting, status } = req.query;
+        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
         if (startDate && endDate) {
@@ -378,6 +397,9 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.active = false;
         }
         
+        if(isDeleted === "true") {
+            query.isDeleted = true;
+        }
         const count = await userModel.countDocuments(query)
         
         const totalCount = await userModel.countDocuments(query);
@@ -385,6 +407,10 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         const activeCount = await userModel.countDocuments({ ...query, active: true });
 
         const inActiveCount = await userModel.countDocuments({ ...query, active: false });
+
+        const resourceSharingCount = await userModel.countDocuments({ ...query, resourceSharingSupplier: true });
+
+        const subcontractingCount = await userModel.countDocuments({ ...query, subcontractingSupplier: true });
 
         const user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
@@ -422,7 +448,9 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 count: {
                     total: totalCount,
                     active: activeCount,
-                    inActive: inActiveCount
+                    inActive: inActiveCount,
+                    resourceSharingCount,
+                    subcontractingCount
                 },
                 meta_data: {
                     page: req.pagination?.page,
