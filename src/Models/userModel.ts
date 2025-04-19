@@ -320,7 +320,13 @@ const userModel = new mongoose.Schema({
     isDeleted: {
         type: Boolean,
         default: false
-    },        
+    },
+    inHoldComment: [
+        {
+          comment: String,
+          date: { type: Date, default: Date.now }
+        }
+    ],
     createdAt: {
         type: Date,
         default: Date.now
