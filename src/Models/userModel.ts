@@ -312,7 +312,15 @@ const userModel = new mongoose.Schema({
     subcontractingSupplier: {
         type: Boolean,
         default: false
-    },      
+    },
+    isInHold: {
+        type: Boolean,
+        default: false
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false
+    },        
     createdAt: {
         type: Date,
         default: Date.now
