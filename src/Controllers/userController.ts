@@ -177,6 +177,15 @@ export const updateUser = async (req: Request, res: Response) => {
 
             await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
         }
+
+        if (updateData.inHoldComment) {
+            user.inHoldComment.push({
+                comment: updateData.inHoldComment,
+                date: new Date()
+            });
+            delete updateData.inHoldComment;
+        }
+
         // Update fields dynamically
         Object.keys(updateData).forEach((key) => {
             if (updateData[key] !== undefined) {
@@ -353,7 +362,7 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
 
-        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted } = req.query;
+        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
         if (startDate && endDate) {
@@ -380,6 +389,12 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.subcontractingSupplier = false;
         }
 
+        if (inHold === "true") {
+            query.isInHold = true;
+        } else if (inHold === "false") {
+            query.isInHold = false;
+        }
+
         if (status === "true") {
             query.active = true;
         } else if (status === "false") {
@@ -391,15 +406,21 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         }
         const count = await userModel.countDocuments(query)
         
-        const totalCount = await userModel.countDocuments(query);
+        const counts = await userModel.aggregate([
+            { $match: query },
+            {
+                $facet: {
+                    totalCount: [{ $count: "count" }],
+                    activeCount: [{ $match: { active: true } }, { $count: "count" }],
+                    inActiveCount: [{ $match: { active: false } }, { $count: "count" }],
+                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true } }, { $count: "count" }],
+                    subcontractingCount: [{ $match: { subcontractingSupplier: true } }, { $count: "count" }],
+                    inHoldCount: [{ $match: { isInHold: true } }, { $count: "count" }]
+                }
+            }
+        ]);
 
-        const activeCount = await userModel.countDocuments({ ...query, active: true });
-
-        const inActiveCount = await userModel.countDocuments({ ...query, active: false });
-
-        const resourceSharingCount = await userModel.countDocuments({ ...query, resourceSharingSupplier: true });
-
-        const subcontractingCount = await userModel.countDocuments({ ...query, subcontractingSupplier: true });
+        const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
         const user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
@@ -435,11 +456,12 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             data: {
                 data: userWithProjects,
                 count: {
-                    total: totalCount,
-                    active: activeCount,
-                    inActive: inActiveCount,
-                    resourceSharingCount,
-                    subcontractingCount
+                    total: extractCount(counts[0].totalCount),
+                    active: extractCount(counts[0].activeCount),
+                    inActive: extractCount(counts[0].inActiveCount),
+                    resourceSharingCount: extractCount(counts[0].resourceSharingCount),
+                    subcontractingCount: extractCount(counts[0].subcontractingCount),
+                    inHoldCount: extractCount(counts[0].inHoldCount)
                 },
                 meta_data: {
                     page: req.pagination?.page,

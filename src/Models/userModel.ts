@@ -321,12 +321,16 @@ const userModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    inHoldComment: [
-        {
-          comment: String,
-          date: { type: Date, default: Date.now }
+    inHoldComment: [{
+        comment: {
+            type: String,
+            default: null
+        },
+        date: {
+            type: Date,
+            default: Date.now
         }
-    ],
+    }],
     createdAt: {
         type: Date,
         default: Date.now

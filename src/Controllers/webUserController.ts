@@ -41,12 +41,12 @@ const sendMail = async (data: any) => {
 
 export const registerWebUser = async (req: Request, res: Response) => {
     try {
-        const { email } = req.body
-        const user = await userModel.findOne({ email })
+        const { companyName } = req.body
+        const user = await userModel.findOne({ companyName })
 
         if (user) {
             return res.status(400).json({
-                message: "User already exists",
+                message: "Company already registered",
                 status: false,
                 data: null
             })
