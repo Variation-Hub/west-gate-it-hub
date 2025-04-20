@@ -445,8 +445,14 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                     sel.userId?.toString() === u._id.toString() && sel.isSelected === true
                 )
             );
+
+            const userObj = u.toObject();
+
+            if (Array.isArray(userObj.inHoldComment)) {
+                userObj.inHoldComment.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            }
             return {
-                ...u.toObject(),
+                userObj,
                 assignedProjects
             };
         });
