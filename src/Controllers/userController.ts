@@ -440,19 +440,20 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         }).select("projectName bidManagerStatus selectedUserIds");
 
         const userWithProjects = user.map(u => {
+
+            const sortedInHoldComments = u.inHoldComment?.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
             const assignedProjects = projects.filter(project =>
                 project.selectedUserIds.some(sel =>
                     sel.userId?.toString() === u._id.toString() && sel.isSelected === true
                 )
             );
 
-            const userObj = u.toObject();
-
-            if (Array.isArray(userObj.inHoldComment)) {
-                userObj.inHoldComment.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            }
             return {
-                userObj,
+                ...u.toObject(),
+                inHoldComment: sortedInHoldComments,
                 assignedProjects
             };
         });
