@@ -452,7 +452,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
         const userIds = user.map(u => u._id);
 
-        let userList = await userModel.find();
+        let userList = await userModel.find({ active: true });
 
         let totalSupplierEmployeeCount = 0;
         userList?.map((element) => {
