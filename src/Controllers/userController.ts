@@ -452,8 +452,10 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
         const userIds = user.map(u => u._id);
 
+        let userList = await userModel.find();
+
         let totalSupplierEmployeeCount = 0;
-        user?.map((element) => {
+        userList?.map((element) => {
             if (element?.employeeCount) {
                 totalSupplierEmployeeCount = Number(totalSupplierEmployeeCount) + Number(element?.employeeCount)
             }
