@@ -178,6 +178,20 @@ export const updateUser = async (req: Request, res: Response) => {
             await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
         }
 
+        if (updateData.active === true) {
+            if (user.subcontractingSupplier) {
+                let countCaseStudy = await caseStudy.find({ userId: id })
+
+                if (countCaseStudy.length === 0) {
+                    return res.status(400).json({
+                        message: "Supplier must have at least one Historical Data to be active.",
+                        status: false
+                    });
+                }
+            }
+            updateData.isInHold = false
+        }
+
         if (updateData.inHoldComment) {
             user.inHoldComment.push({
                 comment: updateData.inHoldComment,
@@ -226,7 +240,7 @@ export const deleteUser = async (req: Request, res: Response) => {
 
         await CandidateCvModel.deleteMany({ supplierId: id });
 
-        if (!deleteUser) {
+        if (!findUser) {
             return res.status(404).json({
                 message: "User not found",
                 status: false,
@@ -378,15 +392,19 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
         if (resourceSharing === "true") {
             query.resourceSharingSupplier = true;
+            query.active = true;
         } else if (resourceSharing === "false") {
             query.resourceSharingSupplier = false;
+            query.active = true;
         }
         
         // Subcontracting Filter
         if (subContracting === "true") {
             query.subcontractingSupplier = true;
+            query.active = true;
         } else if (subContracting === "false") {
             query.subcontractingSupplier = false;
+            query.active = true;
         }
 
         if (inHold === "true") {
@@ -401,8 +419,12 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.active = false;
         }
         
-        if(isDeleted === "true") {
+        if (typeof req.query.isDeleted === "undefined") {
+            query.isDeleted = false;
+        } else if (req.query.isDeleted === "true") {
             query.isDeleted = true;
+        } else if (req.query.isDeleted === "false") {
+            query.isDeleted = false;
         }
         const count = await userModel.countDocuments(query)
         
@@ -413,8 +435,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                     totalCount: [{ $count: "count" }],
                     activeCount: [{ $match: { active: true } }, { $count: "count" }],
                     inActiveCount: [{ $match: { active: false } }, { $count: "count" }],
-                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true } }, { $count: "count" }],
-                    subcontractingCount: [{ $match: { subcontractingSupplier: true } }, { $count: "count" }],
+                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true } }, { $count: "count" }],
+                    subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true } }, { $count: "count" }],
                     inHoldCount: [{ $match: { isInHold: true } }, { $count: "count" }]
                 }
             }

@@ -94,8 +94,6 @@ export const createCaseStudy = async (req: any, res: Response) => {
         if (!existingCaseStudy.length) {
             const result = await handleProjectUpdate(req.body.category, userId)
 
-            await updateSupplierStatus(userId, true, true); 
-
         }
         return res.status(200).json({
             message: "CaseStudy create success",
@@ -140,12 +138,6 @@ export const createCaseStudyMultiple = async (req: Request, res: Response) => {
         }
 
         const saveData = await caseStudyModel.insertMany(data);
-
-        const remainingCaseStudies = await caseStudyModel.find({ userId });
-
-        if (remainingCaseStudies.length === data.length) {
-            await updateSupplierStatus(userId, true, true);
-        }
 
         return res.status(200).json({
             message: "CaseStudy create success",
@@ -210,7 +202,14 @@ export const deleteCaseStudy = async (req: Request, res: Response) => {
         const remainingCaseStudies = await caseStudyModel.find({ userId: caseStudy.userId });
         
         if (remainingCaseStudies.length === 0) {
-            await updateSupplierStatus(caseStudy.userId, false, true);
+            const supplier = await userModel.findById(caseStudy.userId);
+        
+            if (supplier?.subcontractingSupplier) {
+                await userModel.findByIdAndUpdate(caseStudy.userId, {
+                    active: false,
+                    isInHold: false
+                });
+            }
         }
 
         return res.status(200).json({
