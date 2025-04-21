@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -17,7 +17,7 @@ webUserRoutes.get("/get-suppliers", authorizeRoles(), getSuppliersByExpertise);
 webUserRoutes.post("/add-expertise", authorizeRoles(), updateSupplierExpertise);
 
 // drop down data
-webUserRoutes.get("/drop-down", authorizeRoles(), getAlldata);
+webUserRoutes.get("/drop-down", authorizeRoles(), getAllExpertise2);
 webUserRoutes.post("/masterlist/promote", authorizeRoles(), promoteOtherItem);
 webUserRoutes.post("/masterlist/custom", authorizeRoles(), addCustomItem);
 webUserRoutes.get("/sub-expertise/list", authorizeRoles(), getAllSubExpertise);
