@@ -375,7 +375,6 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
 
 export const fetchSuplierAdmin = async (req: any, res: Response) => {
     try {
-
         const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
@@ -449,9 +448,16 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
 
-        user = user.filter(element => !element.isDeleted);
+        // user = user.filter(element => !element.isDeleted);
 
         const userIds = user.map(u => u._id);
+
+        let totalSupplierEmployeeCount = 0;
+        user?.map((element) => {
+            if (element?.employeeCount) {
+                totalSupplierEmployeeCount = Number(totalSupplierEmployeeCount) + Number(element?.employeeCount)
+            }
+        })
 
         const projects = await projectModel.find({
             bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
@@ -464,7 +470,6 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         }).select("projectName bidManagerStatus selectedUserIds");
 
         const userWithProjects = user.map(u => {
-
             const sortedInHoldComments = u.inHoldComment?.sort(
                 (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
             );
@@ -493,7 +498,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                     inActive: extractCount(counts[0].inActiveCount),
                     resourceSharingCount: extractCount(counts[0].resourceSharingCount),
                     subcontractingCount: extractCount(counts[0].subcontractingCount),
-                    inHoldCount: extractCount(counts[0].inHoldCount)
+                    inHoldCount: extractCount(counts[0].inHoldCount),
+                    totalSupplierEmployeeCount
                 },
                 meta_data: {
                     page: req.pagination?.page,
