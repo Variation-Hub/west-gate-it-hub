@@ -232,7 +232,7 @@ export const deleteUser = async (req: Request, res: Response) => {
         const findUser = await userModel.findOne({ _id: id })
 
         if (findUser?.isDeleted === false) {
-            await userModel.findByIdAndUpdate(id, { isDeleted: true });
+            await userModel.findByIdAndUpdate(id, { isDeleted: true, active: false });
         }
         else {
             await userModel.findByIdAndDelete(id);
