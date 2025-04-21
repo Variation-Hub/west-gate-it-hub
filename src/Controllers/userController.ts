@@ -171,7 +171,7 @@ export const updateUser = async (req: Request, res: Response) => {
                 data: null
             });
         }
-        
+
         if (updateData.active === false) {
             user.inactiveDate = new Date();
 
@@ -386,7 +386,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.doj = { $gte: start, $lte: end };
         }
 
-        if(search){
+        if (search) {
             query.name = { $regex: search, $options: "i" };
         }
 
@@ -397,7 +397,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.resourceSharingSupplier = false;
             query.active = true;
         }
-        
+
         // Subcontracting Filter
         if (subContracting === "true") {
             query.subcontractingSupplier = true;
@@ -418,16 +418,16 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         } else if (status === "false") {
             query.active = false;
         }
-        
-        if (typeof req.query.isDeleted === "undefined") {
-            query.isDeleted = false;
-        } else if (req.query.isDeleted === "true") {
-            query.isDeleted = true;
-        } else if (req.query.isDeleted === "false") {
-            query.isDeleted = false;
-        }
+
+        // if (typeof req.query.isDeleted === "undefined") {
+        //     query.isDeleted = false;
+        // } else if (req.query.isDeleted === "true") {
+        //     query.isDeleted = true;
+        // } else if (req.query.isDeleted === "false") {
+        //     query.isDeleted = false;
+        // }
         const count = await userModel.countDocuments(query)
-        
+
         const counts = await userModel.aggregate([
             { $match: query },
             {
@@ -444,10 +444,12 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
         const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
-        const user = await userModel.find(query)
+        let user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
+
+        user = user.filter(element => !element.isDeleted);
 
         const userIds = user.map(u => u._id);
 
@@ -476,7 +478,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             return {
                 ...u.toObject(),
                 inHoldComment: sortedInHoldComments,
-                assignedProjects
+                assignedProjects,
+                assignedProjectCount: assignedProjects?.length
             };
         });
         return res.status(200).json({
@@ -617,7 +620,7 @@ export const getSupplierDetails = async (req: any, res: Response) => {
     try {
 
         const userID = req.params.id;
-        const { expertise } = req.query; 
+        const { expertise } = req.query;
         const loggedInUser = req.user;
         const user = await userModel.findById(userID).select({ password: 0 });;
 
@@ -629,12 +632,12 @@ export const getSupplierDetails = async (req: any, res: Response) => {
             })
         }
         let files: any = [];
-        
+
         if (loggedInUser.role === userRoles.Admin || loggedInUser.id === userID) {
             files = await FileModel.find({ supplierId: userID })
                 .populate({ path: "supplierId", select: "name" })
                 .populate({ path: "userId", select: "name" });
-            
+
             if (expertise) {
                 files = files.filter((file: any) => file.expertise?.includes(expertise));
 
@@ -1006,9 +1009,9 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
         const obj: any = {}
         projects.forEach((project: any) => {
-          
+
             if (project.categorisation === "DPS/Framework") {
-                return; 
+                return;
             }
             if (project.status !== projectStatus.NotReleted) {
                 // if (project.categorisation === "DPS") {
@@ -1018,95 +1021,95 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
                 //     data.categorisationWise["Framework"]++;
                 // }
                 if (!categorisation || project.categorisation === categorisation) {
-                data.projectsPosted.maxValue += project.maxValue;
-                if (project.status === projectStatus.Won) {
-                    data.projectsClosed.count += 1;
-                    data.projectsClosed.maxValue += project.maxValue;
-                }
-                else if (project.status === projectStatus.Awaiting) {
-                    data.projectsAwaiting.count += 1;
-                    data.projectsAwaiting.maxValue += project.maxValue;
-                } else if (project.status === projectStatus.InSolution) {
-                    data.projectsInProgress.count += 1;
-                    data.projectsInProgress.maxValue += project.maxValue;
-                } else if (project.status === projectStatus.Inhold) {
-                    data.projectsInHold.count += 1;
-                    data.projectsInHold.maxValue += project.maxValue;
-                } else if (project.status === projectStatus.DocumentsNotFound) {
-                    data.TotalDocumentsNotFound.count += 1;
-                    data.TotalDocumentsNotFound.maxValue += project.maxValue;
-                } else if (project.status === projectStatus.Passed) {
-                    data.projectsPassed.count += 1;
-                    data.projectsPassed.maxValue += project.maxValue;
-                } else if (project.status === projectStatus.Fail) {
-                    data.projectsFail.count += 1;
-                    data.projectsFail.maxValue += project.maxValue;
-                }
+                    data.projectsPosted.maxValue += project.maxValue;
+                    if (project.status === projectStatus.Won) {
+                        data.projectsClosed.count += 1;
+                        data.projectsClosed.maxValue += project.maxValue;
+                    }
+                    else if (project.status === projectStatus.Awaiting) {
+                        data.projectsAwaiting.count += 1;
+                        data.projectsAwaiting.maxValue += project.maxValue;
+                    } else if (project.status === projectStatus.InSolution) {
+                        data.projectsInProgress.count += 1;
+                        data.projectsInProgress.maxValue += project.maxValue;
+                    } else if (project.status === projectStatus.Inhold) {
+                        data.projectsInHold.count += 1;
+                        data.projectsInHold.maxValue += project.maxValue;
+                    } else if (project.status === projectStatus.DocumentsNotFound) {
+                        data.TotalDocumentsNotFound.count += 1;
+                        data.TotalDocumentsNotFound.maxValue += project.maxValue;
+                    } else if (project.status === projectStatus.Passed) {
+                        data.projectsPassed.count += 1;
+                        data.projectsPassed.maxValue += project.maxValue;
+                    } else if (project.status === projectStatus.Fail) {
+                        data.projectsFail.count += 1;
+                        data.projectsFail.maxValue += project.maxValue;
+                    }
 
-                if (project.bidManagerStatus === BidManagerStatus.Awaiting) {
-                    data.projectsBidStatusAwaiting.count += 1;
-                    data.projectsBidStatusAwaiting.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.InSolution) {
-                    data.projectsBidStatusInSolution.count += 1;
-                    data.projectsBidStatusInSolution.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.WaitingForResult) {
-                    data.projectsBidStatusWaitingForResult.count += 1;
-                    data.projectsBidStatusWaitingForResult.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
-                    data.projectsBidStatusDroppedAfterFeasibility.count += 1;
-                    data.projectsBidStatusDroppedAfterFeasibility.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.Awarded) {
-                    data.projectsBidStatusAwarded.count += 1;
-                    data.projectsBidStatusAwarded.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.NotAwarded) {
-                    data.projectsBidStatusNotAwarded.count += 1;
-                    data.projectsBidStatusNotAwarded.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
-                    data.projectsBidStatusToAction.count += 1;
-                    data.projectsBidStatusToAction.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
-                    data.projectsBidStatusNosuppliermatched.count += 1;
-                    data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage1) {
-                    data.projectsBidStatusGoNoGoStage1.count += 1;
-                    data.projectsBidStatusGoNoGoStage1.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.SupplierConfirmation) {
-                    data.projectsBidStatusSupplierConfirmation.count += 1;
-                    data.projectsBidStatusSupplierConfirmation.maxValue += project.maxValue;
-                } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage2) {
-                    data.projectsBidStatusGoNoGoStage2.count += 1;
-                    data.projectsBidStatusGoNoGoStage2.maxValue += project.maxValue;
-                }
+                    if (project.bidManagerStatus === BidManagerStatus.Awaiting) {
+                        data.projectsBidStatusAwaiting.count += 1;
+                        data.projectsBidStatusAwaiting.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.InSolution) {
+                        data.projectsBidStatusInSolution.count += 1;
+                        data.projectsBidStatusInSolution.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.WaitingForResult) {
+                        data.projectsBidStatusWaitingForResult.count += 1;
+                        data.projectsBidStatusWaitingForResult.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility) {
+                        data.projectsBidStatusDroppedAfterFeasibility.count += 1;
+                        data.projectsBidStatusDroppedAfterFeasibility.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.Awarded) {
+                        data.projectsBidStatusAwarded.count += 1;
+                        data.projectsBidStatusAwarded.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.NotAwarded) {
+                        data.projectsBidStatusNotAwarded.count += 1;
+                        data.projectsBidStatusNotAwarded.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.ToAction) {
+                        data.projectsBidStatusToAction.count += 1;
+                        data.projectsBidStatusToAction.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                        data.projectsBidStatusNosuppliermatched.count += 1;
+                        data.projectsBidStatusNosuppliermatched.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage1) {
+                        data.projectsBidStatusGoNoGoStage1.count += 1;
+                        data.projectsBidStatusGoNoGoStage1.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.SupplierConfirmation) {
+                        data.projectsBidStatusSupplierConfirmation.count += 1;
+                        data.projectsBidStatusSupplierConfirmation.maxValue += project.maxValue;
+                    } else if (project.bidManagerStatus === BidManagerStatus.GoNoGoStage2) {
+                        data.projectsBidStatusGoNoGoStage2.count += 1;
+                        data.projectsBidStatusGoNoGoStage2.maxValue += project.maxValue;
+                    }
 
-                // if (project.category.length) {
-                //     project.category.forEach((category: any) => {
-                //         if (data.categoryWise[category]) {
-                //             data.categoryWise[category]++;
-                //         } else {
-                //             data.categoryWise[category] = 1;
-                //         }
-                //     });
-                // }
-                if (project.category.some((category: string) => uniqueCategories.includes(category))) {
-                    data.projectsMatched.count += 1;
-                    data.projectsMatched.maxValue += project.maxValue;
-                }
-                if (project.projectType.length > 0) {
-                    project.projectType.forEach((type: any) => {
-                        const key = !type || type.trim() === "" ? "Unknown ProjectType" : type; // Handle null, undefined, ""
-                
-                        if (data.projectTypeWise.hasOwnProperty(key)) { 
-                            data.projectTypeWise[key]++;
-                        } else {
-                            data.projectTypeWise[key] = 1;
+                    // if (project.category.length) {
+                    //     project.category.forEach((category: any) => {
+                    //         if (data.categoryWise[category]) {
+                    //             data.categoryWise[category]++;
+                    //         } else {
+                    //             data.categoryWise[category] = 1;
+                    //         }
+                    //     });
+                    // }
+                    if (project.category.some((category: string) => uniqueCategories.includes(category))) {
+                        data.projectsMatched.count += 1;
+                        data.projectsMatched.maxValue += project.maxValue;
+                    }
+                    if (project.projectType.length > 0) {
+                        project.projectType.forEach((type: any) => {
+                            const key = !type || type.trim() === "" ? "Unknown ProjectType" : type; // Handle null, undefined, ""
+
+                            if (data.projectTypeWise.hasOwnProperty(key)) {
+                                data.projectTypeWise[key]++;
+                            } else {
+                                data.projectTypeWise[key] = 1;
+                            }
+                        });
+                    } else {
+                        if (!data.projectTypeWise["Unknown ProjectType"]) {
+                            data.projectTypeWise["Unknown ProjectType"] = 0;
                         }
-                    });
-                } else {
-                    if (!data.projectTypeWise["Unknown ProjectType"]) {
-                        data.projectTypeWise["Unknown ProjectType"] = 0;
                     }
                 }
-            }        
                 if (project.categorisation === "DPS") {
                     data.categorisationWise["DPS"]++
                 } else if (project.categorisation === "Framework") {
@@ -1124,11 +1127,11 @@ export const getAdminDashboardData = async (req: any, res: Response) => {
 
             }
         })
-        
+
         Object.keys(data.projectTypeWise).forEach((key) => {
             if (data.projectTypeWise[key] === 0) delete data.projectTypeWise[key];
         });
-        
+
         Object.keys(data.categorisationWise).forEach((key) => {
             if (data.categorisationWise[key] === 0) delete data.categorisationWise[key];
         });
@@ -1319,8 +1322,9 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
             : allProjects;
 
         const sortProjects = await projectModel.find({
-            sortListUserId: { $in: supplierId }});
-    
+            sortListUserId: { $in: supplierId }
+        });
+
         // Count projects by status
         const projectStatusCounts: any = {
             InSolution: 0,

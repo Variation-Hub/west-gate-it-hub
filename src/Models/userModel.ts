@@ -16,8 +16,9 @@ const userModel = new mongoose.Schema({
     },
     email: {
         type: String,
-        unique: true,
-        trim: true
+        unique: false,
+        trim: true,
+        default: ""
     },
     password: {
         type: String,
