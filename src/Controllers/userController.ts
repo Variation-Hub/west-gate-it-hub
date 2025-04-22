@@ -428,19 +428,19 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         const count = await userModel.countDocuments(query)
 
         const counts = await userModel.aggregate([
-            { $match: query },
+            { $match: { role: userRoles.SupplierAdmin } },
             {
                 $facet: {
                     totalCount: [{ $count: "count" }],
                     activeCount: [{ $match: { active: true } }, { $count: "count" }],
-                    inActiveCount: [{ $match: { active: false } }, { $count: "count" }],
-                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true } }, { $count: "count" }],
-                    subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true } }, { $count: "count" }],
-                    inHoldCount: [{ $match: { isInHold: true } }, { $count: "count" }]
+                    inActiveCount: [{ $match: { active: false, isDeleted: false } }, { $count: "count" }],
+                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
+                    subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
+                    inHoldCount: [{ $match: { isInHold: true, isDeleted: false } }, { $count: "count" }]
                 }
             }
         ]);
-        const isDeletedCount = await userModel.countDocuments({ ...query, isDeleted: true });
+        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin,  isDeleted: true });
 
         const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
