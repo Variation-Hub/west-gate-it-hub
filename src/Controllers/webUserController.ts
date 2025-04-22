@@ -648,7 +648,7 @@ export const getAlldata = async (req: any, res: Response) => {
             queryObj["name"] = { $regex: searchRegex };
         }
 
-        const count = await masterList.countDocuments(queryObj);
+        //const count = await masterList.countDocuments(queryObj);
 
         const data = await masterList.find(queryObj)
             .limit(req.pagination?.limit as number)
@@ -659,12 +659,12 @@ export const getAlldata = async (req: any, res: Response) => {
             message: "Data successfully fetched",
             status: true,
             data: data,
-            meta_data: {
-                page: req.pagination?.page,
-                items: count,
-                page_size: req.pagination?.limit,
-                pages: Math.ceil(count / (req.pagination?.limit as number))
-            }
+            // meta_data: {
+            //     page: req.pagination?.page,
+            //     items: count,
+            //     page_size: req.pagination?.limit,
+            //     pages: Math.ceil(count / (req.pagination?.limit as number))
+            // }
         });
     } catch (error: any) {
         return res.status(500).json({
