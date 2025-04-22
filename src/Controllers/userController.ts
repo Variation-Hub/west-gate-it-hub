@@ -440,6 +440,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 }
             }
         ]);
+        const isDeletedCount = await userModel.countDocuments({ ...query, isDeleted: true });
 
         const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
@@ -499,6 +500,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                     resourceSharingCount: extractCount(counts[0].resourceSharingCount),
                     subcontractingCount: extractCount(counts[0].subcontractingCount),
                     inHoldCount: extractCount(counts[0].inHoldCount),
+                    isDeletedCount,
                     totalSupplierEmployeeCount
                 },
                 meta_data: {

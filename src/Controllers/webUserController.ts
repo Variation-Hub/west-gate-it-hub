@@ -383,87 +383,99 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
-        const { type, search, startDate, endDate } = req.query;
-
-        const expertiseQuery: any = { };
-
-        if (type === "other") {
-            expertiseQuery["type"] = { $regex: "-other$", $options: "i" };
-        } else if (type) {
-            expertiseQuery["type"] = { $regex: `^${type}$`, $options: "i" };
+        const { type, search, supplierId, startDate, endDate } = req.query;
+    
+        const expertiseQuery: any = {};
+        if (supplierId && typeof supplierId === 'string') {
+            expertiseQuery._id = new mongoose.Types.ObjectId(supplierId);
         }
+    
+         
+        if (type) {
+            const mainType = type as string;
+            expertiseQuery["$or"] = [
+              { type: new RegExp(`^${mainType}$`, "i") },
+              { type: new RegExp(`^${mainType}-other$`, "i") }
+            ];
+          }
 
-        if (search) {
+          if (search) {
             const regex = new RegExp(search as string, "i");
             expertiseQuery["name"] = { $regex: regex };
-        }
+          }
 
-        const expertiseList = await masterList.find(expertiseQuery).lean();
+          const expertiseList = await masterList.find(expertiseQuery).lean();
+          const matchStage: any = { "expertise.name": { $exists: true } };
 
-        const matchStage: any = { "expertise.name": { $exists: true } };
-        if (startDate && endDate) {
+          if (startDate && endDate) {
             const start = new Date(startDate as string);
             const end = new Date(endDate as string);
             end.setHours(23, 59, 59, 999);
             matchStage.createdAt = { $gte: start, $lte: end };
-        }
+          }
 
         const allSuppliers = await userModel.find(
             matchStage,
             { expertise: 1, active: 1 }
-        ).lean();
-
+          ).lean();
+    
         const files = await FileModel.find({}).lean();
 
         let expertiseData = expertiseList.map(exp => {
-            const expName = exp.name;
-
-            const suppliersForExp = allSuppliers.filter(user =>
-                user.expertise.some(e => e.name === expName)
-            );
-
-            const totalSupplierCount = suppliersForExp.length;
-            const activeSupplierCount = suppliersForExp.filter(s => s.active).length;
-
-            const uniqueSubExpertise = new Set<string>();
-            suppliersForExp.forEach(user => {
-                const matchedExp = user.expertise.find(e => e.name === expName);
-                matchedExp?.subExpertise?.forEach(sub => uniqueSubExpertise.add(sub));
-            });
-
-            return {
-                expertise: expName,
-                totalSupplierCount,
-                activeSupplierCount,
-                subExpertiseList: Array.from(uniqueSubExpertise),
-                subExpertiseCount: uniqueSubExpertise.size
-            };
+          const expName = exp.name;
+    
+          const suppliersForExp = allSuppliers.filter(user =>
+            user.expertise.some(e => e.name === expName)
+          );
+    
+          const totalSupplierCount = suppliersForExp.length;
+          const activeSupplierCount = suppliersForExp.filter(s => s.active).length;
+    
+          const uniqueSubExpertise = new Set<string>();
+          suppliersForExp.forEach(user => {
+            const matchedExp = user.expertise.find(e => e.name === expName);
+            matchedExp?.subExpertise?.forEach(sub => uniqueSubExpertise.add(sub));
+          });
+    
+          return {
+            _id: exp._id, 
+            name: exp.name,
+            type: exp.type,
+            isSystem: exp.isSystem,
+            totalSupplierCount,
+            activeSupplierCount,
+            subExpertiseList: Array.from(uniqueSubExpertise),
+            subExpertiseCount: uniqueSubExpertise.size
+          };
         });
-
+    
         let finalExpertiseList = expertiseData.map(exp => {
-            const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
-                const relatedFiles = files.filter((file: any) => file.subExpertise?.includes(subExp));
-                return { name: subExp, files: relatedFiles };
-            });
-
-            return { ...exp, subExpertiseList: updatedSubExpertiseList };
+          const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
+            const relatedFiles = files.filter((file: any) => file.subExpertise?.includes(subExp));
+            return { name: subExp, files: relatedFiles };
+          });
+    
+          return { ...exp, subExpertiseList: updatedSubExpertiseList };
         });
-
-        finalExpertiseList = finalExpertiseList.filter(exp => exp.expertise !== null);
-
+    
+          
+        finalExpertiseList = finalExpertiseList.filter(
+            exp => !(exp.totalSupplierCount === 0 && (exp.isSystem === false || exp.type.endsWith("-other")))
+          );
+          
         return res.status(200).json({
-            message: "Expertise list fetched successfully",
-            status: true,
-            data: finalExpertiseList
+          message: "Expertise list fetched successfully",
+          status: true,
+          data: finalExpertiseList
         });
-
-    } catch (err: any) {
+    
+      } catch (err: any) {
         return res.status(500).json({
-            message: err.message,
-            status: false,
-            data: []
+          message: err.message,
+          status: false,
+          data: null
         });
-    }
+      }
 };
 
 
@@ -580,6 +592,26 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
           message: "All expertise already exist. Nothing to update.",
           status: false
         });
+      }
+  
+      for (const exp of newExpertise) {
+        const existsInMasterList = await masterList.findOne({ name: exp.name, type: exp.type });
+  
+        if (!existsInMasterList) {
+          await masterList.create({
+            name: exp.name,
+            type: exp.type,
+            isSystem: false,
+          });
+        }
+        else {
+            if (exp.type.endsWith('-other')) {
+                await masterList.updateOne(
+                    { _id: existsInMasterList._id }, 
+                    { $set: { type: exp.type, isSystem: false } } 
+                  );
+            }
+        }
       }
   
       supplier.expertise.push(...newExpertise);
