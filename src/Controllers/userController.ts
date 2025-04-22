@@ -418,13 +418,13 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             query.active = false;
         }
 
-        // if (typeof req.query.isDeleted === "undefined") {
-        //     query.isDeleted = false;
-        // } else if (req.query.isDeleted === "true") {
-        //     query.isDeleted = true;
-        // } else if (req.query.isDeleted === "false") {
-        //     query.isDeleted = false;
-        // }
+        if (typeof isDeleted === "undefined") {
+            query.isDeleted = false;
+        } else if (isDeleted === "true") {
+            query.isDeleted = true;
+        } else if (isDeleted === "false") {
+            query.isDeleted = false;
+        }
         const count = await userModel.countDocuments(query)
 
         const counts = await userModel.aggregate([
@@ -447,8 +447,6 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
-
-        // user = user.filter(element => !element.isDeleted);
 
         const userIds = user.map(u => u._id);
 
