@@ -419,7 +419,7 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             { expertise: 1, active: 1 }
           ).lean();
     
-        const files = await FileModel.find({}).lean();
+        const files = await FileModel.find({}).populate("supplierId", "name isDeleted").lean();
 
         let expertiseData = expertiseList.map(exp => {
           const expName = exp.name;
@@ -451,7 +451,11 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
     
         let finalExpertiseList = expertiseData.map(exp => {
           const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
-            const relatedFiles = files.filter((file: any) => file.subExpertise?.includes(subExp));
+            const relatedFiles = files.filter((file: any) => 
+                file.subExpertise?.includes(subExp) &&
+                file.supplierId &&
+                file.supplierId.isDeleted === false
+            );
             return { name: subExp, files: relatedFiles };
           });
     
