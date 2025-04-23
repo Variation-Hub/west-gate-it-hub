@@ -416,10 +416,10 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
 
         const allSuppliers = await userModel.find(
             matchStage,
-            { expertise: 1, active: 1, isInHold: 1, isDeleted: 1 }
+            { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
           ).lean();
     
-        const files = await FileModel.find({}).populate("supplierId", "name isDeleted").lean();
+        const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
 
         let expertiseData = expertiseList.map(exp => {
           const expName = exp.name;
@@ -433,12 +433,35 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
           const totalSupplierCount = validSuppliers.length;
           const activeSupplierCount = validSuppliers.filter(s => s.active).length;
     
-          const uniqueSubExpertise = new Set<string>();
-          validSuppliers.forEach(user => {
+          const subExpertiseMap = new Map<string, { supplierName: string, files: any[] }[]>();
+
+          validSuppliers
+          .filter(s => s.active)
+          .forEach(user => {
             const matchedExp = user.expertise.find(e => e.name === expName);
-            matchedExp?.subExpertise?.forEach(sub => uniqueSubExpertise.add(sub));
+            matchedExp?.subExpertise?.forEach(sub => {
+              const supplierFiles = files.filter(file =>
+                file.supplierId?._id?.toString() === user._id.toString() &&
+                file.subExpertise?.includes(sub) &&
+                !(file.supplierId as any)?.isDeleted
+              );
+    
+              if (!subExpertiseMap.has(sub)) {
+                subExpertiseMap.set(sub, []);
+              }
+    
+              subExpertiseMap.get(sub)?.push({
+                supplierName: user.companyName || "Unknown",
+                files: supplierFiles
+              });
+            });
           });
     
+          const subExpertiseList = Array.from(subExpertiseMap.entries()).map(([name, suppliers]) => ({
+            name,
+            suppliers
+          }));
+
           return {
             _id: exp._id, 
             name: exp.name,
@@ -446,26 +469,12 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             isSystem: exp.isSystem,
             totalSupplierCount,
             activeSupplierCount,
-            subExpertiseList: Array.from(uniqueSubExpertise),
-            subExpertiseCount: uniqueSubExpertise.size
+            subExpertiseList,
+            subExpertiseCount: subExpertiseList.length
           };
         });
     
-        let finalExpertiseList = expertiseData.map(exp => {
-          const updatedSubExpertiseList = exp.subExpertiseList.map((subExp: any) => {
-            const relatedFiles = files.filter((file: any) => 
-                file.subExpertise?.includes(subExp) &&
-                file.supplierId &&
-                file.supplierId.isDeleted === false
-            );
-            return { name: subExp, files: relatedFiles };
-          });
-    
-          return { ...exp, subExpertiseList: updatedSubExpertiseList };
-        });
-    
-          
-        finalExpertiseList = finalExpertiseList.filter(
+        let finalExpertiseList = expertiseData.filter(
             exp => !(exp.totalSupplierCount === 0 && (exp.isSystem === false || exp.type.endsWith("-other")))
           );
           
