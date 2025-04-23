@@ -416,7 +416,7 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
 
         const allSuppliers = await userModel.find(
             matchStage,
-            { expertise: 1, active: 1, isInHold: 1 }
+            { expertise: 1, active: 1, isInHold: 1, isDeleted: 1 }
           ).lean();
     
         const files = await FileModel.find({}).populate("supplierId", "name isDeleted").lean();
@@ -428,13 +428,13 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             user.expertise.some(e => e.name === expName)
           );
     
-          const totalSupplierCount = suppliersForExp.filter(s => !s.isInHold).length;
-          const activeSupplierCount = suppliersForExp.filter(s => s.active && !s.isInHold).length;
+          const validSuppliers = suppliersForExp.filter(s => !s.isDeleted && !s.isInHold);
+
+          const totalSupplierCount = validSuppliers.length;
+          const activeSupplierCount = validSuppliers.filter(s => s.active).length;
     
           const uniqueSubExpertise = new Set<string>();
-          suppliersForExp
-          .filter(user => !user.isInHold)
-          .forEach(user => {
+          validSuppliers.forEach(user => {
             const matchedExp = user.expertise.find(e => e.name === expName);
             matchedExp?.subExpertise?.forEach(sub => uniqueSubExpertise.add(sub));
           });
