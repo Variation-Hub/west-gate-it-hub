@@ -6,7 +6,10 @@ const RoleSchema = new mongoose.Schema({
         required: true, 
         unique: true 
     },
-    otherRole: [
+    otherRoles: [
+        { type: String }
+    ],
+    relatedRoles: [
         { type: String }
     ] 
 }, { timestamps: true, versionKey: false, minimize: false });

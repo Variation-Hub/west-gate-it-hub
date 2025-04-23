@@ -2,6 +2,8 @@ import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
 import RoleModel from "../Models/roleModel"
 import mongoose from "mongoose";
+const technologies = require('../Util/technologies.json');
+
 export const createRole = async (req: Request, res: Response) => {
     try {
         const { name, otherRole } = req.body;
@@ -51,7 +53,10 @@ export const getAllRoles = async (req: Request, res: Response) => {
     
         const query: any = {};
         if (search) {
-            query.name = { $regex: search, $options: "i" };
+            query["$or"] = [
+                { name: { $regex: search, $options: "i" } },
+                { otherRoles: { $regex: search, $options: "i" } }
+            ];
         }
 
         if (startDate && endDate) {
@@ -95,7 +100,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 $project: {
                     _id: 1,
                     name: 1,
-                    otherRole: 1,
+                    otherRoles: 1,
                     createdAt: 1,
                     updatedAt: 1,
                     totalSuppliersCount: { $size: "$uniqueSuppliers" },
@@ -122,8 +127,8 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 }
             },
             { $sort: { createdAt: -1, _id: -1 } },
-            { $skip: skip },
-            { $limit: limit }
+            // { $skip: skip },
+            // { $limit: limit }
         ]);
     
         const totalRoles = await RoleModel.countDocuments(query);
@@ -202,5 +207,66 @@ export const getCount =  async (req: Request, res: Response) => {
         res.status(200).json({ message: 'Roles fetched successfully', status: true, data: roleCounts });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+export const roleList = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+        
+        const query: any = {};
+        if (search) {
+            query["$or"] = [
+                { name: { $regex: search, $options: "i" } },
+                { otherRoles: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        const roles = await RoleModel.find({});
+    
+        //const totalRoles = await RoleModel.countDocuments(query);
+    
+        return res.status(200).json({
+          message: "Roles fetched successfully",
+          status: true,
+          data: {
+            roles,
+            // total: totalRoles,
+            // page: skip / limit + 1,
+            // totalPages: Math.ceil(totalRoles / limit),
+          },
+        });
+      } catch (err: any) {
+        return res.status(500).json({
+          message: err.message,
+          status: false,
+        });
+      }
+};
+
+export const getTechnologies = async (req: any, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        let filteredData = technologies;
+
+        if (search) {
+            const searchLower = search.toLowerCase();
+            filteredData = technologies.filter((item: any) =>
+                item.toLowerCase().includes(searchLower)
+            );
+        }
+
+        return res.status(200).json({
+            message: "Technologies list fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch Technologies",
+            status: false,
+            data: []
+        });
     }
 };
