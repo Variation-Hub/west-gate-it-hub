@@ -25,6 +25,22 @@ const CandidateCVSchema = new mongoose.Schema({
         inactiveComment: String,
         inactiveDate: Date
     }],
+    ctc: {
+        type: Number,
+        default: 0,
+    },
+    ukHourlyRate: {
+        type: Number,
+        default: 0,
+    },
+    ukDayRate: {
+        type: Number,
+        default: 0,
+    },
+    indianDayRate: {
+        type: Number,
+        default: 0,
+    },      
     projectsWorkedOn: [{
         projectName: { type: String },
         clientName: { type: String },
