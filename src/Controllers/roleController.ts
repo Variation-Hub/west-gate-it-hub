@@ -8,10 +8,10 @@ export const createRole = async (req: Request, res: Response) => {
     try {
         const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
-        
+
         const existingRole = await RoleModel.findOne({ name });
         if (existingRole) return res.status(400).json({ message: 'Role already exists', status: false });
-        
+
         const newRole = new RoleModel({ name, otherRole: otherRole || [] });
         await newRole.save();
         res.status(201).json({ message: 'Role created successfully', status: true, data: newRole });
@@ -25,10 +25,10 @@ export const updateRole = async (req: Request, res: Response) => {
         const { id } = req.params;
         const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
-        
+
         const updatedRole = await RoleModel.findByIdAndUpdate(id, { name, otherRole: otherRole || [] }, { new: true });
         if (!updatedRole) return res.status(404).json({ message: 'Role not found', status: false });
-        
+
         res.status(200).json({ message: 'Role updated successfully', status: true, data: updatedRole });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });
@@ -50,7 +50,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
         const { search, startDate, endDate } = req.query;
         const limit = Number(req.pagination?.limit) || 10;
         const skip = Number(req.pagination?.skip) || 0;
-    
+
         const query: any = {};
         if (search) {
             query["$or"] = [
@@ -115,7 +115,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
                                     $and: [
                                         { $eq: ["$$candidate.active", true] },
                                         {
-                                            $in: ["$$candidate.supplierId", 
+                                            $in: ["$$candidate.supplierId",
                                                 { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
                                             ]
                                         }
@@ -135,33 +135,33 @@ export const getAllRoles = async (req: Request, res: Response) => {
             // { $skip: skip },
             // { $limit: limit }
         ]);
-    
+
         const totalRoles = await RoleModel.countDocuments(query);
         const totalActiveCandidates = roles.reduce((sum, role) => sum + (role.activeCandidatesCount || 0), 0);
 
         return res.status(200).json({
-          message: "Roles fetched successfully",
-          status: true,
-          data: {
-            roles,
-            total: totalRoles,
-            totalActiveCandidates,
-            page: skip / limit + 1,
-            totalPages: Math.ceil(totalRoles / limit),
-          },
+            message: "Roles fetched successfully",
+            status: true,
+            data: {
+                roles,
+                total: totalRoles,
+                totalActiveCandidates,
+                page: skip / limit + 1,
+                totalPages: Math.ceil(totalRoles / limit),
+            },
         });
-      } catch (err: any) {
+    } catch (err: any) {
         return res.status(500).json({
-          message: err.message,
-          status: false,
+            message: err.message,
+            status: false,
         });
-      }
+    }
 };
 
 export const getlistByRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { startDate, endDate, active } = req.query;
+        const { startDate, endDate, active, executive } = req.query;
 
         const matchStage: any = { roleId: { $in: [new mongoose.Types.ObjectId(id)] } };
 
@@ -177,13 +177,18 @@ export const getlistByRole = async (req: Request, res: Response) => {
         } else if (active === "false") {
             matchStage["active"] = false;
         }
-        
+
+        if (executive == 'true') {
+            matchStage["executive"] = true;
+        } else if (executive == "false") {
+            matchStage["executive"] = false;
+        }
+        console.log("matchStage", matchStage);
         const activeCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: true });
         const inActiveCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: false });
 
-
         const candidates = await CandidateCvModel.find(matchStage)
-            .populate("roleId",  ["name", "otherRole"])
+            .populate("roleId", ["name", "otherRole"])
             .populate("supplierId", "name")
             .sort({ active: -1, createdAt: -1 });
 
@@ -202,12 +207,12 @@ export const getlistByRole = async (req: Request, res: Response) => {
     }
 };
 
-export const getCount =  async (req: Request, res: Response) => {
+export const getCount = async (req: Request, res: Response) => {
     try {
         const roles = await RoleModel.find();
-        
+
         const roleCounts = await Promise.all(roles.map(async (role) => {
-            const count = await CandidateCvModel.countDocuments({ roleId: { $in: [role._id] } } );
+            const count = await CandidateCvModel.countDocuments({ roleId: { $in: [role._id] } });
             return { name: role.name, id: role._id, candidateCount: count };
         }));
 
@@ -220,7 +225,7 @@ export const getCount =  async (req: Request, res: Response) => {
 export const roleList = async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
-        
+
         const query: any = {};
         if (search) {
             query["$or"] = [
@@ -230,25 +235,25 @@ export const roleList = async (req: Request, res: Response) => {
         }
 
         const roles = await RoleModel.find({});
-    
+
         //const totalRoles = await RoleModel.countDocuments(query);
-    
+
         return res.status(200).json({
-          message: "Roles fetched successfully",
-          status: true,
-          data: {
-            roles,
-            // total: totalRoles,
-            // page: skip / limit + 1,
-            // totalPages: Math.ceil(totalRoles / limit),
-          },
+            message: "Roles fetched successfully",
+            status: true,
+            data: {
+                roles,
+                // total: totalRoles,
+                // page: skip / limit + 1,
+                // totalPages: Math.ceil(totalRoles / limit),
+            },
         });
-      } catch (err: any) {
+    } catch (err: any) {
         return res.status(500).json({
-          message: err.message,
-          status: false,
+            message: err.message,
+            status: false,
         });
-      }
+    }
 };
 
 export const getTechnologies = async (req: any, res: Response) => {

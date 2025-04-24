@@ -175,7 +175,7 @@ export const deleteCandidate = async (req: any, res: Response) => {
 export const getCandidatesBySupplierId = async (req: any, res: Response) => {
     try {
         const { supplierId } = req.params;
-        const { startDate, endDate, role } = req.query;
+        const { startDate, endDate, role, executive } = req.query;
         if (!supplierId) {
             return res.status(400).json({
                 message: "Supplier ID is required",
@@ -192,6 +192,12 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
             matchStage.createdAt = { $gte: start, $lte: end };
+        }
+
+        if (executive == 'true') {
+            matchStage["executive"] = true;
+        } else if (executive == "false") {
+            matchStage["executive"] = false;
         }
 
         const pipeline: any[] = [
