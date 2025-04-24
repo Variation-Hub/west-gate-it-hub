@@ -40,7 +40,8 @@ const CandidateCVSchema = new mongoose.Schema({
     indianDayRate: {
         type: Number,
         default: 0,
-    },      
+    },
+    executive: { type: Boolean, default: false },
     projectsWorkedOn: [{
         projectName: { type: String },
         clientName: { type: String },

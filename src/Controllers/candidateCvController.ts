@@ -15,6 +15,13 @@ export const createCandidateCV = async (req: any, res: Response) => {
             if (!Array.isArray(candidate.roleId)) {
                 throw new Error("roleId must be an array");
             }
+
+            if (candidate.ukDayRate && candidate.ukDayRate >= 250) {
+                candidate.executive = true;
+            } else {
+                candidate.executive = false;
+            }
+
         });
 
         const candidates = await CandidateCvModel.insertMany(data);
@@ -125,6 +132,10 @@ export const updateCandidate = async (req: any, res: Response) => {
                     data: null
                 });
             }
+        }
+
+        if (data.ukDayRate !== undefined) {
+            data.executive = data.ukDayRate >= 250;
         }
 
         const updatedCandidate = await CandidateCvModel.findByIdAndUpdate(id, data, { new: true });
