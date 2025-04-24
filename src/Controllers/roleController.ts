@@ -126,6 +126,11 @@ export const getAllRoles = async (req: Request, res: Response) => {
                     }
                 }
             },
+            {
+                $match: {
+                    activeSuppliersCount: { $gt: 0 }
+                }
+            },
             { $sort: { createdAt: -1, _id: -1 } },
             // { $skip: skip },
             // { $limit: limit }
