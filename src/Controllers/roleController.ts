@@ -137,13 +137,15 @@ export const getAllRoles = async (req: Request, res: Response) => {
         ]);
     
         const totalRoles = await RoleModel.countDocuments(query);
-    
+        const totalActiveCandidates = roles.reduce((sum, role) => sum + (role.activeCandidatesCount || 0), 0);
+
         return res.status(200).json({
           message: "Roles fetched successfully",
           status: true,
           data: {
             roles,
             total: totalRoles,
+            totalActiveCandidates,
             page: skip / limit + 1,
             totalPages: Math.ceil(totalRoles / limit),
           },
