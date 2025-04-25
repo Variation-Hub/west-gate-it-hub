@@ -48,8 +48,8 @@ export const deleteRole = async (req: Request, res: Response) => {
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
         const { search, startDate, endDate } = req.query;
-        const limit = Number(req.pagination?.limit) || 10;
-        const skip = Number(req.pagination?.skip) || 0;
+        // const limit = Number(req.pagination?.limit) || 10;
+        // const skip = Number(req.pagination?.skip) || 0;
 
         const query: any = {};
         if (search) {
@@ -66,7 +66,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
             query.createdAt = { $gte: start, $lte: end };
         }
 
-        const roles = await RoleModel.aggregate([
+        const result = await RoleModel.aggregate([
             { $match: query },
             {
                 $lookup: {
@@ -97,33 +97,31 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 }
             },
             {
-                $project: {
-                    _id: 1,
-                    name: 1,
-                    otherRoles: 1,
-                    createdAt: 1,
-                    updatedAt: 1,
+                $addFields: {
                     totalSuppliersCount: { $size: "$uniqueSuppliers" },
                     activeSuppliersCount: { $size: "$activeSuppliers" },
                     totalCandidatesCount: { $size: "$cvs" },
-                    activeCandidatesCount: {
-                        $size: {
-                            $filter: {
-                                input: "$cvs",
-                                as: "candidate",
-                                cond: {
-                                    $and: [
-                                        { $eq: ["$$candidate.active", true] },
-                                        {
-                                            $in: ["$$candidate.supplierId",
-                                                { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
-                                            ]
-                                        }
-                                    ]
-                                }
+                    activeCandidates: {
+                        $filter: {
+                            input: "$cvs",
+                            as: "candidate",
+                            cond: {
+                                $and: [
+                                    { $eq: ["$$candidate.active", true] },
+                                    {
+                                        $in: ["$$candidate.supplierId",
+                                            { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
+                                        ]
+                                    }
+                                ]
                             }
                         }
-                    }
+                    },
+                }
+            },
+            {
+                $addFields: {
+                    activeCandidatesCount: { $size: "$activeCandidates" }
                 }
             },
             {
@@ -131,23 +129,58 @@ export const getAllRoles = async (req: Request, res: Response) => {
                     activeSuppliersCount: { $gt: 0 }
                 }
             },
+            {
+                $facet: {
+                    roles: [
+                        { $sort: { createdAt: -1, _id: -1 } },
+                        {
+                            $project: {
+                                _id: 1,
+                                name: 1,
+                                otherRoles: 1,
+                                createdAt: 1,
+                                updatedAt: 1,
+                                totalSuppliersCount: 1,
+                                activeSuppliersCount: 1,
+                                totalCandidatesCount: 1,
+                                activeCandidatesCount: 1
+                            }
+                        }
+                    ],
+                    total: [
+                        { $count: "count" }
+                    ],
+                    totalActiveCandidates: [
+                        { $unwind: "$activeCandidates" },
+                        {
+                            $group: {
+                                _id: "$activeCandidates._id"
+                            }
+                        },
+                        {
+                            $count: "count"
+                        }
+                    ]
+                }
+            },
             { $sort: { createdAt: -1, _id: -1 } },
             // { $skip: skip },
-            // { $limit: limit }
+            // { $limit: limit },
         ]);
 
-        const totalRoles = await RoleModel.countDocuments(query);
-        const totalActiveCandidates = roles.reduce((sum, role) => sum + (role.activeCandidatesCount || 0), 0);
+        const roles = result[0]?.roles || [];
+        const total = result[0]?.total?.[0]?.count || 0;
+        const totalActiveCandidates = result[0]?.totalActiveCandidates?.[0]?.count || 0;
 
         return res.status(200).json({
             message: "Roles fetched successfully",
             status: true,
             data: {
                 roles,
-                total: totalRoles,
+                total,
                 totalActiveCandidates,
-                page: skip / limit + 1,
-                totalPages: Math.ceil(totalRoles / limit),
+                // page: skip / limit + 1,
+                // totalPages: Math.ceil(roles / limit),
             },
         });
     } catch (err: any) {
@@ -164,12 +197,14 @@ export const getlistByRole = async (req: Request, res: Response) => {
         const { startDate, endDate, active, executive } = req.query;
 
         const matchStage: any = { roleId: { $in: [new mongoose.Types.ObjectId(id)] } };
+        const dateFilter: any = { roleId: { $in: [new mongoose.Types.ObjectId(id)] } };
 
         if (startDate && endDate) {
             const start = new Date(startDate as string);
             const end = new Date(endDate as string);
             end.setHours(23, 59, 59, 999);
-            matchStage["createdAt"] = { $gte: start, $lte: end };
+            dateFilter["createdAt"] = { $gte: start, $lte: end };
+            matchStage.createdAt = { $gte: start, $lte: end };
         }
         const totalCandidates = await CandidateCvModel.countDocuments(matchStage);
         if (active === "true") {
@@ -183,9 +218,9 @@ export const getlistByRole = async (req: Request, res: Response) => {
         } else if (executive == "false") {
             matchStage["executive"] = false;
         }
-        console.log("matchStage", matchStage);
-        const activeCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: true });
-        const inActiveCandidates = await CandidateCvModel.countDocuments({ ...matchStage, active: false });
+        
+        const activeCandidates = await CandidateCvModel.countDocuments({ ...dateFilter, active: true });
+        const inActiveCandidates = await CandidateCvModel.countDocuments({ ...dateFilter, active: false });
 
         const candidates = await CandidateCvModel.find(matchStage)
             .populate("roleId", ["name", "otherRole"])
