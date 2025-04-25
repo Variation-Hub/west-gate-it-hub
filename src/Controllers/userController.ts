@@ -460,6 +460,21 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             }
         })
 
+        const candidateCounts = await CandidateCvModel.aggregate([
+            {
+                $match: {
+                    supplierId: { $in: userIds }
+                }
+            },
+            {
+                $group: {
+                    _id: "$supplierId",
+                    totalCandidates: { $sum: 1 }
+                }
+            }
+        ]);
+        
+        const candidateMap = new Map(candidateCounts.map(item => [item._id.toString(), item.totalCandidates]));
         const projects = await projectModel.find({
             bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
             selectedUserIds: {
@@ -481,11 +496,14 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 )
             );
 
+            const totalCandidates = candidateMap.get(u._id.toString()) || 0;
+
             return {
                 ...u.toObject(),
                 inHoldComment: sortedInHoldComments,
                 assignedProjects,
-                assignedProjectCount: assignedProjects?.length
+                assignedProjectCount: assignedProjects?.length,
+                totalCandidates
             };
         });
         return res.status(200).json({
