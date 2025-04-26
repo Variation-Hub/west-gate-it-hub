@@ -54,10 +54,21 @@ export const getAllCandidates = async (req: any, res: Response) => {
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
 
+        const candidatesWithSortedLogs = candidates.map(candidate => {
+            const sortedInactiveLogs = candidate.inactiveLogs?.sort(
+                (a: any, b: any) => new Date(b.inactiveDate).getTime() - new Date(a.inactiveDate).getTime()
+            );
+            
+                return {
+                    ...candidate.toObject(),
+                    inactiveLogs: sortedInactiveLogs
+                };
+            });
+
         return res.status(200).json({
             message: "Candidates successfully fetched",
             status: true,
-            data: candidates,
+            data: candidatesWithSortedLogs,
             meta_data: {
                 page: req.pagination?.page,
                 items: count,
@@ -83,10 +94,16 @@ export const getCandidateById = async (req: any, res: Response) => {
             return res.status(404).json({ message: "Candidate not found", status: false });
         }
 
+        const sortedInactiveLogs = candidate.inactiveLogs?.sort(
+            (a: any, b: any) => new Date(b.inactiveDate).getTime() - new Date(a.inactiveDate).getTime()
+        );
         return res.status(200).json({
             message: "Candidate fetched successfully",
             status: true,
-            data: candidate,
+            data: {
+                ...candidate.toObject(),
+                inactiveLogs: sortedInactiveLogs
+            }
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message, status: false });
@@ -229,6 +246,16 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         const [{ count = 0 } = {}] = await CandidateCvModel.aggregate(countPipeline);
 
         pipeline.push(
+            {
+                $addFields: {
+                    inactiveLogs: {
+                        $sortArray: {
+                            input: "$inactiveLogs",
+                            sortBy: { inactiveDate: -1 }
+                        }
+                    }
+                }
+            },
             { $sort: { createdAt: -1, _id: -1 } },
             { $skip: req.pagination?.skip || 0 },
             { $limit: req.pagination?.limit || 10 }
