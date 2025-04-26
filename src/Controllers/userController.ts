@@ -114,7 +114,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
         if (!user.active) {
             return res.status(400).json({
-                message: user.activeStatus,
+                message: user.activeStatus[0]?.log,
                 status: false,
                 data: null
             })
@@ -157,7 +157,7 @@ export const loginUser = async (req: Request, res: Response) => {
     }
 }
 
-export const updateUser = async (req: Request, res: Response) => {
+export const updateUser = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const updateData = req.body;
@@ -176,6 +176,15 @@ export const updateUser = async (req: Request, res: Response) => {
             user.inactiveDate = new Date();
 
             await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
+
+            const logEntry = {
+                log: updateData.activeStatus,
+                userId: req.user._id,
+                date: new Date()
+            };
+
+            user.activeStatus.push(logEntry);
+            delete updateData.activeStatus; 
         }
 
         if (updateData.active === true) {
@@ -490,6 +499,10 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
             );
 
+            const sortedActiveStatus = u.activeStatus?.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
             const assignedProjects = projects.filter(project =>
                 project.selectedUserIds.some(sel =>
                     sel.userId?.toString() === u._id.toString() && sel.isSelected === true
@@ -501,6 +514,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             return {
                 ...u.toObject(),
                 inHoldComment: sortedInHoldComments,
+                activeStatus: sortedActiveStatus,
                 assignedProjects,
                 assignedProjectCount: assignedProjects?.length,
                 totalCandidates
@@ -689,6 +703,17 @@ export const getSupplierDetails = async (req: any, res: Response) => {
 
         expertiseCount.sort((a, b) => b.subExpertiseCount - a.subExpertiseCount);
 
+        if (user.inHoldComment && user.inHoldComment.length > 0) {
+            user.inHoldComment = user.inHoldComment.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+        }
+
+        if (user.activeStatus && user.activeStatus.length > 0) {
+            user.activeStatus = user.activeStatus.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+        }
         return res.status(200).json({
             message: "User detail fetch success",
             status: true,

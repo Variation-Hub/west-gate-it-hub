@@ -109,8 +109,8 @@ const userModel = new mongoose.Schema({
         default: true
     },
     activeStatus: {
-        type: String,
-        default: ""
+        type: [mongoose.Schema.Types.Mixed],
+        default: []
     },
     // designation: {
     //     type: String,
