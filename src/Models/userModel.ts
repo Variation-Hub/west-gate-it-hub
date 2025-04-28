@@ -332,6 +332,18 @@ const userModel = new mongoose.Schema({
             default: Date.now
         }
     }],
+    executiveSummary: {
+        type: String,
+        default: '',
+    },
+    turnover: {
+        type: Number,
+        default: 0,
+    },
+    totalProjectsExecuted: {
+        type: Number,
+        default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now

@@ -48,6 +48,11 @@ export const getAllCandidates = async (req: any, res: Response) => {
 
         const count = await CandidateCvModel.countDocuments(queryObj);
 
+        const [executiveCount, activeCandidatesCount] = await Promise.all([
+            CandidateCvModel.countDocuments({ executive: true }),
+            CandidateCvModel.countDocuments({ active: true })
+        ]);
+
         const candidates = await CandidateCvModel.find(queryObj)
             .populate("roleId",  ["name", "otherRole"])
             .limit(req.pagination?.limit as number)
@@ -69,6 +74,8 @@ export const getAllCandidates = async (req: any, res: Response) => {
             message: "Candidates successfully fetched",
             status: true,
             data: candidatesWithSortedLogs,
+            executiveCount: executiveCount,
+            activeCandidatesCount: activeCandidatesCount,
             meta_data: {
                 page: req.pagination?.page,
                 items: count,
@@ -204,11 +211,15 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
             supplierId: new mongoose.Types.ObjectId(supplierId),
         };
 
+        const dateFilter: any = { supplierId: new mongoose.Types.ObjectId(supplierId) };
+        
+
         if (startDate && endDate) {
             const start = new Date(startDate);
             const end = new Date(endDate);
             end.setHours(23, 59, 59, 999);
             matchStage.createdAt = { $gte: start, $lte: end };
+            dateFilter.createdAt = { $gte: start, $lte: end };
         }
 
         if (executive == 'true') {
@@ -245,6 +256,17 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         const countPipeline = [...pipeline, { $count: "count" }];
         const [{ count = 0 } = {}] = await CandidateCvModel.aggregate(countPipeline);
 
+        const [executiveCount, activeCandidatesCount] = await Promise.all([
+            CandidateCvModel.countDocuments({
+                ...dateFilter,
+                executive: true,
+            }),
+            CandidateCvModel.countDocuments({
+                ...dateFilter,
+                active: true,
+            }),
+        ]);
+
         pipeline.push(
             {
                 $addFields: {
@@ -268,6 +290,8 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
             status: true,
             data: {
                 data: candidates,
+                executiveCount,
+                activeCandidatesCount,
                 meta_data: {
                     page: req.pagination?.page,
                     items: count,
