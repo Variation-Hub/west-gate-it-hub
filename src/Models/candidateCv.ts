@@ -42,6 +42,9 @@ const CandidateCVSchema = new mongoose.Schema({
         default: 0,
     },
     executive: { type: Boolean, default: false },
+    currentRole: { type: String },
+    projectsExecuted: { type: Number, default: 0 },
+    certifications: [{ type: String }],
     projectsWorkedOn: [{
         projectName: { type: String },
         clientName: { type: String },
