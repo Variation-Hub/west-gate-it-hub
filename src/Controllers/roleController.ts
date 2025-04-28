@@ -69,109 +69,144 @@ export const getAllRoles = async (req: Request, res: Response) => {
         const result = await RoleModel.aggregate([
             { $match: query },
             {
-                $lookup: {
-                    from: "candidatecvs",
-                    localField: "_id",
-                    foreignField: "roleId",
-                    as: "cvs",
-                },
+              $lookup: {
+                from: "candidatecvs",
+                localField: "_id",
+                foreignField: "roleId",
+                as: "cvs",
+              },
             },
             {
-                $lookup: {
-                    from: "users",
-                    localField: "cvs.supplierId",
-                    foreignField: "_id",
-                    as: "suppliers",
-                },
+              $lookup: {
+                from: "users",
+                localField: "cvs.supplierId",
+                foreignField: "_id",
+                as: "suppliers",
+              },
             },
             {
-                $addFields: {
-                    uniqueSuppliers: { $setUnion: ["$cvs.supplierId", []] },
-                    activeSuppliers: {
-                        $filter: {
-                            input: "$suppliers",
-                            as: "supplier",
-                            cond: { $eq: ["$$supplier.active", true] }
+              $addFields: {
+                uniqueSuppliers: { $setUnion: ["$cvs.supplierId", []] },
+                activeSuppliers: {
+                  $filter: {
+                    input: "$suppliers",
+                    as: "supplier",
+                    cond: { $eq: ["$$supplier.active", true] }
+                  }
+                }
+              }
+            },
+            {
+              $addFields: {
+                totalSuppliersCount: { $size: "$uniqueSuppliers" },
+                activeSuppliersCount: { $size: "$activeSuppliers" },
+                totalCandidatesCount: { $size: "$cvs" },
+                activeCandidates: {
+                  $filter: {
+                    input: "$cvs",
+                    as: "candidate",
+                    cond: {
+                      $and: [
+                        { $eq: ["$$candidate.active", true] },
+                        {
+                          $in: ["$$candidate.supplierId",
+                            { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
+                          ]
                         }
+                      ]
                     }
+                  }
                 }
+              }
             },
             {
-                $addFields: {
-                    totalSuppliersCount: { $size: "$uniqueSuppliers" },
-                    activeSuppliersCount: { $size: "$activeSuppliers" },
-                    totalCandidatesCount: { $size: "$cvs" },
-                    activeCandidates: {
-                        $filter: {
-                            input: "$cvs",
-                            as: "candidate",
-                            cond: {
-                                $and: [
-                                    { $eq: ["$$candidate.active", true] },
-                                    {
-                                        $in: ["$$candidate.supplierId",
-                                            { $map: { input: "$activeSuppliers", as: "sup", in: "$$sup._id" } }
-                                        ]
-                                    }
-                                ]
-                            }
-                        }
-                    },
-                }
+              $addFields: {
+                activeCandidatesCount: { $size: "$activeCandidates" }
+              }
             },
             {
-                $addFields: {
-                    activeCandidatesCount: { $size: "$activeCandidates" }
-                }
+              $match: {
+                activeSuppliersCount: { $gt: 0 }
+              }
             },
             {
-                $match: {
-                    activeSuppliersCount: { $gt: 0 }
-                }
+              $facet: {
+                roles: [
+                  { $sort: { createdAt: -1, _id: -1 } },
+                  {
+                    $project: {
+                      _id: 1,
+                      name: 1,
+                      otherRoles: 1,
+                      createdAt: 1,
+                      updatedAt: 1,
+                      totalSuppliersCount: 1,
+                      activeSuppliersCount: 1,
+                      totalCandidatesCount: 1,
+                      activeCandidatesCount: 1
+                    }
+                  }
+                ],
+                total: [
+                  { $count: "count" }
+                ],
+                totalActiveCandidates: [
+                  { $unwind: "$activeCandidates" },
+                  {
+                    $group: {
+                      _id: "$activeCandidates._id"
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                totalExecutiveTrue: [
+                  { $unwind: "$activeCandidates" },
+                  { $match: { "activeCandidates.executive": true } },
+                  {
+                    $group: {
+                      _id: "$activeCandidates._id"
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ],
+                totalExecutiveFalse: [
+                  { $unwind: "$activeCandidates" },
+                  { $match: { "activeCandidates.executive": false } },
+                  {
+                    $group: {
+                      _id: "$activeCandidates._id"
+                    }
+                  },
+                  {
+                    $count: "count"
+                  }
+                ]
+              }
             },
             {
-                $facet: {
-                    roles: [
-                        { $sort: { createdAt: -1, _id: -1 } },
-                        {
-                            $project: {
-                                _id: 1,
-                                name: 1,
-                                otherRoles: 1,
-                                createdAt: 1,
-                                updatedAt: 1,
-                                totalSuppliersCount: 1,
-                                activeSuppliersCount: 1,
-                                totalCandidatesCount: 1,
-                                activeCandidatesCount: 1
-                            }
-                        }
-                    ],
-                    total: [
-                        { $count: "count" }
-                    ],
-                    totalActiveCandidates: [
-                        { $unwind: "$activeCandidates" },
-                        {
-                            $group: {
-                                _id: "$activeCandidates._id"
-                            }
-                        },
-                        {
-                            $count: "count"
-                        }
-                    ]
-                }
+              $project: {
+                roles: 1,
+                total: { $arrayElemAt: ["$total.count", 0] },
+                totalActiveCandidates: { $arrayElemAt: ["$totalActiveCandidates.count", 0] },
+                totalExecutiveTrueCount: { $arrayElemAt: ["$totalExecutiveTrue.count", 0] },
+                totalExecutiveFalseCount: { $arrayElemAt: ["$totalExecutiveFalse.count", 0] },
+              }
             },
-            { $sort: { createdAt: -1, _id: -1 } },
+            { $sort: { "roles.createdAt": -1, "roles._id": -1 } },
             // { $skip: skip },
             // { $limit: limit },
-        ]);
+          ]);
 
-        const roles = result[0]?.roles || [];
-        const total = result[0]?.total?.[0]?.count || 0;
-        const totalActiveCandidates = result[0]?.totalActiveCandidates?.[0]?.count || 0;
-
+          const roles = result[0]?.roles || [];
+          const total = result[0]?.total || 0;
+          const totalActiveCandidates = result[0]?.totalActiveCandidates || 0;
+          const totalExecutiveTrueCount = result[0]?.totalExecutiveTrueCount || 0;
+          const totalExecutiveFalseCount = result[0]?.totalExecutiveFalseCount || 0;
+          
         return res.status(200).json({
             message: "Roles fetched successfully",
             status: true,
@@ -179,6 +214,8 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 roles,
                 total,
                 totalActiveCandidates,
+                totalExecutiveTrueCount,
+                totalExecutiveFalseCount,
                 // page: skip / limit + 1,
                 // totalPages: Math.ceil(roles / limit),
             },
