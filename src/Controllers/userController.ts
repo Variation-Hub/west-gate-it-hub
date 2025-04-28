@@ -201,13 +201,13 @@ export const updateUser = async (req: any, res: Response) => {
             updateData.isInHold = false
         }
 
-        if (updateData.inHoldComment) {
+        if (updateData.inHoldComment && typeof updateData.inHoldComment === 'string' && updateData.inHoldComment.trim() !== '') {
             user.inHoldComment.push({
-                comment: updateData.inHoldComment,
+                comment: updateData.inHoldComment.trim(),
                 date: new Date()
             });
-            delete updateData.inHoldComment;
         }
+        delete updateData.inHoldComment;
 
         // Update fields dynamically
         Object.keys(updateData).forEach((key) => {
