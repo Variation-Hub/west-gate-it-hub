@@ -143,7 +143,25 @@ export const getAllRoles = async (req: Request, res: Response) => {
                       totalSuppliersCount: 1,
                       activeSuppliersCount: 1,
                       totalCandidatesCount: 1,
-                      activeCandidatesCount: 1
+                      activeCandidatesCount: 1,
+                      executiveTrueCount: {
+                        $size: {
+                          $filter: {
+                            input: "$activeCandidates",
+                            as: "candidate",
+                            cond: { $eq: ["$$candidate.executive", true] }
+                          }
+                        }
+                      },
+                      executiveFalseCount: {
+                        $size: {
+                          $filter: {
+                            input: "$activeCandidates",
+                            as: "candidate",
+                            cond: { $eq: ["$$candidate.executive", false] }
+                          }
+                        }
+                      }
                     }
                   }
                 ],
@@ -215,9 +233,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 total,
                 totalActiveCandidates,
                 totalExecutiveTrueCount,
-                totalExecutiveFalseCount,
-                // page: skip / limit + 1,
-                // totalPages: Math.ceil(roles / limit),
+                totalExecutiveFalseCount
             },
         });
     } catch (err: any) {
