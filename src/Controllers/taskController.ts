@@ -44,12 +44,13 @@ export const createTask = async (req: any, res: Response) => {
                 const logEntry = {
                     log: `${loginUser.name} was assign project to ${user.name}`,
                     userId: req.user._id,
-                    date: new Date()
+                    date: new Date(),
+                    type: "projectDetail"
                 };
                 
                 // Ensure logs is an array before spreading it
-                projectDetails.logs = Array.isArray(projectDetails?.logs) 
-                    ? [...projectDetails.logs, logEntry] 
+                projectDetails.logs = Array.isArray(projectDetails?.logs)
+                    ? [logEntry, ...projectDetails.logs]
                     : [logEntry];
 
                 await projectDetails.save();
@@ -569,7 +570,8 @@ export const addCommentToTask = async (req: any, res: Response) => {
                 const logEntry = {
                     log: `${loginUser.name} was added comment : ${comment}`,
                     userId: req.user._id,
-                    date: new Date()
+                    date: new Date(),
+                    type: "projectDetail"
                 };
                 
                 // Ensure logs is an array before spreading it

@@ -93,7 +93,8 @@ export const createProject = async (req: any, res: Response) => {
                 const logEntry = {
                     log: `${loginUser.name} was created project on ${new Date()}`,
                     userId: req.user._id,
-                    date: new Date()
+                    date: new Date(),
+                    type: "projectBased"
                 };
                 const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
                 if (existingProject) {
@@ -1745,10 +1746,21 @@ export const updateProject = async (req: any, res: Response) => {
             BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink
         };
 
+        const formatDateIfNeeded = (val: any) => {
+            const date = new Date(val);
+            return isNaN(date.getTime()) ? val : date.toLocaleDateString("en-IN");
+        };
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
                 let logEntry: any = {}
+                const isEmpty = (val: any) =>
+                    val === null ||
+                    val === undefined ||
+                    val === "" ||
+                    (Array.isArray(val) && val.length === 0) ||
+                    (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0);
+
                 if (field === "eligibilityForm" || field === "bidManagerStatusComment") {
                     if (areObjectsEqual(newValue, oldValue)) {
                         continue;
@@ -1756,22 +1768,45 @@ export const updateProject = async (req: any, res: Response) => {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
-                        date: new Date()
+                        date: new Date(),
+                        type: "timeBased"
                     };
                 } else if (field === "category" || field === "industry") {
                     if (areArraysEqual(newValue, oldValue)) {
                         continue;
                     }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
-                        userId: req.user._id,
-                        date: new Date()
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
+                                ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
+                                : `updated to ${JSON.stringify(newValue)}`
+                            }`, userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
                     };
-                } else {
+                } 
+                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate") {
+                    if (oldValue === newValue) continue;
+
+                    const formattedOld = formatDateIfNeeded(oldValue);
+                    const formattedNew = formatDateIfNeeded(newValue);
+
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew}`,
                         userId: req.user._id,
-                        date: new Date()
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                else {                    
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
+                            !isEmpty(oldValue)
+                              ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
+                              : `updated to ${JSON.stringify(newValue)}`
+                          }`,
+                          userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
                     };
                 }
                 project.logs = [logEntry, ...(project.logs || [])];
@@ -1934,7 +1969,8 @@ export const sortList = async (req: any, res: Response) => {
                 const logEntry = {
                     log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
                     userId: req.user._id,
-                    date: new Date()
+                    date: new Date(),
+                    type: "timeBased"
                 };
                 logs.push(logEntry);
 
@@ -1977,7 +2013,8 @@ export const applyProject = async (req: any, res: Response) => {
             const logEntry = {
                 log: `<strong>${user.name}</strong> applied for the project: ${project.projectName}.`,
                 userId: userId,
-                date: new Date()
+                date: new Date(),
+                type: "timeBased"
             };
             project.logs = [logEntry, ...(project.logs || [])];
         }
@@ -2246,7 +2283,7 @@ export const getDashboardDataProjectManager = async (req: any, res: Response) =>
 export const updateProjectForFeasibility = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm, westGetDocument } = req.body
+        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm, westGetDocument, updatedComment } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -2290,10 +2327,23 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
             category, industry, clientDocument, westGetDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
         };
 
+        const formatDateIfNeeded = (val: any) => {
+            const date = new Date(val);
+            return isNaN(date.getTime()) ? val : date.toLocaleDateString("en-IN");
+        };
+
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
                 let logEntry: any = {}
+
+                const isEmpty = (val: any) =>
+                    val === null ||
+                    val === undefined ||
+                    val === "" ||
+                    (Array.isArray(val) && val.length === 0) ||
+                    (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0);
+
                 if (field === "statusComment" || field === "clientDocument" || field === "westGetDocument" || field === "FeasibilityOtherDocuments") {
                     if (areArraysEqual(newValue, oldValue)) {
                         continue;
@@ -2301,7 +2351,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
-                        date: new Date()
+                        date: new Date(),
+                        type: "timeBased"
                     };
                 } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipResponceFile") {
                     if (areObjectsEqual(newValue, oldValue)) {
@@ -2310,7 +2361,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
-                        date: new Date()
+                        date: new Date(),
+                        type: "timeBased"
                     };
                 } else if (field === "loginDetail" || field === "eligibilityForm" || field === "projectComment") {
                     if (areArraysEqual(newValue, oldValue)) {
@@ -2319,14 +2371,44 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
-                        date: new Date()
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate") {
+                    if (oldValue === newValue) continue;
+
+                    const formattedOld = formatDateIfNeeded(oldValue);
+                    const formattedNew = formatDateIfNeeded(newValue);
+
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew}`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                else if (updatedComment && field === "status") {
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
+                                ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)} - ${updatedComment}`
+                                : `updated to ${JSON.stringify(newValue)} - ${updatedComment}`
+                            }`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
                     };
                 }
                 else {
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${oldValue} to ${newValue}`,
-                        userId: req.user._id,
-                        date: new Date()
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
+                            !isEmpty(oldValue)
+                              ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
+                              : `updated to ${JSON.stringify(newValue)}`
+                          }`,
+                          userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
                     };
                 }
                 project.logs = [logEntry, ...(project.logs || [])];
@@ -2545,7 +2627,8 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                 const logEntry = {
                     log: `<strong>${user.name}</strong> is select for the project.`,
                     userId: supplierId,
-                    date: new Date()
+                    date: new Date(),
+                    type: "timeBased"
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
             }
@@ -2561,7 +2644,8 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
             const logEntry = {
                 log: `<strong>${user.name}<strong> Won the project.`,
                 userId: finalizedId,
-                date: new Date()
+                date: new Date(),
+                type: "timeBased"
             };
             project.logs = [logEntry, ...(project.logs || [])];
 
@@ -2578,7 +2662,8 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                 const logEntry = {
                     log: `<strong>${user.name}</strong> is drop by ${req.user.name}`,
                     userId: userId,
-                    date: new Date()
+                    date: new Date(),
+                    type: "timeBased"
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
             } else {
@@ -3185,6 +3270,7 @@ export const approveOrRejectFeasibilityStatus = async (req: any, res: Response) 
 export const getProjectLogs = async (req: any, res: Response) => {
     try {
         const projectId = req.params.id;
+        const logType = req.query.type;
 
         const project: any = await projectModel.findById(projectId);
         if (!project) {
@@ -3211,10 +3297,17 @@ export const getProjectLogs = async (req: any, res: Response) => {
             }
         }
 
+        if (logType === "projectBased" || logType === "timeBased") {
+            logs = logs.filter((log: any) => log.type === logType);
+        }
+
+        const formattedLogs = logs
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
         return res.status(200).json({
             message: "Project Logs fatch successfully",
             status: true,
-            data: logs
+            data: formattedLogs
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -4144,7 +4237,8 @@ export const removeFromSortList = async (req: any, res: Response) => {
             const logEntry = {
                 log: `<strong>${req.user?.name}</strong> removed <strong>${user?.name}</strong> from the shortlist for the project: <strong>${project.projectName}</strong>.`,
                 userId: req.user._id,
-                date: new Date()
+                date: new Date(),
+                type: "timeBased"
             };
             project.logs = [logEntry, ...(project.logs || [])];
 
