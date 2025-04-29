@@ -279,7 +279,10 @@ export const getTasks = async (req: any, res: Response) => {
         //     };
         // }
         if (assignTo?.length) {
-            filter.assignTo = { $elemMatch: { userId: { $in: assignTo } } };
+            filter.$or = [
+                { assignTo: { $elemMatch: { userId: { $in: assignTo } } } },
+                { subtasks: { $elemMatch: { resources: { $elemMatch: { candidateId: { $in: assignTo } } } } } }
+            ];
         }
         if (pickACategory) {
             filter.pickACategory = pickACategory
@@ -405,6 +408,7 @@ export const getTasks = async (req: any, res: Response) => {
                 }
                 currentDate.add(1, 'day');
             }
+
             datewiseComments.pinnedComments = taskObj.comments
                 .filter((comment: any) => comment.pin)
                 .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime()); 
@@ -418,6 +422,23 @@ export const getTasks = async (req: any, res: Response) => {
                         .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
                 )
             };
+
+            const currentUserId = assignTo?.[0];
+            if (req?.user?.role === userRoles.Admin) { 
+                console.log('Admin view: All tasks and subtasks will be shown');
+            } else {
+                if (taskObj.subtasks && taskObj.subtasks.length > 0) {
+                    taskObj.subtasks = taskObj.subtasks.filter((subtask: any) =>
+                        subtask.resources?.some((r: any) => r.candidateId.toString() === currentUserId)
+                    );
+                    console.log('Filtered Subtasks:', taskObj.subtasks);
+                }
+            
+                if (taskObj.subtasks.length === 0 && !taskObj.assignTo.some((a: any) => a.userId === currentUserId)) {
+                    return null; 
+                }
+            }
+
             return taskObj; // Return the modified object
         });
 
