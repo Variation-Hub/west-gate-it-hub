@@ -42,7 +42,7 @@ export const createTask = async (req: any, res: Response) => {
                 const loginUser: any = await userModel.findById(req.user._id);
 
                 const logEntry = {
-                    log: `${loginUser.name} was assign project to ${user.name}`,
+                    log: `${loginUser.name} assigned project to ${user.name}`,
                     userId: req.user._id,
                     date: new Date(),
                     type: "projectDetail"

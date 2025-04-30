@@ -91,7 +91,7 @@ export const createProject = async (req: any, res: Response) => {
                 const loginUser: any = await userModel.findById(req.user._id);
 
                 const logEntry = {
-                    log: `${loginUser.name} was created project on ${new Date()}`,
+                    log: `${loginUser.name} was created project on ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Kolkata", hour12: false })}`,
                     userId: req.user._id,
                     date: new Date(),
                     type: "projectBased"
@@ -1696,6 +1696,16 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
     });
 }
 
+const formatDateIfNeeded = (value: any): string => {
+            if (!value) return "";
+        
+            const date = new Date(value);
+            return date.toLocaleString("en-GB", {
+                timeZone: "Asia/Kolkata",
+                hour12: false
+            });
+        };
+
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
@@ -1746,10 +1756,6 @@ export const updateProject = async (req: any, res: Response) => {
             BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink
         };
 
-        const formatDateIfNeeded = (val: any) => {
-            const date = new Date(val);
-            return isNaN(date.getTime()) ? val : date.toLocaleDateString("en-IN");
-        };
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
             const oldValue = project[field];
             if (newValue !== undefined && newValue !== oldValue) {
@@ -2325,11 +2331,6 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
 
         const fieldsToUpdate = {
             category, industry, clientDocument, westGetDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
-        };
-
-        const formatDateIfNeeded = (val: any) => {
-            const date = new Date(val);
-            return isNaN(date.getTime()) ? val : date.toLocaleDateString("en-IN");
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
