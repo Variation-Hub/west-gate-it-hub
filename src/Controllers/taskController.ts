@@ -9,7 +9,7 @@ import moment from 'moment';
 export const createTask = async (req: any, res: Response) => {
     try {
         let { assignTo } = req.body
-        
+
         // Ensure assignTo is always an array if provided
         if (assignTo && !Array.isArray(assignTo)) {
             assignTo = [assignTo]; // Convert single value to array
@@ -47,7 +47,7 @@ export const createTask = async (req: any, res: Response) => {
                     date: new Date(),
                     type: "projectDetail"
                 };
-                
+
                 // Ensure logs is an array before spreading it
                 projectDetails.logs = Array.isArray(projectDetails?.logs)
                     ? [logEntry, ...projectDetails.logs]
@@ -174,7 +174,7 @@ export const updateTask = async (req: any, res: Response) => {
             obj.status = taskStatus.Completed;
         }
         delete obj.completedTask;
-        
+
         const task: any = await taskModel.findById(id);
 
         if (!task) {
@@ -375,16 +375,16 @@ export const getTasks = async (req: any, res: Response) => {
 
                 task.comments.sort((a: any, b: any) => {
                     if (a.pinnedAt && b.pinnedAt) {
-                        return b.pinnedAt - a.pinnedAt; 
+                        return b.pinnedAt - a.pinnedAt;
                     } else if (a.pinnedAt) {
-                        return -1; 
+                        return -1;
                     } else if (b.pinnedAt) {
-                        return 1; 
+                        return 1;
                     } else {
-                        return b.date - a.date; 
+                        return b.date - a.date;
                     }
                 });
-    
+
 
                 task.comments = task.comments.map((obj: any) => {
                     const user = usersMap[obj.userId];
@@ -417,7 +417,7 @@ export const getTasks = async (req: any, res: Response) => {
 
             datewiseComments.pinnedComments = taskObj.comments
                 .filter((comment: any) => comment.pin)
-                .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime()); 
+                .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime());
 
             // Sort datewiseComments in descending order (pinned remains on top)
             taskObj.datewiseComments = {
@@ -430,7 +430,7 @@ export const getTasks = async (req: any, res: Response) => {
             };
 
             const currentUserId = assignTo?.[0];
-            if (req?.user?.role === userRoles.Admin) { 
+            if (req?.user?.role === userRoles.Admin) {
                 console.log('Admin view: All tasks and subtasks will be shown');
             } else {
                 if (taskObj.subtasks && taskObj.subtasks.length > 0) {
@@ -438,7 +438,7 @@ export const getTasks = async (req: any, res: Response) => {
                         subtask.resources?.some((r: any) => r.candidateId.toString() === currentUserId)
                     );
                 }
-            
+
             }
 
             return taskObj; // Return the modified object
@@ -466,7 +466,7 @@ export const getTasks = async (req: any, res: Response) => {
             data: null
         });
     }
-}   
+}
 
 export const deleteTask = async (req: any, res: Response) => {
     try {
@@ -496,8 +496,15 @@ export const deleteTask = async (req: any, res: Response) => {
 export const addCommentToTask = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { comment, timeStart, timeEnd, date } = req.body;
-        const userId = req.user._id
+        const { comment, minutes, date } = req.body;
+        const userId = req.user._id;
+
+        if (!comment || !minutes || minutes <= 0) {
+            return res.status(400).json({
+                message: "Comment and valid minutes are required.",
+                status: false,
+            });
+        }   
 
         const task: any = await taskModel.findById(id);
 
@@ -509,50 +516,42 @@ export const addCommentToTask = async (req: any, res: Response) => {
             });
         }
 
+        const today = moment(date || new Date()).startOf('day');
+        const todayStr = today.format('YYYY-MM-DD');
+
         const allTasks = await taskModel.find({
             "comments.userId": userId,
             "comments.date": {
-                $gte: moment(date).startOf('day').toDate(),
-                $lte: moment(date).endOf('day').toDate()
+                $gte: today.toDate(),
+                $lte: moment(date || new Date()).endOf('day').toDate()
             }
         });
 
-        if (timeEnd <= timeStart) {
-            return res.status(400).json({
-                message: "End time must be greater than start time",
-                status: false
-            });
-        }        
-        let isOverlapping = false;
-
+        let totalMinutesToday = 0;
         for (const t of allTasks) {
             for (const c of t.comments) {
                 if (
                     c.userId.toString() === userId.toString() &&
-                    moment(c.date).isSame(date, 'day') &&
-                    (
-                        (timeStart >= c.timeStart && timeStart < c.timeEnd) ||
-                        (timeEnd > c.timeStart && timeEnd <= c.timeEnd) ||
-                        (timeStart <= c.timeStart && timeEnd >= c.timeEnd)
-                    )
+                    moment(c.date).format('YYYY-MM-DD') === todayStr &&
+                    c.minutes
                 ) {
-                    isOverlapping = true;
-                    break;
+                    totalMinutesToday += c.minutes;
                 }
             }
-            if (isOverlapping) break;
         }
 
-        if (isOverlapping) {
-            return res.status(400).json({ message: "This time slot is already taken in another task. Please choose a different time." });
+        if (totalMinutesToday + minutes > 1440) {
+            return res.status(400).json({
+                message: `You cannot log more than 24 hours in a day. You have already logged ${Math.floor(totalMinutesToday / 60)} hours and ${totalMinutesToday % 60} minutes.`,
+                status: false
+            });
         }
-          
+
         const commentId = task.comments[task?.comments?.length - 1]?.commentId + 1 || 1;
         task.comments.push({
             commentId,
             comment,
-            timeStart,
-            timeEnd,
+            minutes,
             date: new Date(),
             userId: userId.toString(),
             pin: false
@@ -563,21 +562,28 @@ export const addCommentToTask = async (req: any, res: Response) => {
         // Only try to update project logs if the task has a project associated
         if (task?.project) {
             const projectDetails: any = await projectModel.findById(task.project);
-            
+
             // Check if projectDetails exists before trying to access/modify its properties
             if (projectDetails) {
                 const loginUser: any = await userModel.findById(req.user._id);
 
+                const hours = Math.floor(minutes / 60);
+                const remainingMinutes = minutes % 60;
+                const timeDisplay = [
+                    hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : '',
+                    remainingMinutes > 0 ? `${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}` : ''
+                ].filter(Boolean).join(', ');
+
                 const logEntry = {
-                    log: `${loginUser.name} was added comment : ${comment}`,
+                    log: `${loginUser.name} was added comment : ${comment} (${timeDisplay})`,
                     userId: req.user._id,
                     date: new Date(),
                     type: "projectDetail"
                 };
-                
+
                 // Ensure logs is an array before spreading it
-                projectDetails.logs = Array.isArray(projectDetails?.logs) 
-                    ? [...projectDetails.logs, logEntry] 
+                projectDetails.logs = Array.isArray(projectDetails?.logs)
+                    ? [...projectDetails.logs, logEntry]
                     : [logEntry];
 
                 await projectDetails.save();
@@ -601,7 +607,7 @@ export const addCommentToTask = async (req: any, res: Response) => {
 export const updateCommentToTask = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { comment, commentId } = req.body;
+        const { comment, commentId, minutes } = req.body;
         const userId = req.user._id;
 
         const task: any = await taskModel.findById(id);
@@ -649,8 +655,53 @@ export const updateCommentToTask = async (req: any, res: Response) => {
         }
 
         task.comments[commentIndex].comment = comment;
-        task.comments[commentIndex].updatedDate = new Date();
 
+        if (minutes !== undefined) {
+            if (isNaN(minutes) || minutes < 0) {
+                return res.status(400).json({
+                    message: "Minutes must be a positive number",
+                    status: false,
+                    data: null
+                });
+            }
+
+            const commentDate = moment(commentToUpdate.date).startOf('day');
+            const commentDateStr = commentDate.format('YYYY-MM-DD');
+
+            const allTasks = await taskModel.find({
+                "comments.userId": userId,
+                "comments.date": {
+                    $gte: commentDate.toDate(),
+                    $lte: moment(commentDate).endOf('day').toDate()
+                }
+            });
+
+            let totalMinutesOnDay = 0;
+            for (const t of allTasks) {
+                for (const c of t.comments) {
+                    if (
+                        c.userId.toString() === userId.toString() &&
+                        moment(c.date).format('YYYY-MM-DD') === commentDateStr &&
+                        c.minutes &&
+                        !(t._id.equals(task._id) && c.commentId === commentId) // Exclude current comment
+                    ) {
+                        totalMinutesOnDay += c.minutes;
+                    }
+                }
+            }
+
+            if (totalMinutesOnDay + minutes > 1440) {
+                return res.status(400).json({
+                    message: `You cannot log more than 24 hours in a day. You have already logged ${Math.floor(totalMinutesOnDay / 60)} hours and ${totalMinutesOnDay % 60} minutes on this day.`,
+                    status: false,
+                    data: null
+                });
+            }
+
+            task.comments[commentIndex].minutes = minutes;
+        }
+
+        task.comments[commentIndex].updatedDate = new Date();
         task.markModified('comments');
         await task.save();
 
@@ -875,8 +926,8 @@ export const getSubTasks = async (req: Request, res: Response) => {
                     data: []
                 });
             }
-    
-            const sortedSubTasks = task.subtasks.sort((a: any, b: any) => 
+
+            const sortedSubTasks = task.subtasks.sort((a: any, b: any) =>
                 new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
 
@@ -903,7 +954,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
 
         const tasks = await taskModel.find({ "assignTo.userId": userId });
 
-        let totalWorkingHours = 0;
+        let totalWorkingMinutes = 0;
         const workedTasksSummary: string[] = [];
 
         tasks.forEach((task: any) => {
@@ -912,18 +963,12 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
                 if (
                     comment.userId === userId &&
                     commentDate === todayStr &&
-                    comment.timeStart &&
-                    comment.timeEnd
+                    comment.minutes
                 ) {
-                    const start = moment(comment.timeStart, 'HH:mm');
-                    const end = moment(comment.timeEnd, 'HH:mm');
-                    const durationMs = end.diff(start);
-                    const duration = moment.duration(durationMs);
-
-                    totalWorkingHours += duration.asHours();
-
-                    const hours = Math.floor(duration.asHours());
-                    const minutes = Math.round(duration.minutes());
+                    totalWorkingMinutes += comment.minutes;
+                    
+                    const hours = Math.floor(comment.minutes / 60);
+                    const minutes = comment.minutes % 60;
 
                     const timeDisplay = [
                         hours > 0 ? `${hours} hour${hours > 1 ? 's' : ''}` : '',
@@ -931,7 +976,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
                     ].filter(Boolean).join(', ');
 
                     workedTasksSummary.push(
-                        `${task.task} – ${timeDisplay} (${comment.timeStart} to ${comment.timeEnd})`
+                        `${task.task} – ${timeDisplay}`
                     );
                 }
             });
@@ -940,9 +985,8 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
         let summaryLine = '';
         if (workedTasksSummary.length > 0) {
             const numberedLines = workedTasksSummary.map((line, i) => `${i + 1}. ${line}`).join('<br>');
-            const totalDuration = moment.duration(totalWorkingHours, 'hours');
-            const totalHours = Math.floor(totalDuration.asHours());
-            const totalMinutes = Math.round(totalDuration.minutes());
+            const totalHours = Math.floor(totalWorkingMinutes / 60);
+            const totalMinutes = totalWorkingMinutes % 60;
 
             const totalDisplay = [
                 totalHours > 0 ? `${totalHours} hour${totalHours > 1 ? 's' : ''}` : '',
@@ -978,8 +1022,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
                     comment: summaryLine,
                     date: new Date(),
                     userId: userId.toString(),
-                    timeStart: null,
-                    timeEnd: null,
+                    minutes: 0,
                     auto: true
                 });
 
@@ -1012,53 +1055,41 @@ export const getCommentBoxData = async (req: any, res: Response) => {
                 (comment: any) => comment.userId === userId.toString()
             );
 
-            let totalHours = 0;
+            let totalMinutes = 0;
             const formattedComments = [];
 
             const hasRealComment = userComments.some((c: any) => !c.auto);
 
             for (const comment of userComments) {
-                if (comment.auto     && hasRealComment) continue;
+                if (comment.auto && hasRealComment) continue;
 
-                let hours = 0;
-
-                const baseDate = moment(comment.date).format("YYYY-MM-DD");
-
-                const start = comment.timeStart
-                    ? moment(`${baseDate}T${comment.timeStart}`)
-                    : null;
-
-                const end = comment.timeEnd
-                    ? moment(`${baseDate}T${comment.timeEnd}`)
-                    : null;
-
-                if (start && end && start.isValid() && end.isValid()) {
-                    if (end.isBefore(start)) {
-                        end.add(1, 'day');
-                    }
-                    const duration = moment.duration(end.diff(start)).asHours();
-                    totalHours += duration;
+                // Add minutes to total if available
+                if (comment.minutes) {
+                    totalMinutes += comment.minutes;
                 }
 
                 formattedComments.push({
                     comment: comment.comment,
-                    timeStart: comment.timeStart,
-                    timeEnd: comment.timeEnd,
+                    minutes: comment.minutes || 0,
+                    date: comment.date,
                     auto: comment.auto || false,
                 });
             }
 
-            // Fetch subtask title if subTaskId exists
-            let subTaskTitle = null;
+            // Calculate hours from minutes for display
+            const totalHours = Math.round((totalMinutes / 60) * 10) / 10;
+
+            // Get first subtask title if available
             const firstSubtaskTitle = task.subtasks && task.subtasks.length > 0
-            ? task.subtasks[0].title
-            : null;
+                ? task.subtasks[0].title
+                : null;
 
             responseData.push({
                 taskId: task._id,
                 taskName: task.task,
                 firstSubtaskTitle: firstSubtaskTitle,
-                totalHours: Math.round(totalHours * 10) / 10,
+                totalHours: totalHours,
+                totalMinutes: totalMinutes,
                 comments: formattedComments,
             });
         }
