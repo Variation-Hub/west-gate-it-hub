@@ -1797,7 +1797,7 @@ export const updateProject = async (req: any, res: Response) => {
                     const formattedNew = formatDateIfNeeded(newValue);
 
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew} on ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Kolkata", hour12: false })}`,
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew}`,
                         userId: req.user._id,
                         date: new Date(),
                         type: "projectBased"
