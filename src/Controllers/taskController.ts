@@ -432,12 +432,8 @@ export const getTasks = async (req: any, res: Response) => {
                     taskObj.subtasks = taskObj.subtasks.filter((subtask: any) =>
                         subtask.resources?.some((r: any) => r.candidateId.toString() === currentUserId)
                     );
-                    console.log('Filtered Subtasks:', taskObj.subtasks);
                 }
             
-                if (taskObj.subtasks.length === 0 && !taskObj.assignTo.some((a: any) => a.userId === currentUserId)) {
-                    return null; 
-                }
             }
 
             return taskObj; // Return the modified object
