@@ -95,7 +95,7 @@ const caseStudyModel = new mongoose.Schema({
     lessonsLearned: {   
         type: String,
         trim: true,
-        required: true
+        default: ""
     },
     cost: {
         type: String,
