@@ -316,7 +316,7 @@ const userModel = new mongoose.Schema({
     },
     isInHold: {
         type: Boolean,
-        default: false
+        default: true
     },
     isDeleted: {
         type: Boolean,
@@ -325,7 +325,7 @@ const userModel = new mongoose.Schema({
     inHoldComment: [{
         comment: {
             type: String,
-            default: null
+            default: ""
         },
         date: {
             type: Date,

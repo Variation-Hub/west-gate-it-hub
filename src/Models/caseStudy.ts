@@ -97,6 +97,11 @@ const caseStudyModel = new mongoose.Schema({
         trim: true,
         required: true
     },
+    cost: {
+        type: String,
+        trim: true,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now
