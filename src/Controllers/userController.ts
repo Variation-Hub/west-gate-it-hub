@@ -442,7 +442,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 $facet: {
                     totalCount: [{ $count: "count" }],
                     activeCount: [{ $match: { active: true } }, { $count: "count" }],
-                    inActiveCount: [{ $match: { active: false, isDeleted: false } }, { $count: "count" }],
+                    inActiveCount: [{ $match: { active: false, isDeleted: false, isInHold: false } }, { $count: "count" }],
                     resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
                     subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
                     inHoldCount: [{ $match: { isInHold: true, isDeleted: false } }, { $count: "count" }]
