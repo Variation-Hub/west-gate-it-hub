@@ -170,11 +170,6 @@ export const updateTask = async (req: any, res: Response) => {
         const id = req.params.id;
         const obj = req.body;
 
-        if (obj.completedTask === true) {
-            obj.status = taskStatus.Completed;
-        }
-        delete obj.completedTask;
-
         const task: any = await taskModel.findById(id);
 
         if (!task) {
