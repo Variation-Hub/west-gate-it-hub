@@ -97,19 +97,25 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
         const id = req.params.id;
         const obj = req.body;
 
-        const updatedProjectDetailTitle = await projectDetailTitleModel.findByIdAndUpdate(
-            id,
-            { $set: obj },
-            { new: true, runValidators: true }
-        );
+        const existing = await projectDetailTitleModel.findById(id);
 
-        if (!updatedProjectDetailTitle) {
+        if (!existing) {
             return res.status(404).json({
                 message: "Project detail title not found",
                 status: false,
                 data: null
             });
         }
+
+        if (obj.images && Array.isArray(obj.images)) {
+            obj.images = [...existing.images, ...obj.images];
+        }
+
+        const updatedProjectDetailTitle = await projectDetailTitleModel.findByIdAndUpdate(
+            id,
+            { $set: obj },
+            { new: true, runValidators: true }
+        );
 
         return res.send({
             message: "Project detail title updated successfully",
