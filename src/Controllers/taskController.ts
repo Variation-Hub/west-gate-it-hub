@@ -326,21 +326,25 @@ export const getTasks = async (req: any, res: Response) => {
             sortOptions.dueDate = -1;
         }
 
-        let Tasks = await taskModel.find(filter)
+        let allTasks = await taskModel.find(filter)
             .populate("project", "projectName status bidManagerStatus")
-            .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number)
             .sort(sortOptions)
-            .exec()
+            .exec();
 
-        const count = await taskModel.countDocuments(filter);
+        let filteredTasks = allTasks;
         if (keyword) {
-            Tasks = Tasks.filter((task: any) =>
+            filteredTasks = allTasks.filter((task: any) =>
                 task.task?.toLowerCase().includes(keyword.toLowerCase()) ||
                 task.project?.status?.toLowerCase().includes(keyword.toLowerCase()) ||
                 task.project?.bidManagerStatus?.toLowerCase().includes(keyword.toLowerCase())
             );
         }
+
+        const count = filteredTasks.length;
+
+        const limit = req.pagination?.limit as number || 10;
+        const skip = req.pagination?.skip as number || 0;
+        let Tasks = filteredTasks.slice(skip, skip + limit);
 
         let userIds: any = [];
         Tasks?.forEach((task: any) => {
@@ -447,10 +451,10 @@ export const getTasks = async (req: any, res: Response) => {
             data: {
                 data: Tasks,
                 meta_data: {
-                    page: req.pagination?.page,
+                    page: req.pagination?.page || 1,
                     items: count,
-                    page_size: req.pagination?.limit,
-                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                    page_size: limit,
+                    pages: Math.ceil(count / limit)
                 }
             }
         });
@@ -961,7 +965,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
                     comment.minutes
                 ) {
                     totalWorkingMinutes += comment.minutes;
-                    
+
                     const hours = Math.floor(comment.minutes / 60);
                     const minutes = comment.minutes % 60;
 
@@ -995,7 +999,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
         } else {
             summaryLine = "I did not perform any action on this today.";
         }
-        
+
         for (const task of tasks) {
 
             const taskStatus = task.status?.toLowerCase();

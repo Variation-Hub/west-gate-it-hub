@@ -10,6 +10,7 @@ import FileModel from "../Models/fileModel"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import mongoose from "mongoose";
 import masterList from "../Models/masterList";
+const languages = require('../Util/languages.json');
 
 const sendMail = async (data: any) => {
 
@@ -933,4 +934,30 @@ export const deleteSubExpertise = async (req: any, res: Response) => {
         });
     }
 };
-  
+
+export const getlanguages = async (req: any, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        let filteredData = languages;
+
+        if (search) {
+            const searchLower = search.toLowerCase();
+            filteredData = languages.filter((item: any) =>
+                item.toLowerCase().includes(searchLower)
+            );
+        }
+
+        return res.status(200).json({
+            message: "languages list fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch languages",
+            status: false,
+            data: []
+        });
+    }
+};

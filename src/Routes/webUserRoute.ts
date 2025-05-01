@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -25,5 +25,5 @@ webUserRoutes.get("/sub-expertise/list", authorizeRoles(), getAllSubExpertise);
 webUserRoutes.post("/add-sub-expertise", authorizeRoles(), addSubExpertiseToSupplier);
 webUserRoutes.delete("/expertise/:itemId", authorizeRoles(), deleteExpertise);
 webUserRoutes.delete("/expertise/:itemId/subexpertise", authorizeRoles(), deleteSubExpertise);
-
+webUserRoutes.get("/get-languages", authorizeRoles(), getlanguages);
 export default webUserRoutes;
