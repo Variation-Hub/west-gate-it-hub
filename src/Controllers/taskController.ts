@@ -45,7 +45,7 @@ export const createTask = async (req: any, res: Response) => {
                     log: `${loginUser.name} assigned project to ${user.name}`,
                     userId: req.user._id,
                     date: new Date(),
-                    type: "projectDetail"
+                    type: "projectBased"
                 };
 
                 // Ensure logs is an array before spreading it
@@ -576,7 +576,7 @@ export const addCommentToTask = async (req: any, res: Response) => {
                     log: `${loginUser.name} was added comment : ${comment} (${timeDisplay})`,
                     userId: req.user._id,
                     date: new Date(),
-                    type: "projectDetail"
+                    type: "projectBased"
                 };
 
                 // Ensure logs is an array before spreading it
