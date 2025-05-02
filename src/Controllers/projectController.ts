@@ -2380,7 +2380,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         type: "timeBased"
                     };
                 }
-                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
+                else if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
                     if (oldValue === newValue) continue;
 
                     const formattedOld = formatDateIfNeeded(oldValue);
