@@ -1782,9 +1782,10 @@ export const updateProject = async (req: any, res: Response) => {
                         continue;
                     }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
-                                ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
-                                : `updated to ${JSON.stringify(newValue)}`
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, 
+                         ${!isEmpty(oldValue)
+                                ? `updated from ${oldValue} to ${newValue}`
+                                : `updated to ${newValue}`
                             }`, userId: req.user._id,
                         date: new Date(),
                         type: "timeBased"
@@ -1804,11 +1805,14 @@ export const updateProject = async (req: any, res: Response) => {
                     };
                 }
                 else {                    
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }               
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
                             !isEmpty(oldValue)
-                              ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
-                              : `updated to ${JSON.stringify(newValue)}`
+                              ? `updated from ${oldValue} to ${newValue}`
+                              : `updated to ${newValue}`
                           }`,
                           userId: req.user._id,
                         date: new Date(),
@@ -2392,8 +2396,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 else if (updatedComment && field === "status") {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
-                                ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)} - ${updatedComment}`
-                                : `updated to ${JSON.stringify(newValue)} - ${updatedComment}`
+                                ? `updated from ${oldValue} to ${newValue} - ${updatedComment}`
+                                : `updated to ${newValue} - ${updatedComment}`
                             }`,
                         userId: req.user._id,
                         date: new Date(),
@@ -2401,13 +2405,16 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     };
                 }
                 else {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
-                            !isEmpty(oldValue)
-                              ? `updated from ${JSON.stringify(oldValue)} to ${JSON.stringify(newValue)}`
-                              : `updated to ${JSON.stringify(newValue)}`
-                          }`,
-                          userId: req.user._id,
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, 
+                        ${!isEmpty(oldValue)
+                                ? `updated from ${oldValue} to ${newValue}`
+                                : `updated to ${newValue}`
+                        }`,
+                        userId: req.user._id,
                         date: new Date(),
                         type: "projectBased"
                     };
