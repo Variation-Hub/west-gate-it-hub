@@ -301,19 +301,18 @@ export const getTasks = async (req: any, res: Response) => {
             filter.status = status
         }
         if (myDay) {
-            //     const now = new Date();
-            //     const past24Hours = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            if (req.user.role === userRoles.Admin) {
-                if (assignTo?.length > 0) {
-                    filter.myDay = {
-                        $in: assignTo.map((id: string) => new mongoose.Types.ObjectId(id))
-                    };
-                } else {
-                    filter.myDay = { $ne: [] }
-                }
-            } else {
-                filter.myDay = { $in: [req.user.id] }
-            }
+            // if (req.user.role === userRoles.Admin) { // for admin role to show all the myday data
+            //     if (assignTo?.length > 0) {
+            //         filter.myDay = {
+            //             $in: assignTo.map((id: string) => new mongoose.Types.ObjectId(id))
+            //         };
+            //     } else {
+            //         filter.myDay = { $ne: [] }
+            //     }
+            // } else {
+            //     filter.myDay = { $in: [req.user.id] }
+            // }
+            filter.myDay = { $in: [req.user.id] };            
         }
 
         const sortOptions: any = {};
