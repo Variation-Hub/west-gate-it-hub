@@ -85,12 +85,13 @@ const caseStudyModel = new mongoose.Schema({
     },
     solutionProvided: { 
         type: String,
-        trim: true
+        trim: true,
+        default: ""
     },
     resultAchieved: {   
         type: String,
         trim: true,
-        required: true
+        default: ""
     },
     lessonsLearned: {   
         type: String,
