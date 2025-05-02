@@ -45,7 +45,7 @@ export const createTask = async (req: any, res: Response) => {
                     log: `${loginUser.name} assigned project to ${user.name}`,
                     userId: req.user._id,
                     date: new Date(),
-                    type: "projectBased"
+                    type: "timeBased"
                 };
 
                 // Ensure logs is an array before spreading it
@@ -573,10 +573,10 @@ export const addCommentToTask = async (req: any, res: Response) => {
                 ].filter(Boolean).join(', ');
 
                 const logEntry = {
-                    log: `${loginUser.name} was added comment : ${comment} (${timeDisplay})`,
+                    log: `${loginUser.name} added comment : ${comment} (${timeDisplay})`,
                     userId: req.user._id,
                     date: new Date(),
-                    type: "projectBased"
+                    type: "timeBased"
                 };
 
                 // Ensure logs is an array before spreading it
