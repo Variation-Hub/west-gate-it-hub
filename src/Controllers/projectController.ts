@@ -1791,7 +1791,7 @@ export const updateProject = async (req: any, res: Response) => {
                         type: "timeBased"
                     };
                 } 
-                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate") {
+                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
                     if (oldValue === newValue) continue;
 
                     const formattedOld = formatDateIfNeeded(oldValue);
@@ -1977,7 +1977,7 @@ export const sortList = async (req: any, res: Response) => {
                 // }
                 const user: any = await userModel.findById(userId);
                 const logEntry = {
-                    log: `${user.name} was shortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
+                    log: `${user.name} was sortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
                     userId: req.user._id,
                     date: new Date(),
                     type: "timeBased"
@@ -2357,7 +2357,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
                         date: new Date(),
-                        type: "timeBased"
+                        type: "projectBased"
                     };
                 } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipResponceFile") {
                     if (areObjectsEqual(newValue, oldValue)) {
@@ -2380,7 +2380,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         type: "timeBased"
                     };
                 }
-                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate") {
+                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
                     if (oldValue === newValue) continue;
 
                     const formattedOld = formatDateIfNeeded(oldValue);
@@ -2399,6 +2399,17 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                                 ? `updated from ${oldValue} to ${newValue} - ${updatedComment}`
                                 : `updated to ${newValue} - ${updatedComment}`
                             }`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                else if (field === "eligibilityForm" || field === "bidManagerStatusComment") {
+                    if (areObjectsEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
                         userId: req.user._id,
                         date: new Date(),
                         type: "timeBased"
