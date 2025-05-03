@@ -1,6 +1,24 @@
 import * as express from 'express';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
-import { addCommentToTask, createTask, deleteCommentToTask, deleteTask, getTasks, removeTaskFromMyDay, updateCommentToTask, updateTask,pinComment, addCandidate, addSubTask, deleteSubTask, getSubTasks, logoutAndCommentUnfinishedTasks, getCommentBoxData, getTask } from '../Controllers/taskController';
+import {
+    addCommentToTask,
+    createTask,
+    deleteCommentToTask,
+    deleteTask,
+    getTasks,
+    removeTaskFromMyDay,
+    updateCommentToTask,
+    updateTask,
+    pinComment,
+    addCandidate,
+    addSubTask,
+    deleteSubTask,
+    getSubTasks,
+    logoutAndCommentUnfinishedTasks,
+    getCommentBoxData,
+    getTask,
+    getTaskGraphData,
+} from '../Controllers/taskController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
 const taskRouter = express.Router();
@@ -17,6 +35,7 @@ taskRouter.patch("/:taskId/comments/:commentId/pin", authorizeRoles(), pinCommen
 taskRouter.post('/logout', authorizeRoles(), logoutAndCommentUnfinishedTasks);
 taskRouter.get('/get-comments', authorizeRoles(), getCommentBoxData);
 taskRouter.get('/detail/:id', authorizeRoles(), getTask);
+taskRouter.get('/graph', authorizeRoles(), getTaskGraphData);
 
 //Sub-task
 taskRouter.post("/:taskId/subtasks/add", authorizeRoles(), addSubTask);
