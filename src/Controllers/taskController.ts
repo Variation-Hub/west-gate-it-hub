@@ -1132,3 +1132,481 @@ export const getTask = async (req: any, res: Response) => {
         });
     }
 }
+
+
+// export const getTaskGraphData = async (req: any, res: Response) => {
+//     try {
+//         // Extract query parameters
+//         const {
+//             startDate,
+//             endDate,
+//             userIds,
+//             status
+//         } = req.query;
+
+//         // Validate required parameters
+//         if (!startDate || !endDate) {
+//             return res.status(400).json({
+//                 message: "Start date and end date are required",
+//                 status: false,
+//                 data: null
+//             });
+//         }
+
+//         // Parse date range
+//         const parsedStartDate = new Date(startDate);
+//         const parsedEndDate = new Date(endDate);
+//         parsedStartDate.setHours(0, 0, 0, 0);
+//         parsedEndDate.setHours(23, 59, 59, 999);
+
+//         // Validate date range
+//         if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+//             return res.status(400).json({
+//                 message: "Invalid date format. Please use YYYY-MM-DD format",
+//                 status: false,
+//                 data: null
+//             });
+//         }
+
+//         // Parse user IDs (support for multi-select)
+//         const userIdArray = userIds ? userIds.split(',') : [];
+
+//         // Build filter object
+//         const filter: any = {
+//             createdAt: {
+//                 $gte: parsedStartDate,
+//                 $lte: parsedEndDate
+//             }
+//         };
+
+//         // Add user filter if provided
+//         if (userIdArray.length > 0) {
+//             filter["assignTo.userId"] = { $in: userIdArray };
+//         }
+
+//         // Add status filter if provided
+//         if (status) {
+//             if (Array.isArray(status)) {
+//                 filter.status = { $in: status };
+//             } else {
+//                 filter.status = status;
+//             }
+//         }
+
+//         // Fetch tasks based on filters
+//         const tasks = await taskModel.find(filter)
+//             .populate("assignTo.userId", "name email role")
+//             .populate("project", "projectName")
+//             .sort({ createdAt: -1 })
+//             .exec();
+
+//         // Fetch all users for reference
+//         const userFilter = userIdArray.length > 0 ? { _id: { $in: userIdArray } } : {};
+//         const users = await userModel.find(userFilter).select("name email role");
+
+//         // Process data for graph visualization
+//         const graphData = processTasksForGraph(tasks, users, parsedStartDate, parsedEndDate);
+
+//         return res.status(200).json({
+//             message: "Task graph data fetched successfully",
+//             status: true,
+//             data: graphData
+//         });
+//     } catch (error: any) {
+//         return res.status(500).json({
+//             message: error.message,
+//             status: false,
+//             data: null
+//         });
+//     }
+// };
+
+// /**
+//  * Process tasks data for graph visualization
+//  * @param tasks - Array of task documents
+//  * @param users - Array of user documents
+//  * @param startDate - Start date for filtering
+//  * @param endDate - End date for filtering
+//  * @returns Processed data for graph visualization
+//  */
+// function processTasksForGraph(tasks: any[], users: any[], startDate: Date, endDate: Date) {
+//     // Define types for our data structures
+//     interface UserSummary {
+//         user: {
+//             id: string;
+//             name: string;
+//             email: string;
+//             role: string;
+//         };
+//         tasks: any[];
+//         completedTasks: number;
+//         pendingTasks: number;
+//         totalHours: number;
+//     }
+
+//     interface DateSummary {
+//         date: string;
+//         tasks: any[];
+//         completedTasks: number;
+//         pendingTasks: number;
+//         totalHours: number;
+//         users: {
+//             [key: string]: UserSummary;
+//         };
+//     }
+
+//     // Initialize result object with proper type annotations
+//     const result: {
+//         byUser: { [key: string]: UserSummary };
+//         byDate: { [key: string]: DateSummary };
+//         summary: {
+//             totalTasks: number;
+//             completedTasks: number;
+//             pendingTasks: number;
+//             totalWorkingHours: number;
+//         };
+//         users: {
+//             id: string;
+//             name: string;
+//             email: string;
+//             role: string;
+//         }[];
+//     } = {
+//         byUser: {},
+//         byDate: {},
+//         summary: {
+//             totalTasks: tasks.length,
+//             completedTasks: 0,
+//             pendingTasks: 0,
+//             totalWorkingHours: 0
+//         },
+//         users: users.map((user: any) => ({
+//             id: user._id,
+//             name: user.name,
+//             email: user.email,
+//             role: user.role
+//         }))
+//     };
+
+//     // Process each task
+//     tasks.forEach((task: any) => {
+//         // Calculate task status
+//         const isCompleted = task.status?.toLowerCase() === 'completed';
+
+//         // Update summary counts
+//         if (isCompleted) {
+//             result.summary.completedTasks++;
+//         } else {
+//             result.summary.pendingTasks++;
+//         }
+
+//         // Calculate pending duration for non-completed tasks
+//         let pendingDays = 0;
+//         if (!isCompleted && task.createdAt) {
+//             const createdDate = new Date(task.createdAt);
+//             const currentDate = new Date();
+//             pendingDays = Math.floor((currentDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+//         }
+
+//         // Calculate total working hours from comments
+//         let taskTotalMinutes = 0;
+//         const taskComments: any[] = [];
+
+//         if (task.comments && task.comments.length > 0) {
+//             task.comments.forEach((comment: any) => {
+//                 // Add minutes if available
+//                 if (comment.minutes) {
+//                     taskTotalMinutes += comment.minutes;
+//                 }
+
+//                 // Format comment for display
+//                 taskComments.push({
+//                     id: comment.commentId,
+//                     text: comment.comment,
+//                     date: comment.date,
+//                     minutes: comment.minutes || 0,
+//                     user: comment.userId
+//                 });
+//             });
+//         }
+
+//         // Convert minutes to hours
+//         const taskTotalHours = Math.round((taskTotalMinutes / 60) * 100) / 100;
+//         result.summary.totalWorkingHours += taskTotalHours;
+
+//         // Create task object with all required fields
+//         const taskObj = {
+//             id: task._id,
+//             name: task.task,
+//             status: task.status,
+//             createdAt: task.createdAt,
+//             dueDate: task.dueDate,
+//             project: task.project ? {
+//                 id: task.project._id,
+//                 name: task.project.projectName
+//             } : null,
+//             pendingDays,
+//             totalHours: taskTotalHours,
+//             totalMinutes: taskTotalMinutes,
+//             comments: taskComments,
+//             isCompleted
+//         };
+
+//         // Group by user
+//         task.assignTo.forEach((assignee: any) => {
+//             const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
+//             if (!userId) return;
+
+//             if (!result.byUser[userId]) {
+//                 const userObj = users.find((u: any) => u._id.toString() === userId);
+//                 result.byUser[userId] = {
+//                     user: userObj ? {
+//                         id: userObj._id,
+//                         name: userObj.name,
+//                         email: userObj.email,
+//                         role: userObj.role
+//                     } : {
+//                         id: userId,
+//                         name: "Unknown User",
+//                         email: "",
+//                         role: ""
+//                     },
+//                     tasks: [],
+//                     completedTasks: 0,
+//                     pendingTasks: 0,
+//                     totalHours: 0
+//                 };
+//             }
+
+//             // Add task to user's tasks
+//             result.byUser[userId].tasks.push(taskObj);
+
+//             // Update user's summary
+//             if (isCompleted) {
+//                 result.byUser[userId].completedTasks++;
+//             } else {
+//                 result.byUser[userId].pendingTasks++;
+//             }
+
+//             result.byUser[userId].totalHours += taskTotalHours;
+//         });
+
+//         // Group by date (using created date)
+//         if (task.createdAt) {
+//             const dateKey = new Date(task.createdAt).toISOString().split('T')[0];
+
+//             if (!result.byDate[dateKey]) {
+//                 result.byDate[dateKey] = {
+//                     date: dateKey,
+//                     tasks: [],
+//                     completedTasks: 0,
+//                     pendingTasks: 0,
+//                     totalHours: 0,
+//                     users: {}
+//                 };
+//             }
+
+//             // Add task to date's tasks
+//             result.byDate[dateKey].tasks.push(taskObj);
+
+//             // Update date's summary
+//             if (isCompleted) {
+//                 result.byDate[dateKey].completedTasks++;
+//             } else {
+//                 result.byDate[dateKey].pendingTasks++;
+//             }
+
+//             result.byDate[dateKey].totalHours += taskTotalHours;
+
+//             // Group by user within date
+//             task.assignTo.forEach((assignee: any) => {
+//                 const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
+//                 if (!userId) return;
+
+//                 if (!result.byDate[dateKey].users[userId]) {
+//                     const userObj = users.find((u: any) => u._id.toString() === userId);
+//                     result.byDate[dateKey].users[userId] = {
+//                         user: userObj ? {
+//                             id: userObj._id,
+//                             name: userObj.name,
+//                             email: userObj.email,
+//                             role: userObj.role
+//                         } : {
+//                             id: userId,
+//                             name: "Unknown User",
+//                             email: "",
+//                             role: ""
+//                         },
+//                         tasks: [],
+//                         completedTasks: 0,
+//                         pendingTasks: 0,
+//                         totalHours: 0
+//                     };
+//                 }
+
+//                 // Add task to user's tasks for this date
+//                 result.byDate[dateKey].users[userId].tasks.push(taskObj);
+
+//                 // Update user's summary for this date
+//                 if (isCompleted) {
+//                     result.byDate[dateKey].users[userId].completedTasks++;
+//                 } else {
+//                     result.byDate[dateKey].users[userId].pendingTasks++;
+//                 }
+
+//                 result.byDate[dateKey].users[userId].totalHours += taskTotalHours;
+//             });
+//         }
+//     });
+
+//     // Convert objects to arrays for easier consumption by frontend
+//     const byUserArray = Object.values(result.byUser);
+//     const byDateArray = Object.values(result.byDate).map((dateData: any) => ({
+//         ...dateData,
+//         users: Object.values(dateData.users)
+//     }));
+
+//     // Sort date array chronologically
+//     byDateArray.sort((a: any, b: any) => {
+//         return new Date(a.date).getTime() - new Date(b.date).getTime();
+//     });
+
+//     return {
+//         byUser: byUserArray,
+//         byDate: byDateArray,
+//         summary: result.summary,
+//         users: result.users,
+//         dateRange: {
+//             start: startDate,
+//             end: endDate
+//         }
+//     };
+// }
+
+export const getTaskGraphData = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, userIds, status } = req.query;
+        if (!startDate || !endDate) {
+            return res.status(400).json({ message: "Start date and end date are required", status: false, data: null });
+        }
+
+        const parsedStartDate = new Date(startDate);
+        const parsedEndDate = new Date(endDate);
+        parsedStartDate.setHours(0, 0, 0, 0);
+        parsedEndDate.setHours(23, 59, 59, 999);
+
+        if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
+            return res.status(400).json({ message: "Invalid date format", status: false, data: null });
+        }
+
+        const userIdArray = userIds ? userIds.split(',') : [];
+        const filter: any = {
+            createdAt: { $gte: parsedStartDate, $lte: parsedEndDate },
+            ...(userIdArray.length && { "assignTo.userId": { $in: userIdArray } }),
+            ...(status && { status: Array.isArray(status) ? { $in: status } : status })
+        };
+
+        const [tasks, users] = await Promise.all([
+            taskModel.find(filter)
+                .populate("assignTo.userId", "name email role")
+                .populate("project", "projectName")
+                .sort({ createdAt: -1 }),
+            userModel.find(userIdArray.length ? { _id: { $in: userIdArray } } : {}).select("name email role")
+        ]);
+
+        const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate);
+
+        return res.status(200).json({
+            message: "Task graph data fetched successfully",
+            status: true,
+            data: graphData
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({ message: error.message, status: false, data: null });
+    }
+};
+
+function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
+    const result = {
+        byUser: {} as any,
+        byDate: {} as any,
+        summary: { totalTasks: tasks.length, completedTasks: 0, pendingTasks: 0, totalWorkingHours: 0 },
+        users: users.map(u => ({ id: u._id, name: u.name, email: u.email, role: u.role }))
+    };
+
+    const getUserInfo = (id: string) => {
+        const user = users.find(u => u._id.toString() === id);
+        return user ? { id: user._id, name: user.name, email: user.email, role: user.role } :
+            { id, name: "Unknown User", email: "", role: "" };
+    };
+
+    for (const task of tasks) {
+        const isCompleted = task.status?.toLowerCase() === "completed";
+        if (isCompleted) result.summary.completedTasks++;
+        else result.summary.pendingTasks++;
+
+        const taskTotalMinutes = (task.comments || []).reduce((sum: number, c: any) => sum + (c.minutes || 0), 0);
+        const taskTotalHours = +(taskTotalMinutes / 60).toFixed(2);
+        result.summary.totalWorkingHours += taskTotalHours;
+
+        const taskObj = {
+            id: task._id,
+            name: task.task,
+            status: task.status,
+            createdAt: task.createdAt,
+            dueDate: task.dueDate,
+            project: task.project ? { id: task.project._id, name: task.project.projectName } : null,
+            pendingDays: isCompleted ? 0 : Math.floor((Date.now() - new Date(task.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+            totalHours: taskTotalHours,
+            totalMinutes: taskTotalMinutes,
+            comments: (task.comments || []).map((c: any) => ({
+                id: c.commentId, text: c.comment, date: c.date, minutes: c.minutes || 0, user: c.userId
+            })),
+            isCompleted
+        };
+
+        const dateKey = new Date(task.createdAt).toISOString().split("T")[0];
+
+        for (const assignee of task.assignTo) {
+            const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
+            if (!userId) continue;
+
+            // Group by user
+            result.byUser[userId] = result.byUser[userId] || {
+                user: getUserInfo(userId),
+                tasks: [],
+                completedTasks: 0,
+                pendingTasks: 0,
+                totalHours: 0
+            };
+            result.byUser[userId].tasks.push(taskObj);
+            result.byUser[userId][isCompleted ? "completedTasks" : "pendingTasks"]++;
+            result.byUser[userId].totalHours += taskTotalHours;
+
+            // Group by date
+            result.byDate[dateKey] = result.byDate[dateKey] || {
+                date: dateKey, tasks: [], completedTasks: 0, pendingTasks: 0, totalHours: 0, users: {}
+            };
+            result.byDate[dateKey].tasks.push(taskObj);
+            result.byDate[dateKey][isCompleted ? "completedTasks" : "pendingTasks"]++;
+            result.byDate[dateKey].totalHours += taskTotalHours;
+
+            result.byDate[dateKey].users[userId] = result.byDate[dateKey].users[userId] || {
+                user: getUserInfo(userId), tasks: [], completedTasks: 0, pendingTasks: 0, totalHours: 0
+            };
+            result.byDate[dateKey].users[userId].tasks.push(taskObj);
+            result.byDate[dateKey].users[userId][isCompleted ? "completedTasks" : "pendingTasks"]++;
+            result.byDate[dateKey].users[userId].totalHours += taskTotalHours;
+        }
+    }
+
+    return {
+        byUser: Object.values(result.byUser),
+        byDate: Object.values(result.byDate).map((d: any) => ({ ...d, users: Object.values(d.users) }))
+            .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        summary: result.summary,
+        users: result.users,
+        dateRange: { start, end }
+    };
+}
