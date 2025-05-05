@@ -1,805 +1,3214 @@
 [
-  "Python",
-  "Java",
-  "JavaScript",
-  "C",
-  "C++",
-  "C#",
-  "Ruby",
-  "PHP",
-  "Swift",
-  "Go",
-  "Kotlin",
-  "TypeScript",
-  "Rust",
-  "Perl",
-  "Lua",
-  "R",
-  "MATLAB",
-  "SQL",
-  "Shell",
-  "Visual Basic",
-  "Dart",
-  "Objective-C",
-  "F#",
-  "Scala",
-  "Haskell",
-  "Groovy",
-  "Elixir",
-  "Julia",
-  "Erlang",
-  "COBOL",
-  "Fortran",
-  "Assembly",
-  "Ada",
-  "Lisp",
-  "Scheme",
-  "Tcl",
-  "ActionScript",
-  "Smalltalk",
-  "VHDL",
-  "Verilog",
-  "Prolog",
-  "OCaml",
-  "Crystal",
-  "Xojo",
-  "Hack",
-  "Bash",
-  "Forth",
-  "AWK",
-  "Zsh",
-  "SML",
-  "PowerShell",
-  "D",
-  "PostScript",
-  "SuperCollider",
-  "Mercury",
-  "Nim",
-  "Clojure",
-  "Factor",
-  "AutoHotKey",
-  "PureScript",
-  "OpenCL",
-  "Vala",
-  "Solidity",
-  "Reason",
-  "Z80 Assembly",
-  "GAMS",
-  "J",
-  "Icon",
-  "Inform",
-  "XSLT",
-  "Modula-2",
-  "Simula",
-  "Algol",
-  "RPG",
-  "SNOBOL",
-  "Newspeak",
-  "Squirrel",
-  "IO",
-  "SIDL",
-  "Racket",
-  "Fantom",
-  "Euphoria",
-  "Mind",
-  "Elm",
-  "Gosu",
-  "Monkey",
-  "Verilog HDL",
-  "AngelScript",
-  "Neko",
-  "GML",
-  "APL",
-  "LiveCode",
-  "FSharp",
-  "LuaJIT",
-  "Parrot",
-  "BlitzMax",
-  "Visual FoxPro",
-  "Simulink",
-  "OpenEdge",
-  "Tcl/Tk",
-  "Modula-3",
-  "GDScript",
-  "Raku",
-  "S-Lang",
-  "ZPL",
-  "JScript",
-  "OpenGL Shading Language",
-  "Maxima",
-  "NET",
-  "Frink",
-  "Eclim",
-  "Oxygene",
-  "TRAC",
-  "Limbo",
-  "GLib",
-  "BCPL",
-  "Falcon",
-  "Unicon",
-  "Vyper",
-  "IDL",
-  "Quantum Computing Language (QCL)",
-  "Parsec",
-  "Hacklang",
-  "Timber",
-  "Seed7",
-  "AutoIt",
-  "Haxe",
-  "HAML",
-  "Chisel",
-  "VEX",
-  "YAML",
-  "XBL",
-  "Visual Basic Script",
-  "Stata",
-  "REXX",
-  "X10",
-  "Pizza",
-  "Maple",
-  "Cute",
-  "Seaside",
-  "ML",
-  "ALGOL 60",
-  "Sh",
-  "Red",
-  "Transact-SQL",
-  "SWI-Prolog",
-  "Lasso",
-  "OCCAM",
-  "Clarity",
-  "Turing",
-  "Assembler",
-  "ChucK",
-  "Emacs Lisp",
-  "ECL",
-  "FScript",
-  "BournShell",
-  "Verilog-2001",
-  "TorqueScript",
-  "Ring",
-  "Delphi",
-  "Tango",
-  "CoffeeScript",
-  "Q#",
-  "Objective-J",
-  "Visual J#",
-  "SAL",
-  "Ballerina",
-  "SwiftUI",
-  "Processing",
-  "Gambas",
-  "GoScript",
-  "Ceylon",
-  "Glimmer",
-  "XojoScript",
-  "Free Pascal",
-  "Blitz3D",
-  "Pike",
-  "NGL",
-  "Oz",
-  "MaxScript",
-  "AppleScript",
-  "RubyMotion",
-  "PureData",
-  "ECLiPSe",
-  "TADS",
-  "Octave",
-  "GLSL",
-  "Datalog",
-  "ALGOL 68",
-  "Ada 95",
-  "TPL",
-  "Clean",
-  "JScript.NET",
-  "WebAssembly",
-  "Inform 7",
-  "Dafny",
-  "MQL4",
-  "OpenEdge ABL",
-  "Simula 67",
-  "ActionScript 3",
-  "Xtend",
-  "Jython",
-  "LispWorks",
-  "Wren",
-  "Perl 6",
-  "FreePascal",
-  "PIC Assembly",
-  "Hy",
-  "Ada 83",
-  "AGC Assembly",
-  "Gambit",
-  "PascalABC",
-  "Genie",
-  "Loop",
-  "TeX",
-  "LabVIEW",
-  "Active Server Pages",
-  "Batik",
-  "BitC",
-  "JSON",
-  "GDL",
-  "Rebol",
-  "Ada 2005",
-  "Modelica",
-  "ASP.NET",
-  "COBOL 85",
-  "Scala.js",
-  "GeoGebra",
-  "Prolog II",
-  "PICO-8",
-  "MQL5",
-  "OpenJDK",
-  "QuickBASIC",
-  "Smalltalk-80",
-  "Rascal",
-  "Actionscript 2",
-  "XPL",
-  "ClojureScript",
-  "MAX/MSP",
-  "Berkeley Logo",
-  "Carbon",
-  "Logic Programming",
-  "App Inventor",
-  "Cyclone",
-  "APL2",
-  "Gnome",
-  "Lua 5.3",
-  "PASCAL",
-  "OPL",
-  "HLSL",
-  "GroovyFX",
-  "Turing Machine",
-  "DartScript",
-  "ClearScript",
-  "Prolog III",
-  "JavaFX",
-  "PL/I",
-  "Gcode",
-  "Winbatch",
-  "MATLAB/Simulink",
-  "Faltering",
-  "ABC",
-  "Logic",
-  "Tcl2",
-  "Oz-Machine",
-  "Haskell 2010",
-  "Inno Setup",
-  "MindScript",
-  "ActionScript 3.0",
-  "Turing-lang",
-  "Windows PowerShell",
-  "Thrift",
-  "Caml",
-  "BioLisp",
-  "XBase",
-  "Salt",
-  "ActionScript 1",
-  "Clarion",
-  "NP-complete",
-  "HLSL (High-Level Shading Language)",
-  "GML Script",
-  "Monkey X",
-  "JavaScript ES6",
-  "RacketScript",
-  "LuaScript",
-  "ForthScript",
-  "Zig",
-  "Perl 5",
-  "ColdFusion",
-  "CSharpScript",
-  "BLISS",
-  "Logtalk",
-  "ElmScript",
-  "TeX Live",
-  "Mono",
-  "PicoLisp",
-  "VIML",
-  "LaTeX",
-  "SCILAB",
-  "Cypher",
-  "Mathematica",
-  "HaxeScript",
-  "Xcode",
-  "OpenSCAD",
-  "GMod Lua",
-  "GroovyScript",
-  "RIL",
-  "ActionScript 2.0",
-  "Scratch",
-  "SymbolicC",
-  "Graphviz",
-  "Futhark",
-  "SchemeScript",
-  "Modula",
-  "JScript 5",
-  "Windows Batch",
-  "Bigwig",
-  "Truffle",
-  "Asymptote",
-  "Parseval",
-  "NURBS",
-  "MetaL",
-  "ErlangScript",
-  "SMILE",
-  "Ren’Py",
-  "RubyScript",
-  "Minit",
-  "Scalaz",
-  "Mojo",
-  "Chapel",
-  "Alice",
-  "TADS 3",
-  "GPSS",
-  "Stata 15",
-  "COBOL 74",
-  "KScript",
-  "Macaulay2",
-  "Dart 2",
-  "F# Script",
-  "GAMS Model",
-  "Q",
-  "Krust",
-  "SNOBOL4",
-  "ScriptBasic",
-  "AppleScriptObjC",
-  "ModelSim",
-  "JavaFX Script",
-  "LimeScript",
-  "Picaxe",
-  "JScript 6",
-  "QuickBASIC 1.1",
-  "Salsa",
-  "VBA",
-  "Mac OS X Script",
-  "Ivy",
-  "Visual Prolog",
-  "ZshScript",
-  "PureLisp",
-  "PikeScript",
-  "ForthOS",
-  "Visual Basic for Applications",
-  "PROTEL",
-  "BrightScript",
-  "PostScript 3",
-  "Scheme 48",
-  "DARTS",
-  "Swift Playgrounds",
-  "Scrapy",
-  "KUKA Robotics Language",
-  "ActiveX",
-  "NodeScript",
-  "Adaptra",
-  "GNU Pth",
-  "LFortran",
-  "Simulink 3D Animation",
-  "WebAssembly Text Format",
-  "Nginx Lua",
-  "StarLogo",
-  "COMAL",
-  "GoLang",
-  "CeylonScript",
-  "AutoItScript",
-  "EEL",
-  "Stackless Python",
-  "BatchScript",
-  "SmalltalkScript",
-  "Brainfuck",
-  "PostScript Language",
-  "Simgrid",
-  "CHILL",
-  "ColdFusion Markup Language",
-  "PScript",
-  "PureData Patch",
-  "OxygeneScript",
-  "Dyn",
-  "NumPy",
-  "Smaltalk",
-  "Unicorn",
-  "CATIA V5 Scripting",
-  "PureOCaml",
-  "PikeLang",
-  "Shiny",
-  "Agda",
-  "ImageJ",
-  "GTK",
-  "ZPL2",
-  "OpenGL ES",
-  "Picat",
-  "Processing.js",
-  "Coq",
-  "JuMP",
-  "Gambit Scheme",
-  "Processing 3",
-  "Vyperlang",
-  "ClojureCLR",
-  "ScalaFX",
-  "Vyper Python",
-  "Copilot",
-  "FAUST",
-  "TensorFlow",
-  "OpenCV",
-  "Ant",
-  "BrainfuckScript",
-  "Datalog-97",
-  "IBM RPG",
-  "Cava",
-  "JupyterScript",
-  "Alloy",
-  "LitScript",
-  "SystemVerilog",
-  "Wolfram Language",
-  "Processing.py",
-  "Oblique",
-  "Scheme 7",
-  "KScript 4.2",
-  "Modula-2+",
-  "Pencil Code",
-  "BizTalk Server",
-  "XtendScript",
-  "Croquet",
-  "Roxie",
-  "OpenGL Shader Language",
-  "Roslyn",
-  "Cirru",
-  "Turing 2",
-  "Akka",
-  "CleanScript",
-  "Microsoft F#",
-  "Orc",
-  "SquirrelScript",
-  "RebolScript",
-  "Mercury 2000",
-  "FRAP",
-  "Lua 4",
-  "SQLCLR",
-  "PHP 8",
-  "HTML5 Script",
-  "Mercury Lisp",
-  "TADS 2",
-  "Allegro CL",
-  "4GL",
-  "Ceedling",
-  "YANG",
-  "LojbanScript",
-  "Lustre",
-  "RedScript",
-  "TECO",
-  "EcmaScript",
-  "Puppet",
-  "qore",
-  "MetaOCaml",
-  "FreePascalScript",
-  "OpenEdge RDBMS",
-  "Atlas",
-  "FrinkScript",
-  "GXL",
-  "LightningScript",
-  "OpenMP",
-  "Flex",
-  "GloballyScripted",
-  "AMPL",
-  "EventScript",
-  "TiPy",
-  "Blue",
-  "JavaScript (React)",
-  "ActionScript 4.0",
-  "D Programming Language",
-  "MIT Scheme",
-  "MuJava",
-  "ElasticSearch Query DSL",
-  "MegaScript",
-  "Prolog++",
-  "HALide",
-  "Easycode",
-  "Inferno",
-  "JScript7",
-  "EspressoScript",
-  "CLIPS",
-  "HAXE Framework",
-  "MapleScript",
-  "GDScript 2.0",
-  "JScript 8",
-  "TeaScript",
-  "PidginScript",
-  "AngelScript 2",
-  "Aldor",
-  "ChiselHDL",
-  "DXS",
-  "JSX",
-  "FLUX",
-  "PICO-8 Lua",
-  "TwigScript",
-  "TypoScript",
-  "MatlabScript",
-  "Reia",
-  "Quasiquote",
-  "ActionScript2",
-  "FScript 2.0",
-  "Modula-3Script",
-  "VDL",
-  "ProjLog",
-  "IronPython",
-  "Cypher Query Language",
-  "Lisp Flavored Erlang",
-  "Rescript",
-  "QueryScript",
-  "SoyScript",
-  "IronRuby",
-  "WebKitScript",
-  "EventFlow",
-  "SolaceScript",
-  "AGILE",
-  "COM+",
-  "Gherkin",
-  "Strudel",
-  "TomatoScript",
-  "NekoScript",
-  "GML 3.0",
-  "Kaleidoscope",
-  "FreeBasic",
-  "Minijson",
-  "QtScript",
-  "NSIS",
-  "LassoScript",
-  "LeafScript",
-  "LuaGlide",
-  "Grammatica",
-  "EzScript",
-  "Redcode",
-  "ActionScript 5",
-  "SquirrelLang",
-  "GAMS 24",
-  "OpenMP 4",
-  "JScript 9",
-  "Chip8",
-  "Cilk",
-  "FactorScript",
-  "SimScript",
-  "OpenFrameworks",
-  "Starlisp",
-  "Scheme48",
-  "QuasiquoteScript",
-  "Zonnon",
-  "JScript 10",
-  "WASM (WebAssembly Text Format)",
-  "TWIG",
-  "NetLogo",
-  "SystemC",
-  "Scheme 3",
-  "Nanonet",
-  "Microcode",
-  "Simulink MATLAB",
-  "HyScript",
-  "SwiftUI for Web",
-  "BallerinaLang",
-  "TeaLang",
-  "SMLScript",
-  "ReScript (formerly BuckleScript)",
-  "PogoScript",
-  "ClojureScript 2",
-  "RPL",
-  "BRL-CAD",
-  "Axiom",
-  "XojoScript 2.0",
-  "Mercurial",
-  "GSL",
-  "SLangScript",
-  "KUKA Robot Language",
-  "AngstromScript",
-  "NetLogoScript",
-  "OpenCL 2",
-  "JoyScript",
-  "WinAPI",
-  "FEniCS",
-  "FactorScript 2",
-  "CoffeeScript 2",
-  "Timeliner",
-  "Sunscript",
-  "Modelica 3.3",
-  "Snap!",
-  "CoffeeScript for Node",
-  "COBOLScript",
-  "MetaLanguage",
-  "MaxScript 2.0",
-  "FreeBASIC Script",
-  "Turing Plus",
-  "MoonScript",
-  "Dyon",
-  "JScript 11",
-  "VHDL-93",
-  "MDL (MUD Language)",
-  "GroovyScript 2.0",
-  "Golo",
-  "MQL5 Script",
-  "SystemVerilog 2005",
-  "Vala 0.52",
-  "Lua 5.4",
-  "RedshiftScript",
-  "FlinkScript",
-  "ControlScript",
-  "Object-Pascal",
-  "Scratch 3.0",
-  "HaxePunk",
-  "Ceylon 2.0",
-  "ZPax",
-  "StuntmanScript",
-  "DynamicLISP",
-  "HackScript",
-  "RRTScript",
-  "ZKScript",
-  "Lyst",
-  "VisualHaskell",
-  "MidletScript",
-  "TRAC2",
-  "WrangleScript",
-  "PeakScript",
-  "CrystScript",
-  "FalconScript 2",
-  "DSDL (Data Structure Description Language)",
-  "YamlScript",
-  "ElixirScript",
-  "XMLScript",
-  "Genus",
-  "AlloyScript",
-  "ExtJS",
-  "MongooseScript",
-  "RakuScript",
-  "CoreCLR",
-  "Spartan",
-  "FPP",
-  "ClarionScript",
-  "Ghostscript",
-  "ABAP",
-  "WrenScript",
-  "VyperLangScript",
-  "UniScript",
-  "AGDA 2",
-  "AxiomScript",
-  "TPLScript",
-  "SwiftScript",
-  "Backus-Naur Form (BNF)",
-  "Mercury Logic",
-  "PostScript 4",
-  "Lox",
-  "GliderScript",
-  "AppleScriptObjC 2.0",
-  "Alloy 2",
-  "LangScript",
-  "GraphScript",
-  "ScriptingScratch",
-  "GWTScript",
-  "UnrealScript",
-  "QML",
-  "WPFScript",
-  "MQL4 Script 2",
-  "FakeScript",
-  "FireScript",
-  "OpenGLSL 2",
-  "PixieScript",
-  "GameMaker Language",
-  "GeoScript",
-  "Guile",
-  "OpenModelica",
-  "SilicaScript",
-  "TangleScript",
-  "LISP Machine Lisp",
-  "Crosswind",
-  "OctaveScript",
-  "AvalonScript",
-  "SpockScript",
-  "TuringOS",
-  "MindfulScript",
-  "SkyScript",
-  "ZetaScript",
-  "Cheerp",
-  "ModuleScript",
-  "GoloScript",
-  "Lilith",
-  "XFDL (Extensible Forms Description Language)",
-  "MochaScript",
-  "LuaOS",
-  "Cython",
-  "OpenGLShaderScript",
-  "CopilotScript",
-  "PyScript",
-  "TaoScript",
-  "SilexScript",
-  "JavascriptCore",
-  "Hypercode",
-  "Common Lisp 2",
-  "Fortran 77",
-  "ROS Scripts",
-  "SlimScript",
-  "QuantumScript",
-  "X12Script",
-  "TeXScript",
-  "RobocopyScript",
-  "ULScript",
-  "MIPS Assembly",
-  "PythonScript",
-  "QuikScript",
-  "Wuzz",
-  "POCScript",
-  "StageScript",
-  "TotemScript",
-  "CeedlingScript",
-  "AssemblerScript",
-  "GeoDataScript",
-  "Clearcase",
-  "JavaScript++",
-  "SimpleScript",
-  "ShorthandScript",
-  "MinimalScript",
-  "GroovyScript 3.0",
-  "PasMo",
-  "CordovaScript",
-  "ITaskScript",
-  "VisualProlog",
-  "YaccScript",
-  "AutoIt 3.3",
-  "AtoScript",
-  "MoonScript 2",
-  "Rescript.js",
-  "DesignScript",
-  "PsScript",
-  "AlgorithmicScript",
-  "AgnosticScript",
-  "PowerShell Core",
-  "AdaScript",
-  "CalcScript",
-  "JuliaLangScript",
-  "ZebraScript",
-  "SolarScript",
-  "LionScript",
-  "ScriptableScript",
-  "AppleScriptGL",
-  "VideoScript",
-  "TikZScript",
-  "GradleScript",
-  "ElasticScript",
-  "ClojureX",
-  "JuliaScript",
-  "PloScript",
-  "SnapScript",
-  "KeaScript",
-  "NextScript",
-  "EmacsLisp",
-  "BootstrapScript",
-  "AlgebricScript",
-  "LoopScript",
-  "MoScript",
-  "ABCL",
-  "XojoScript 3",
-  "SureScript",
-  "PiScript",
-  "FudgeScript",
-  "HarmonyScript",
-  "FlashActionScript",
-  "ValaScript",
-  "RedScript 2",
-  "MachScript",
-  "SwiftPlusScript",
-  "HyperScript",
-  "KScript 2",
-  "PlutoScript",
-  "FlashScript",
-  "MiskScript",
-  "BraidScript",
-  "RxScript",
-  "SeqScript",
-  "V-Code",
-  "BoomerangScript",
-  "ImprovScript",
-  "Assembly language",
-  "Machine code",
-  "HTML",
-  "XML",
-  "Markdown",
-  "SPARQL",
-  "CSS",
-  "x86 Assembly",
-  "ARM Assembly",
-  "RISC Assembly"
+  {
+    "name": "Python",
+    "isSystem": true
+  },
+  {
+    "name": "Java",
+    "isSystem": true
+  },
+  {
+    "name": "JavaScript",
+    "isSystem": true
+  },
+  {
+    "name": "C",
+    "isSystem": true
+  },
+  {
+    "name": "C++",
+    "isSystem": true
+  },
+  {
+    "name": "C#",
+    "isSystem": true
+  },
+  {
+    "name": "Ruby",
+    "isSystem": true
+  },
+  {
+    "name": "PHP",
+    "isSystem": true
+  },
+  {
+    "name": "Swift",
+    "isSystem": true
+  },
+  {
+    "name": "Go",
+    "isSystem": true
+  },
+  {
+    "name": "Kotlin",
+    "isSystem": true
+  },
+  {
+    "name": "TypeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Rust",
+    "isSystem": true
+  },
+  {
+    "name": "Perl",
+    "isSystem": true
+  },
+  {
+    "name": "Lua",
+    "isSystem": true
+  },
+  {
+    "name": "R",
+    "isSystem": true
+  },
+  {
+    "name": "MATLAB",
+    "isSystem": true
+  },
+  {
+    "name": "SQL",
+    "isSystem": true
+  },
+  {
+    "name": "Shell",
+    "isSystem": true
+  },
+  {
+    "name": "Visual Basic",
+    "isSystem": true
+  },
+  {
+    "name": "Dart",
+    "isSystem": true
+  },
+  {
+    "name": "Objective-C",
+    "isSystem": true
+  },
+  {
+    "name": "F#",
+    "isSystem": true
+  },
+  {
+    "name": "Scala",
+    "isSystem": true
+  },
+  {
+    "name": "Haskell",
+    "isSystem": true
+  },
+  {
+    "name": "Groovy",
+    "isSystem": true
+  },
+  {
+    "name": "Elixir",
+    "isSystem": true
+  },
+  {
+    "name": "Julia",
+    "isSystem": true
+  },
+  {
+    "name": "Erlang",
+    "isSystem": true
+  },
+  {
+    "name": "COBOL",
+    "isSystem": true
+  },
+  {
+    "name": "Fortran",
+    "isSystem": true
+  },
+  {
+    "name": "Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "Ada",
+    "isSystem": true
+  },
+  {
+    "name": "Lisp",
+    "isSystem": true
+  },
+  {
+    "name": "Scheme",
+    "isSystem": true
+  },
+  {
+    "name": "Tcl",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript",
+    "isSystem": true
+  },
+  {
+    "name": "Smalltalk",
+    "isSystem": true
+  },
+  {
+    "name": "VHDL",
+    "isSystem": true
+  },
+  {
+    "name": "Verilog",
+    "isSystem": true
+  },
+  {
+    "name": "Prolog",
+    "isSystem": true
+  },
+  {
+    "name": "OCaml",
+    "isSystem": true
+  },
+  {
+    "name": "Crystal",
+    "isSystem": true
+  },
+  {
+    "name": "Xojo",
+    "isSystem": true
+  },
+  {
+    "name": "Hack",
+    "isSystem": true
+  },
+  {
+    "name": "Bash",
+    "isSystem": true
+  },
+  {
+    "name": "Forth",
+    "isSystem": true
+  },
+  {
+    "name": "AWK",
+    "isSystem": true
+  },
+  {
+    "name": "Zsh",
+    "isSystem": true
+  },
+  {
+    "name": "SML",
+    "isSystem": true
+  },
+  {
+    "name": "PowerShell",
+    "isSystem": true
+  },
+  {
+    "name": "D",
+    "isSystem": true
+  },
+  {
+    "name": "PostScript",
+    "isSystem": true
+  },
+  {
+    "name": "SuperCollider",
+    "isSystem": true
+  },
+  {
+    "name": "Mercury",
+    "isSystem": true
+  },
+  {
+    "name": "Nim",
+    "isSystem": true
+  },
+  {
+    "name": "Clojure",
+    "isSystem": true
+  },
+  {
+    "name": "Factor",
+    "isSystem": true
+  },
+  {
+    "name": "AutoHotKey",
+    "isSystem": true
+  },
+  {
+    "name": "PureScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenCL",
+    "isSystem": true
+  },
+  {
+    "name": "Vala",
+    "isSystem": true
+  },
+  {
+    "name": "Solidity",
+    "isSystem": true
+  },
+  {
+    "name": "Reason",
+    "isSystem": true
+  },
+  {
+    "name": "Z80 Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "GAMS",
+    "isSystem": true
+  },
+  {
+    "name": "J",
+    "isSystem": true
+  },
+  {
+    "name": "Icon",
+    "isSystem": true
+  },
+  {
+    "name": "Inform",
+    "isSystem": true
+  },
+  {
+    "name": "XSLT",
+    "isSystem": true
+  },
+  {
+    "name": "Modula-2",
+    "isSystem": true
+  },
+  {
+    "name": "Simula",
+    "isSystem": true
+  },
+  {
+    "name": "Algol",
+    "isSystem": true
+  },
+  {
+    "name": "RPG",
+    "isSystem": true
+  },
+  {
+    "name": "SNOBOL",
+    "isSystem": true
+  },
+  {
+    "name": "Newspeak",
+    "isSystem": true
+  },
+  {
+    "name": "Squirrel",
+    "isSystem": true
+  },
+  {
+    "name": "IO",
+    "isSystem": true
+  },
+  {
+    "name": "SIDL",
+    "isSystem": true
+  },
+  {
+    "name": "Racket",
+    "isSystem": true
+  },
+  {
+    "name": "Fantom",
+    "isSystem": true
+  },
+  {
+    "name": "Euphoria",
+    "isSystem": true
+  },
+  {
+    "name": "Mind",
+    "isSystem": true
+  },
+  {
+    "name": "Elm",
+    "isSystem": true
+  },
+  {
+    "name": "Gosu",
+    "isSystem": true
+  },
+  {
+    "name": "Monkey",
+    "isSystem": true
+  },
+  {
+    "name": "Verilog HDL",
+    "isSystem": true
+  },
+  {
+    "name": "AngelScript",
+    "isSystem": true
+  },
+  {
+    "name": "Neko",
+    "isSystem": true
+  },
+  {
+    "name": "GML",
+    "isSystem": true
+  },
+  {
+    "name": "APL",
+    "isSystem": true
+  },
+  {
+    "name": "LiveCode",
+    "isSystem": true
+  },
+  {
+    "name": "FSharp",
+    "isSystem": true
+  },
+  {
+    "name": "LuaJIT",
+    "isSystem": true
+  },
+  {
+    "name": "Parrot",
+    "isSystem": true
+  },
+  {
+    "name": "BlitzMax",
+    "isSystem": true
+  },
+  {
+    "name": "Visual FoxPro",
+    "isSystem": true
+  },
+  {
+    "name": "Simulink",
+    "isSystem": true
+  },
+  {
+    "name": "OpenEdge",
+    "isSystem": true
+  },
+  {
+    "name": "Tcl/Tk",
+    "isSystem": true
+  },
+  {
+    "name": "Modula-3",
+    "isSystem": true
+  },
+  {
+    "name": "GDScript",
+    "isSystem": true
+  },
+  {
+    "name": "Raku",
+    "isSystem": true
+  },
+  {
+    "name": "S-Lang",
+    "isSystem": true
+  },
+  {
+    "name": "ZPL",
+    "isSystem": true
+  },
+  {
+    "name": "JScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenGL Shading Language",
+    "isSystem": true
+  },
+  {
+    "name": "Maxima",
+    "isSystem": true
+  },
+  {
+    "name": "NET",
+    "isSystem": true
+  },
+  {
+    "name": "Frink",
+    "isSystem": true
+  },
+  {
+    "name": "Eclim",
+    "isSystem": true
+  },
+  {
+    "name": "Oxygene",
+    "isSystem": true
+  },
+  {
+    "name": "TRAC",
+    "isSystem": true
+  },
+  {
+    "name": "Limbo",
+    "isSystem": true
+  },
+  {
+    "name": "GLib",
+    "isSystem": true
+  },
+  {
+    "name": "BCPL",
+    "isSystem": true
+  },
+  {
+    "name": "Falcon",
+    "isSystem": true
+  },
+  {
+    "name": "Unicon",
+    "isSystem": true
+  },
+  {
+    "name": "Vyper",
+    "isSystem": true
+  },
+  {
+    "name": "IDL",
+    "isSystem": true
+  },
+  {
+    "name": "Quantum Computing Language (QCL)",
+    "isSystem": true
+  },
+  {
+    "name": "Parsec",
+    "isSystem": true
+  },
+  {
+    "name": "Hacklang",
+    "isSystem": true
+  },
+  {
+    "name": "Timber",
+    "isSystem": true
+  },
+  {
+    "name": "Seed7",
+    "isSystem": true
+  },
+  {
+    "name": "AutoIt",
+    "isSystem": true
+  },
+  {
+    "name": "Haxe",
+    "isSystem": true
+  },
+  {
+    "name": "HAML",
+    "isSystem": true
+  },
+  {
+    "name": "Chisel",
+    "isSystem": true
+  },
+  {
+    "name": "VEX",
+    "isSystem": true
+  },
+  {
+    "name": "YAML",
+    "isSystem": true
+  },
+  {
+    "name": "XBL",
+    "isSystem": true
+  },
+  {
+    "name": "Visual Basic Script",
+    "isSystem": true
+  },
+  {
+    "name": "Stata",
+    "isSystem": true
+  },
+  {
+    "name": "REXX",
+    "isSystem": true
+  },
+  {
+    "name": "X10",
+    "isSystem": true
+  },
+  {
+    "name": "Pizza",
+    "isSystem": true
+  },
+  {
+    "name": "Maple",
+    "isSystem": true
+  },
+  {
+    "name": "Cute",
+    "isSystem": true
+  },
+  {
+    "name": "Seaside",
+    "isSystem": true
+  },
+  {
+    "name": "ML",
+    "isSystem": true
+  },
+  {
+    "name": "ALGOL 60",
+    "isSystem": true
+  },
+  {
+    "name": "Sh",
+    "isSystem": true
+  },
+  {
+    "name": "Red",
+    "isSystem": true
+  },
+  {
+    "name": "Transact-SQL",
+    "isSystem": true
+  },
+  {
+    "name": "SWI-Prolog",
+    "isSystem": true
+  },
+  {
+    "name": "Lasso",
+    "isSystem": true
+  },
+  {
+    "name": "OCCAM",
+    "isSystem": true
+  },
+  {
+    "name": "Clarity",
+    "isSystem": true
+  },
+  {
+    "name": "Turing",
+    "isSystem": true
+  },
+  {
+    "name": "Assembler",
+    "isSystem": true
+  },
+  {
+    "name": "ChucK",
+    "isSystem": true
+  },
+  {
+    "name": "Emacs Lisp",
+    "isSystem": true
+  },
+  {
+    "name": "ECL",
+    "isSystem": true
+  },
+  {
+    "name": "FScript",
+    "isSystem": true
+  },
+  {
+    "name": "BournShell",
+    "isSystem": true
+  },
+  {
+    "name": "Verilog-2001",
+    "isSystem": true
+  },
+  {
+    "name": "TorqueScript",
+    "isSystem": true
+  },
+  {
+    "name": "Ring",
+    "isSystem": true
+  },
+  {
+    "name": "Delphi",
+    "isSystem": true
+  },
+  {
+    "name": "Tango",
+    "isSystem": true
+  },
+  {
+    "name": "CoffeeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Q#",
+    "isSystem": true
+  },
+  {
+    "name": "Objective-J",
+    "isSystem": true
+  },
+  {
+    "name": "Visual J#",
+    "isSystem": true
+  },
+  {
+    "name": "SAL",
+    "isSystem": true
+  },
+  {
+    "name": "Ballerina",
+    "isSystem": true
+  },
+  {
+    "name": "SwiftUI",
+    "isSystem": true
+  },
+  {
+    "name": "Processing",
+    "isSystem": true
+  },
+  {
+    "name": "Gambas",
+    "isSystem": true
+  },
+  {
+    "name": "GoScript",
+    "isSystem": true
+  },
+  {
+    "name": "Ceylon",
+    "isSystem": true
+  },
+  {
+    "name": "Glimmer",
+    "isSystem": true
+  },
+  {
+    "name": "XojoScript",
+    "isSystem": true
+  },
+  {
+    "name": "Free Pascal",
+    "isSystem": true
+  },
+  {
+    "name": "Blitz3D",
+    "isSystem": true
+  },
+  {
+    "name": "Pike",
+    "isSystem": true
+  },
+  {
+    "name": "NGL",
+    "isSystem": true
+  },
+  {
+    "name": "Oz",
+    "isSystem": true
+  },
+  {
+    "name": "MaxScript",
+    "isSystem": true
+  },
+  {
+    "name": "AppleScript",
+    "isSystem": true
+  },
+  {
+    "name": "RubyMotion",
+    "isSystem": true
+  },
+  {
+    "name": "PureData",
+    "isSystem": true
+  },
+  {
+    "name": "ECLiPSe",
+    "isSystem": true
+  },
+  {
+    "name": "TADS",
+    "isSystem": true
+  },
+  {
+    "name": "Octave",
+    "isSystem": true
+  },
+  {
+    "name": "GLSL",
+    "isSystem": true
+  },
+  {
+    "name": "Datalog",
+    "isSystem": true
+  },
+  {
+    "name": "ALGOL 68",
+    "isSystem": true
+  },
+  {
+    "name": "Ada 95",
+    "isSystem": true
+  },
+  {
+    "name": "TPL",
+    "isSystem": true
+  },
+  {
+    "name": "Clean",
+    "isSystem": true
+  },
+  {
+    "name": "JScript.NET",
+    "isSystem": true
+  },
+  {
+    "name": "WebAssembly",
+    "isSystem": true
+  },
+  {
+    "name": "Inform 7",
+    "isSystem": true
+  },
+  {
+    "name": "Dafny",
+    "isSystem": true
+  },
+  {
+    "name": "MQL4",
+    "isSystem": true
+  },
+  {
+    "name": "OpenEdge ABL",
+    "isSystem": true
+  },
+  {
+    "name": "Simula 67",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 3",
+    "isSystem": true
+  },
+  {
+    "name": "Xtend",
+    "isSystem": true
+  },
+  {
+    "name": "Jython",
+    "isSystem": true
+  },
+  {
+    "name": "LispWorks",
+    "isSystem": true
+  },
+  {
+    "name": "Wren",
+    "isSystem": true
+  },
+  {
+    "name": "Perl 6",
+    "isSystem": true
+  },
+  {
+    "name": "FreePascal",
+    "isSystem": true
+  },
+  {
+    "name": "PIC Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "Hy",
+    "isSystem": true
+  },
+  {
+    "name": "Ada 83",
+    "isSystem": true
+  },
+  {
+    "name": "AGC Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "Gambit",
+    "isSystem": true
+  },
+  {
+    "name": "PascalABC",
+    "isSystem": true
+  },
+  {
+    "name": "Genie",
+    "isSystem": true
+  },
+  {
+    "name": "Loop",
+    "isSystem": true
+  },
+  {
+    "name": "TeX",
+    "isSystem": true
+  },
+  {
+    "name": "LabVIEW",
+    "isSystem": true
+  },
+  {
+    "name": "Active Server Pages",
+    "isSystem": true
+  },
+  {
+    "name": "Batik",
+    "isSystem": true
+  },
+  {
+    "name": "BitC",
+    "isSystem": true
+  },
+  {
+    "name": "JSON",
+    "isSystem": true
+  },
+  {
+    "name": "GDL",
+    "isSystem": true
+  },
+  {
+    "name": "Rebol",
+    "isSystem": true
+  },
+  {
+    "name": "Ada 2005",
+    "isSystem": true
+  },
+  {
+    "name": "Modelica",
+    "isSystem": true
+  },
+  {
+    "name": "ASP.NET",
+    "isSystem": true
+  },
+  {
+    "name": "COBOL 85",
+    "isSystem": true
+  },
+  {
+    "name": "Scala.js",
+    "isSystem": true
+  },
+  {
+    "name": "GeoGebra",
+    "isSystem": true
+  },
+  {
+    "name": "Prolog II",
+    "isSystem": true
+  },
+  {
+    "name": "PICO-8",
+    "isSystem": true
+  },
+  {
+    "name": "MQL5",
+    "isSystem": true
+  },
+  {
+    "name": "OpenJDK",
+    "isSystem": true
+  },
+  {
+    "name": "QuickBASIC",
+    "isSystem": true
+  },
+  {
+    "name": "Smalltalk-80",
+    "isSystem": true
+  },
+  {
+    "name": "Rascal",
+    "isSystem": true
+  },
+  {
+    "name": "Actionscript 2",
+    "isSystem": true
+  },
+  {
+    "name": "XPL",
+    "isSystem": true
+  },
+  {
+    "name": "ClojureScript",
+    "isSystem": true
+  },
+  {
+    "name": "MAX/MSP",
+    "isSystem": true
+  },
+  {
+    "name": "Berkeley Logo",
+    "isSystem": true
+  },
+  {
+    "name": "Carbon",
+    "isSystem": true
+  },
+  {
+    "name": "Logic Programming",
+    "isSystem": true
+  },
+  {
+    "name": "App Inventor",
+    "isSystem": true
+  },
+  {
+    "name": "Cyclone",
+    "isSystem": true
+  },
+  {
+    "name": "APL2",
+    "isSystem": true
+  },
+  {
+    "name": "Gnome",
+    "isSystem": true
+  },
+  {
+    "name": "Lua 5.3",
+    "isSystem": true
+  },
+  {
+    "name": "PASCAL",
+    "isSystem": true
+  },
+  {
+    "name": "OPL",
+    "isSystem": true
+  },
+  {
+    "name": "HLSL",
+    "isSystem": true
+  },
+  {
+    "name": "GroovyFX",
+    "isSystem": true
+  },
+  {
+    "name": "Turing Machine",
+    "isSystem": true
+  },
+  {
+    "name": "DartScript",
+    "isSystem": true
+  },
+  {
+    "name": "ClearScript",
+    "isSystem": true
+  },
+  {
+    "name": "Prolog III",
+    "isSystem": true
+  },
+  {
+    "name": "JavaFX",
+    "isSystem": true
+  },
+  {
+    "name": "PL/I",
+    "isSystem": true
+  },
+  {
+    "name": "Gcode",
+    "isSystem": true
+  },
+  {
+    "name": "Winbatch",
+    "isSystem": true
+  },
+  {
+    "name": "MATLAB/Simulink",
+    "isSystem": true
+  },
+  {
+    "name": "Faltering",
+    "isSystem": true
+  },
+  {
+    "name": "ABC",
+    "isSystem": true
+  },
+  {
+    "name": "Logic",
+    "isSystem": true
+  },
+  {
+    "name": "Tcl2",
+    "isSystem": true
+  },
+  {
+    "name": "Oz-Machine",
+    "isSystem": true
+  },
+  {
+    "name": "Haskell 2010",
+    "isSystem": true
+  },
+  {
+    "name": "Inno Setup",
+    "isSystem": true
+  },
+  {
+    "name": "MindScript",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 3.0",
+    "isSystem": true
+  },
+  {
+    "name": "Turing-lang",
+    "isSystem": true
+  },
+  {
+    "name": "Windows PowerShell",
+    "isSystem": true
+  },
+  {
+    "name": "Thrift",
+    "isSystem": true
+  },
+  {
+    "name": "Caml",
+    "isSystem": true
+  },
+  {
+    "name": "BioLisp",
+    "isSystem": true
+  },
+  {
+    "name": "XBase",
+    "isSystem": true
+  },
+  {
+    "name": "Salt",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 1",
+    "isSystem": true
+  },
+  {
+    "name": "Clarion",
+    "isSystem": true
+  },
+  {
+    "name": "NP-complete",
+    "isSystem": true
+  },
+  {
+    "name": "HLSL (High-Level Shading Language)",
+    "isSystem": true
+  },
+  {
+    "name": "GML Script",
+    "isSystem": true
+  },
+  {
+    "name": "Monkey X",
+    "isSystem": true
+  },
+  {
+    "name": "JavaScript ES6",
+    "isSystem": true
+  },
+  {
+    "name": "RacketScript",
+    "isSystem": true
+  },
+  {
+    "name": "LuaScript",
+    "isSystem": true
+  },
+  {
+    "name": "ForthScript",
+    "isSystem": true
+  },
+  {
+    "name": "Zig",
+    "isSystem": true
+  },
+  {
+    "name": "Perl 5",
+    "isSystem": true
+  },
+  {
+    "name": "ColdFusion",
+    "isSystem": true
+  },
+  {
+    "name": "CSharpScript",
+    "isSystem": true
+  },
+  {
+    "name": "BLISS",
+    "isSystem": true
+  },
+  {
+    "name": "Logtalk",
+    "isSystem": true
+  },
+  {
+    "name": "ElmScript",
+    "isSystem": true
+  },
+  {
+    "name": "TeX Live",
+    "isSystem": true
+  },
+  {
+    "name": "Mono",
+    "isSystem": true
+  },
+  {
+    "name": "PicoLisp",
+    "isSystem": true
+  },
+  {
+    "name": "VIML",
+    "isSystem": true
+  },
+  {
+    "name": "LaTeX",
+    "isSystem": true
+  },
+  {
+    "name": "SCILAB",
+    "isSystem": true
+  },
+  {
+    "name": "Cypher",
+    "isSystem": true
+  },
+  {
+    "name": "Mathematica",
+    "isSystem": true
+  },
+  {
+    "name": "HaxeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Xcode",
+    "isSystem": true
+  },
+  {
+    "name": "OpenSCAD",
+    "isSystem": true
+  },
+  {
+    "name": "GMod Lua",
+    "isSystem": true
+  },
+  {
+    "name": "GroovyScript",
+    "isSystem": true
+  },
+  {
+    "name": "RIL",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "Scratch",
+    "isSystem": true
+  },
+  {
+    "name": "SymbolicC",
+    "isSystem": true
+  },
+  {
+    "name": "Graphviz",
+    "isSystem": true
+  },
+  {
+    "name": "Futhark",
+    "isSystem": true
+  },
+  {
+    "name": "SchemeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Modula",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 5",
+    "isSystem": true
+  },
+  {
+    "name": "Windows Batch",
+    "isSystem": true
+  },
+  {
+    "name": "Bigwig",
+    "isSystem": true
+  },
+  {
+    "name": "Truffle",
+    "isSystem": true
+  },
+  {
+    "name": "Asymptote",
+    "isSystem": true
+  },
+  {
+    "name": "Parseval",
+    "isSystem": true
+  },
+  {
+    "name": "NURBS",
+    "isSystem": true
+  },
+  {
+    "name": "MetaL",
+    "isSystem": true
+  },
+  {
+    "name": "ErlangScript",
+    "isSystem": true
+  },
+  {
+    "name": "SMILE",
+    "isSystem": true
+  },
+  {
+    "name": "Ren’Py",
+    "isSystem": true
+  },
+  {
+    "name": "RubyScript",
+    "isSystem": true
+  },
+  {
+    "name": "Minit",
+    "isSystem": true
+  },
+  {
+    "name": "Scalaz",
+    "isSystem": true
+  },
+  {
+    "name": "Mojo",
+    "isSystem": true
+  },
+  {
+    "name": "Chapel",
+    "isSystem": true
+  },
+  {
+    "name": "Alice",
+    "isSystem": true
+  },
+  {
+    "name": "TADS 3",
+    "isSystem": true
+  },
+  {
+    "name": "GPSS",
+    "isSystem": true
+  },
+  {
+    "name": "Stata 15",
+    "isSystem": true
+  },
+  {
+    "name": "COBOL 74",
+    "isSystem": true
+  },
+  {
+    "name": "KScript",
+    "isSystem": true
+  },
+  {
+    "name": "Macaulay2",
+    "isSystem": true
+  },
+  {
+    "name": "Dart 2",
+    "isSystem": true
+  },
+  {
+    "name": "F# Script",
+    "isSystem": true
+  },
+  {
+    "name": "GAMS Model",
+    "isSystem": true
+  },
+  {
+    "name": "Q",
+    "isSystem": true
+  },
+  {
+    "name": "Krust",
+    "isSystem": true
+  },
+  {
+    "name": "SNOBOL4",
+    "isSystem": true
+  },
+  {
+    "name": "ScriptBasic",
+    "isSystem": true
+  },
+  {
+    "name": "AppleScriptObjC",
+    "isSystem": true
+  },
+  {
+    "name": "ModelSim",
+    "isSystem": true
+  },
+  {
+    "name": "JavaFX Script",
+    "isSystem": true
+  },
+  {
+    "name": "LimeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Picaxe",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 6",
+    "isSystem": true
+  },
+  {
+    "name": "QuickBASIC 1.1",
+    "isSystem": true
+  },
+  {
+    "name": "Salsa",
+    "isSystem": true
+  },
+  {
+    "name": "VBA",
+    "isSystem": true
+  },
+  {
+    "name": "Mac OS X Script",
+    "isSystem": true
+  },
+  {
+    "name": "Ivy",
+    "isSystem": true
+  },
+  {
+    "name": "Visual Prolog",
+    "isSystem": true
+  },
+  {
+    "name": "ZshScript",
+    "isSystem": true
+  },
+  {
+    "name": "PureLisp",
+    "isSystem": true
+  },
+  {
+    "name": "PikeScript",
+    "isSystem": true
+  },
+  {
+    "name": "ForthOS",
+    "isSystem": true
+  },
+  {
+    "name": "Visual Basic for Applications",
+    "isSystem": true
+  },
+  {
+    "name": "PROTEL",
+    "isSystem": true
+  },
+  {
+    "name": "BrightScript",
+    "isSystem": true
+  },
+  {
+    "name": "PostScript 3",
+    "isSystem": true
+  },
+  {
+    "name": "Scheme 48",
+    "isSystem": true
+  },
+  {
+    "name": "DARTS",
+    "isSystem": true
+  },
+  {
+    "name": "Swift Playgrounds",
+    "isSystem": true
+  },
+  {
+    "name": "Scrapy",
+    "isSystem": true
+  },
+  {
+    "name": "KUKA Robotics Language",
+    "isSystem": true
+  },
+  {
+    "name": "ActiveX",
+    "isSystem": true
+  },
+  {
+    "name": "NodeScript",
+    "isSystem": true
+  },
+  {
+    "name": "Adaptra",
+    "isSystem": true
+  },
+  {
+    "name": "GNU Pth",
+    "isSystem": true
+  },
+  {
+    "name": "LFortran",
+    "isSystem": true
+  },
+  {
+    "name": "Simulink 3D Animation",
+    "isSystem": true
+  },
+  {
+    "name": "WebAssembly Text Format",
+    "isSystem": true
+  },
+  {
+    "name": "Nginx Lua",
+    "isSystem": true
+  },
+  {
+    "name": "StarLogo",
+    "isSystem": true
+  },
+  {
+    "name": "COMAL",
+    "isSystem": true
+  },
+  {
+    "name": "GoLang",
+    "isSystem": true
+  },
+  {
+    "name": "CeylonScript",
+    "isSystem": true
+  },
+  {
+    "name": "AutoItScript",
+    "isSystem": true
+  },
+  {
+    "name": "EEL",
+    "isSystem": true
+  },
+  {
+    "name": "Stackless Python",
+    "isSystem": true
+  },
+  {
+    "name": "BatchScript",
+    "isSystem": true
+  },
+  {
+    "name": "SmalltalkScript",
+    "isSystem": true
+  },
+  {
+    "name": "Brainfuck",
+    "isSystem": true
+  },
+  {
+    "name": "PostScript Language",
+    "isSystem": true
+  },
+  {
+    "name": "Simgrid",
+    "isSystem": true
+  },
+  {
+    "name": "CHILL",
+    "isSystem": true
+  },
+  {
+    "name": "ColdFusion Markup Language",
+    "isSystem": true
+  },
+  {
+    "name": "PScript",
+    "isSystem": true
+  },
+  {
+    "name": "PureData Patch",
+    "isSystem": true
+  },
+  {
+    "name": "OxygeneScript",
+    "isSystem": true
+  },
+  {
+    "name": "Dyn",
+    "isSystem": true
+  },
+  {
+    "name": "NumPy",
+    "isSystem": true
+  },
+  {
+    "name": "Smaltalk",
+    "isSystem": true
+  },
+  {
+    "name": "Unicorn",
+    "isSystem": true
+  },
+  {
+    "name": "CATIA V5 Scripting",
+    "isSystem": true
+  },
+  {
+    "name": "PureOCaml",
+    "isSystem": true
+  },
+  {
+    "name": "PikeLang",
+    "isSystem": true
+  },
+  {
+    "name": "Shiny",
+    "isSystem": true
+  },
+  {
+    "name": "Agda",
+    "isSystem": true
+  },
+  {
+    "name": "ImageJ",
+    "isSystem": true
+  },
+  {
+    "name": "GTK",
+    "isSystem": true
+  },
+  {
+    "name": "ZPL2",
+    "isSystem": true
+  },
+  {
+    "name": "OpenGL ES",
+    "isSystem": true
+  },
+  {
+    "name": "Picat",
+    "isSystem": true
+  },
+  {
+    "name": "Processing.js",
+    "isSystem": true
+  },
+  {
+    "name": "Coq",
+    "isSystem": true
+  },
+  {
+    "name": "JuMP",
+    "isSystem": true
+  },
+  {
+    "name": "Gambit Scheme",
+    "isSystem": true
+  },
+  {
+    "name": "Processing 3",
+    "isSystem": true
+  },
+  {
+    "name": "Vyperlang",
+    "isSystem": true
+  },
+  {
+    "name": "ClojureCLR",
+    "isSystem": true
+  },
+  {
+    "name": "ScalaFX",
+    "isSystem": true
+  },
+  {
+    "name": "Vyper Python",
+    "isSystem": true
+  },
+  {
+    "name": "Copilot",
+    "isSystem": true
+  },
+  {
+    "name": "FAUST",
+    "isSystem": true
+  },
+  {
+    "name": "TensorFlow",
+    "isSystem": true
+  },
+  {
+    "name": "OpenCV",
+    "isSystem": true
+  },
+  {
+    "name": "Ant",
+    "isSystem": true
+  },
+  {
+    "name": "BrainfuckScript",
+    "isSystem": true
+  },
+  {
+    "name": "Datalog-97",
+    "isSystem": true
+  },
+  {
+    "name": "IBM RPG",
+    "isSystem": true
+  },
+  {
+    "name": "Cava",
+    "isSystem": true
+  },
+  {
+    "name": "JupyterScript",
+    "isSystem": true
+  },
+  {
+    "name": "Alloy",
+    "isSystem": true
+  },
+  {
+    "name": "LitScript",
+    "isSystem": true
+  },
+  {
+    "name": "SystemVerilog",
+    "isSystem": true
+  },
+  {
+    "name": "Wolfram Language",
+    "isSystem": true
+  },
+  {
+    "name": "Processing.py",
+    "isSystem": true
+  },
+  {
+    "name": "Oblique",
+    "isSystem": true
+  },
+  {
+    "name": "Scheme 7",
+    "isSystem": true
+  },
+  {
+    "name": "KScript 4.2",
+    "isSystem": true
+  },
+  {
+    "name": "Modula-2+",
+    "isSystem": true
+  },
+  {
+    "name": "Pencil Code",
+    "isSystem": true
+  },
+  {
+    "name": "BizTalk Server",
+    "isSystem": true
+  },
+  {
+    "name": "XtendScript",
+    "isSystem": true
+  },
+  {
+    "name": "Croquet",
+    "isSystem": true
+  },
+  {
+    "name": "Roxie",
+    "isSystem": true
+  },
+  {
+    "name": "OpenGL Shader Language",
+    "isSystem": true
+  },
+  {
+    "name": "Roslyn",
+    "isSystem": true
+  },
+  {
+    "name": "Cirru",
+    "isSystem": true
+  },
+  {
+    "name": "Turing 2",
+    "isSystem": true
+  },
+  {
+    "name": "Akka",
+    "isSystem": true
+  },
+  {
+    "name": "CleanScript",
+    "isSystem": true
+  },
+  {
+    "name": "Microsoft F#",
+    "isSystem": true
+  },
+  {
+    "name": "Orc",
+    "isSystem": true
+  },
+  {
+    "name": "SquirrelScript",
+    "isSystem": true
+  },
+  {
+    "name": "RebolScript",
+    "isSystem": true
+  },
+  {
+    "name": "Mercury 2000",
+    "isSystem": true
+  },
+  {
+    "name": "FRAP",
+    "isSystem": true
+  },
+  {
+    "name": "Lua 4",
+    "isSystem": true
+  },
+  {
+    "name": "SQLCLR",
+    "isSystem": true
+  },
+  {
+    "name": "PHP 8",
+    "isSystem": true
+  },
+  {
+    "name": "HTML5 Script",
+    "isSystem": true
+  },
+  {
+    "name": "Mercury Lisp",
+    "isSystem": true
+  },
+  {
+    "name": "TADS 2",
+    "isSystem": true
+  },
+  {
+    "name": "Allegro CL",
+    "isSystem": true
+  },
+  {
+    "name": "4GL",
+    "isSystem": true
+  },
+  {
+    "name": "Ceedling",
+    "isSystem": true
+  },
+  {
+    "name": "YANG",
+    "isSystem": true
+  },
+  {
+    "name": "LojbanScript",
+    "isSystem": true
+  },
+  {
+    "name": "Lustre",
+    "isSystem": true
+  },
+  {
+    "name": "RedScript",
+    "isSystem": true
+  },
+  {
+    "name": "TECO",
+    "isSystem": true
+  },
+  {
+    "name": "EcmaScript",
+    "isSystem": true
+  },
+  {
+    "name": "Puppet",
+    "isSystem": true
+  },
+  {
+    "name": "qore",
+    "isSystem": true
+  },
+  {
+    "name": "MetaOCaml",
+    "isSystem": true
+  },
+  {
+    "name": "FreePascalScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenEdge RDBMS",
+    "isSystem": true
+  },
+  {
+    "name": "Atlas",
+    "isSystem": true
+  },
+  {
+    "name": "FrinkScript",
+    "isSystem": true
+  },
+  {
+    "name": "GXL",
+    "isSystem": true
+  },
+  {
+    "name": "LightningScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenMP",
+    "isSystem": true
+  },
+  {
+    "name": "Flex",
+    "isSystem": true
+  },
+  {
+    "name": "GloballyScripted",
+    "isSystem": true
+  },
+  {
+    "name": "AMPL",
+    "isSystem": true
+  },
+  {
+    "name": "EventScript",
+    "isSystem": true
+  },
+  {
+    "name": "TiPy",
+    "isSystem": true
+  },
+  {
+    "name": "Blue",
+    "isSystem": true
+  },
+  {
+    "name": "JavaScript (React)",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 4.0",
+    "isSystem": true
+  },
+  {
+    "name": "D Programming Language",
+    "isSystem": true
+  },
+  {
+    "name": "MIT Scheme",
+    "isSystem": true
+  },
+  {
+    "name": "MuJava",
+    "isSystem": true
+  },
+  {
+    "name": "ElasticSearch Query DSL",
+    "isSystem": true
+  },
+  {
+    "name": "MegaScript",
+    "isSystem": true
+  },
+  {
+    "name": "Prolog++",
+    "isSystem": true
+  },
+  {
+    "name": "HALide",
+    "isSystem": true
+  },
+  {
+    "name": "Easycode",
+    "isSystem": true
+  },
+  {
+    "name": "Inferno",
+    "isSystem": true
+  },
+  {
+    "name": "JScript7",
+    "isSystem": true
+  },
+  {
+    "name": "EspressoScript",
+    "isSystem": true
+  },
+  {
+    "name": "CLIPS",
+    "isSystem": true
+  },
+  {
+    "name": "HAXE Framework",
+    "isSystem": true
+  },
+  {
+    "name": "MapleScript",
+    "isSystem": true
+  },
+  {
+    "name": "GDScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 8",
+    "isSystem": true
+  },
+  {
+    "name": "TeaScript",
+    "isSystem": true
+  },
+  {
+    "name": "PidginScript",
+    "isSystem": true
+  },
+  {
+    "name": "AngelScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "Aldor",
+    "isSystem": true
+  },
+  {
+    "name": "ChiselHDL",
+    "isSystem": true
+  },
+  {
+    "name": "DXS",
+    "isSystem": true
+  },
+  {
+    "name": "JSX",
+    "isSystem": true
+  },
+  {
+    "name": "FLUX",
+    "isSystem": true
+  },
+  {
+    "name": "PICO-8 Lua",
+    "isSystem": true
+  },
+  {
+    "name": "TwigScript",
+    "isSystem": true
+  },
+  {
+    "name": "TypoScript",
+    "isSystem": true
+  },
+  {
+    "name": "MatlabScript",
+    "isSystem": true
+  },
+  {
+    "name": "Reia",
+    "isSystem": true
+  },
+  {
+    "name": "Quasiquote",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript2",
+    "isSystem": true
+  },
+  {
+    "name": "FScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "Modula-3Script",
+    "isSystem": true
+  },
+  {
+    "name": "VDL",
+    "isSystem": true
+  },
+  {
+    "name": "ProjLog",
+    "isSystem": true
+  },
+  {
+    "name": "IronPython",
+    "isSystem": true
+  },
+  {
+    "name": "Cypher Query Language",
+    "isSystem": true
+  },
+  {
+    "name": "Lisp Flavored Erlang",
+    "isSystem": true
+  },
+  {
+    "name": "Rescript",
+    "isSystem": true
+  },
+  {
+    "name": "QueryScript",
+    "isSystem": true
+  },
+  {
+    "name": "SoyScript",
+    "isSystem": true
+  },
+  {
+    "name": "IronRuby",
+    "isSystem": true
+  },
+  {
+    "name": "WebKitScript",
+    "isSystem": true
+  },
+  {
+    "name": "EventFlow",
+    "isSystem": true
+  },
+  {
+    "name": "SolaceScript",
+    "isSystem": true
+  },
+  {
+    "name": "AGILE",
+    "isSystem": true
+  },
+  {
+    "name": "COM+",
+    "isSystem": true
+  },
+  {
+    "name": "Gherkin",
+    "isSystem": true
+  },
+  {
+    "name": "Strudel",
+    "isSystem": true
+  },
+  {
+    "name": "TomatoScript",
+    "isSystem": true
+  },
+  {
+    "name": "NekoScript",
+    "isSystem": true
+  },
+  {
+    "name": "GML 3.0",
+    "isSystem": true
+  },
+  {
+    "name": "Kaleidoscope",
+    "isSystem": true
+  },
+  {
+    "name": "FreeBasic",
+    "isSystem": true
+  },
+  {
+    "name": "Minijson",
+    "isSystem": true
+  },
+  {
+    "name": "QtScript",
+    "isSystem": true
+  },
+  {
+    "name": "NSIS",
+    "isSystem": true
+  },
+  {
+    "name": "LassoScript",
+    "isSystem": true
+  },
+  {
+    "name": "LeafScript",
+    "isSystem": true
+  },
+  {
+    "name": "LuaGlide",
+    "isSystem": true
+  },
+  {
+    "name": "Grammatica",
+    "isSystem": true
+  },
+  {
+    "name": "EzScript",
+    "isSystem": true
+  },
+  {
+    "name": "Redcode",
+    "isSystem": true
+  },
+  {
+    "name": "ActionScript 5",
+    "isSystem": true
+  },
+  {
+    "name": "SquirrelLang",
+    "isSystem": true
+  },
+  {
+    "name": "GAMS 24",
+    "isSystem": true
+  },
+  {
+    "name": "OpenMP 4",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 9",
+    "isSystem": true
+  },
+  {
+    "name": "Chip8",
+    "isSystem": true
+  },
+  {
+    "name": "Cilk",
+    "isSystem": true
+  },
+  {
+    "name": "FactorScript",
+    "isSystem": true
+  },
+  {
+    "name": "SimScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenFrameworks",
+    "isSystem": true
+  },
+  {
+    "name": "Starlisp",
+    "isSystem": true
+  },
+  {
+    "name": "Scheme48",
+    "isSystem": true
+  },
+  {
+    "name": "QuasiquoteScript",
+    "isSystem": true
+  },
+  {
+    "name": "Zonnon",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 10",
+    "isSystem": true
+  },
+  {
+    "name": "WASM (WebAssembly Text Format)",
+    "isSystem": true
+  },
+  {
+    "name": "TWIG",
+    "isSystem": true
+  },
+  {
+    "name": "NetLogo",
+    "isSystem": true
+  },
+  {
+    "name": "SystemC",
+    "isSystem": true
+  },
+  {
+    "name": "Scheme 3",
+    "isSystem": true
+  },
+  {
+    "name": "Nanonet",
+    "isSystem": true
+  },
+  {
+    "name": "Microcode",
+    "isSystem": true
+  },
+  {
+    "name": "Simulink MATLAB",
+    "isSystem": true
+  },
+  {
+    "name": "HyScript",
+    "isSystem": true
+  },
+  {
+    "name": "SwiftUI for Web",
+    "isSystem": true
+  },
+  {
+    "name": "BallerinaLang",
+    "isSystem": true
+  },
+  {
+    "name": "TeaLang",
+    "isSystem": true
+  },
+  {
+    "name": "SMLScript",
+    "isSystem": true
+  },
+  {
+    "name": "ReScript (formerly BuckleScript)",
+    "isSystem": true
+  },
+  {
+    "name": "PogoScript",
+    "isSystem": true
+  },
+  {
+    "name": "ClojureScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "RPL",
+    "isSystem": true
+  },
+  {
+    "name": "BRL-CAD",
+    "isSystem": true
+  },
+  {
+    "name": "Axiom",
+    "isSystem": true
+  },
+  {
+    "name": "XojoScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "Mercurial",
+    "isSystem": true
+  },
+  {
+    "name": "GSL",
+    "isSystem": true
+  },
+  {
+    "name": "SLangScript",
+    "isSystem": true
+  },
+  {
+    "name": "KUKA Robot Language",
+    "isSystem": true
+  },
+  {
+    "name": "AngstromScript",
+    "isSystem": true
+  },
+  {
+    "name": "NetLogoScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenCL 2",
+    "isSystem": true
+  },
+  {
+    "name": "JoyScript",
+    "isSystem": true
+  },
+  {
+    "name": "WinAPI",
+    "isSystem": true
+  },
+  {
+    "name": "FEniCS",
+    "isSystem": true
+  },
+  {
+    "name": "FactorScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "CoffeeScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "Timeliner",
+    "isSystem": true
+  },
+  {
+    "name": "Sunscript",
+    "isSystem": true
+  },
+  {
+    "name": "Modelica 3.3",
+    "isSystem": true
+  },
+  {
+    "name": "Snap!",
+    "isSystem": true
+  },
+  {
+    "name": "CoffeeScript for Node",
+    "isSystem": true
+  },
+  {
+    "name": "COBOLScript",
+    "isSystem": true
+  },
+  {
+    "name": "MetaLanguage",
+    "isSystem": true
+  },
+  {
+    "name": "MaxScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "FreeBASIC Script",
+    "isSystem": true
+  },
+  {
+    "name": "Turing Plus",
+    "isSystem": true
+  },
+  {
+    "name": "MoonScript",
+    "isSystem": true
+  },
+  {
+    "name": "Dyon",
+    "isSystem": true
+  },
+  {
+    "name": "JScript 11",
+    "isSystem": true
+  },
+  {
+    "name": "VHDL-93",
+    "isSystem": true
+  },
+  {
+    "name": "MDL (MUD Language)",
+    "isSystem": true
+  },
+  {
+    "name": "GroovyScript 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "Golo",
+    "isSystem": true
+  },
+  {
+    "name": "MQL5 Script",
+    "isSystem": true
+  },
+  {
+    "name": "SystemVerilog 2005",
+    "isSystem": true
+  },
+  {
+    "name": "Vala 0.52",
+    "isSystem": true
+  },
+  {
+    "name": "Lua 5.4",
+    "isSystem": true
+  },
+  {
+    "name": "RedshiftScript",
+    "isSystem": true
+  },
+  {
+    "name": "FlinkScript",
+    "isSystem": true
+  },
+  {
+    "name": "ControlScript",
+    "isSystem": true
+  },
+  {
+    "name": "Object-Pascal",
+    "isSystem": true
+  },
+  {
+    "name": "Scratch 3.0",
+    "isSystem": true
+  },
+  {
+    "name": "HaxePunk",
+    "isSystem": true
+  },
+  {
+    "name": "Ceylon 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "ZPax",
+    "isSystem": true
+  },
+  {
+    "name": "StuntmanScript",
+    "isSystem": true
+  },
+  {
+    "name": "DynamicLISP",
+    "isSystem": true
+  },
+  {
+    "name": "HackScript",
+    "isSystem": true
+  },
+  {
+    "name": "RRTScript",
+    "isSystem": true
+  },
+  {
+    "name": "ZKScript",
+    "isSystem": true
+  },
+  {
+    "name": "Lyst",
+    "isSystem": true
+  },
+  {
+    "name": "VisualHaskell",
+    "isSystem": true
+  },
+  {
+    "name": "MidletScript",
+    "isSystem": true
+  },
+  {
+    "name": "TRAC2",
+    "isSystem": true
+  },
+  {
+    "name": "WrangleScript",
+    "isSystem": true
+  },
+  {
+    "name": "PeakScript",
+    "isSystem": true
+  },
+  {
+    "name": "CrystScript",
+    "isSystem": true
+  },
+  {
+    "name": "FalconScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "DSDL (Data Structure Description Language)",
+    "isSystem": true
+  },
+  {
+    "name": "YamlScript",
+    "isSystem": true
+  },
+  {
+    "name": "ElixirScript",
+    "isSystem": true
+  },
+  {
+    "name": "XMLScript",
+    "isSystem": true
+  },
+  {
+    "name": "Genus",
+    "isSystem": true
+  },
+  {
+    "name": "AlloyScript",
+    "isSystem": true
+  },
+  {
+    "name": "ExtJS",
+    "isSystem": true
+  },
+  {
+    "name": "MongooseScript",
+    "isSystem": true
+  },
+  {
+    "name": "RakuScript",
+    "isSystem": true
+  },
+  {
+    "name": "CoreCLR",
+    "isSystem": true
+  },
+  {
+    "name": "Spartan",
+    "isSystem": true
+  },
+  {
+    "name": "FPP",
+    "isSystem": true
+  },
+  {
+    "name": "ClarionScript",
+    "isSystem": true
+  },
+  {
+    "name": "Ghostscript",
+    "isSystem": true
+  },
+  {
+    "name": "ABAP",
+    "isSystem": true
+  },
+  {
+    "name": "WrenScript",
+    "isSystem": true
+  },
+  {
+    "name": "VyperLangScript",
+    "isSystem": true
+  },
+  {
+    "name": "UniScript",
+    "isSystem": true
+  },
+  {
+    "name": "AGDA 2",
+    "isSystem": true
+  },
+  {
+    "name": "AxiomScript",
+    "isSystem": true
+  },
+  {
+    "name": "TPLScript",
+    "isSystem": true
+  },
+  {
+    "name": "SwiftScript",
+    "isSystem": true
+  },
+  {
+    "name": "Backus-Naur Form (BNF)",
+    "isSystem": true
+  },
+  {
+    "name": "Mercury Logic",
+    "isSystem": true
+  },
+  {
+    "name": "PostScript 4",
+    "isSystem": true
+  },
+  {
+    "name": "Lox",
+    "isSystem": true
+  },
+  {
+    "name": "GliderScript",
+    "isSystem": true
+  },
+  {
+    "name": "AppleScriptObjC 2.0",
+    "isSystem": true
+  },
+  {
+    "name": "Alloy 2",
+    "isSystem": true
+  },
+  {
+    "name": "LangScript",
+    "isSystem": true
+  },
+  {
+    "name": "GraphScript",
+    "isSystem": true
+  },
+  {
+    "name": "ScriptingScratch",
+    "isSystem": true
+  },
+  {
+    "name": "GWTScript",
+    "isSystem": true
+  },
+  {
+    "name": "UnrealScript",
+    "isSystem": true
+  },
+  {
+    "name": "QML",
+    "isSystem": true
+  },
+  {
+    "name": "WPFScript",
+    "isSystem": true
+  },
+  {
+    "name": "MQL4 Script 2",
+    "isSystem": true
+  },
+  {
+    "name": "FakeScript",
+    "isSystem": true
+  },
+  {
+    "name": "FireScript",
+    "isSystem": true
+  },
+  {
+    "name": "OpenGLSL 2",
+    "isSystem": true
+  },
+  {
+    "name": "PixieScript",
+    "isSystem": true
+  },
+  {
+    "name": "GameMaker Language",
+    "isSystem": true
+  },
+  {
+    "name": "GeoScript",
+    "isSystem": true
+  },
+  {
+    "name": "Guile",
+    "isSystem": true
+  },
+  {
+    "name": "OpenModelica",
+    "isSystem": true
+  },
+  {
+    "name": "SilicaScript",
+    "isSystem": true
+  },
+  {
+    "name": "TangleScript",
+    "isSystem": true
+  },
+  {
+    "name": "LISP Machine Lisp",
+    "isSystem": true
+  },
+  {
+    "name": "Crosswind",
+    "isSystem": true
+  },
+  {
+    "name": "OctaveScript",
+    "isSystem": true
+  },
+  {
+    "name": "AvalonScript",
+    "isSystem": true
+  },
+  {
+    "name": "SpockScript",
+    "isSystem": true
+  },
+  {
+    "name": "TuringOS",
+    "isSystem": true
+  },
+  {
+    "name": "MindfulScript",
+    "isSystem": true
+  },
+  {
+    "name": "SkyScript",
+    "isSystem": true
+  },
+  {
+    "name": "ZetaScript",
+    "isSystem": true
+  },
+  {
+    "name": "Cheerp",
+    "isSystem": true
+  },
+  {
+    "name": "ModuleScript",
+    "isSystem": true
+  },
+  {
+    "name": "GoloScript",
+    "isSystem": true
+  },
+  {
+    "name": "Lilith",
+    "isSystem": true
+  },
+  {
+    "name": "XFDL (Extensible Forms Description Language)",
+    "isSystem": true
+  },
+  {
+    "name": "MochaScript",
+    "isSystem": true
+  },
+  {
+    "name": "LuaOS",
+    "isSystem": true
+  },
+  {
+    "name": "Cython",
+    "isSystem": true
+  },
+  {
+    "name": "OpenGLShaderScript",
+    "isSystem": true
+  },
+  {
+    "name": "CopilotScript",
+    "isSystem": true
+  },
+  {
+    "name": "PyScript",
+    "isSystem": true
+  },
+  {
+    "name": "TaoScript",
+    "isSystem": true
+  },
+  {
+    "name": "SilexScript",
+    "isSystem": true
+  },
+  {
+    "name": "JavascriptCore",
+    "isSystem": true
+  },
+  {
+    "name": "Hypercode",
+    "isSystem": true
+  },
+  {
+    "name": "Common Lisp 2",
+    "isSystem": true
+  },
+  {
+    "name": "Fortran 77",
+    "isSystem": true
+  },
+  {
+    "name": "ROS Scripts",
+    "isSystem": true
+  },
+  {
+    "name": "SlimScript",
+    "isSystem": true
+  },
+  {
+    "name": "QuantumScript",
+    "isSystem": true
+  },
+  {
+    "name": "X12Script",
+    "isSystem": true
+  },
+  {
+    "name": "TeXScript",
+    "isSystem": true
+  },
+  {
+    "name": "RobocopyScript",
+    "isSystem": true
+  },
+  {
+    "name": "ULScript",
+    "isSystem": true
+  },
+  {
+    "name": "MIPS Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "PythonScript",
+    "isSystem": true
+  },
+  {
+    "name": "QuikScript",
+    "isSystem": true
+  },
+  {
+    "name": "Wuzz",
+    "isSystem": true
+  },
+  {
+    "name": "POCScript",
+    "isSystem": true
+  },
+  {
+    "name": "StageScript",
+    "isSystem": true
+  },
+  {
+    "name": "TotemScript",
+    "isSystem": true
+  },
+  {
+    "name": "CeedlingScript",
+    "isSystem": true
+  },
+  {
+    "name": "AssemblerScript",
+    "isSystem": true
+  },
+  {
+    "name": "GeoDataScript",
+    "isSystem": true
+  },
+  {
+    "name": "Clearcase",
+    "isSystem": true
+  },
+  {
+    "name": "JavaScript++",
+    "isSystem": true
+  },
+  {
+    "name": "SimpleScript",
+    "isSystem": true
+  },
+  {
+    "name": "ShorthandScript",
+    "isSystem": true
+  },
+  {
+    "name": "MinimalScript",
+    "isSystem": true
+  },
+  {
+    "name": "GroovyScript 3.0",
+    "isSystem": true
+  },
+  {
+    "name": "PasMo",
+    "isSystem": true
+  },
+  {
+    "name": "CordovaScript",
+    "isSystem": true
+  },
+  {
+    "name": "ITaskScript",
+    "isSystem": true
+  },
+  {
+    "name": "VisualProlog",
+    "isSystem": true
+  },
+  {
+    "name": "YaccScript",
+    "isSystem": true
+  },
+  {
+    "name": "AutoIt 3.3",
+    "isSystem": true
+  },
+  {
+    "name": "AtoScript",
+    "isSystem": true
+  },
+  {
+    "name": "MoonScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "Rescript.js",
+    "isSystem": true
+  },
+  {
+    "name": "DesignScript",
+    "isSystem": true
+  },
+  {
+    "name": "PsScript",
+    "isSystem": true
+  },
+  {
+    "name": "AlgorithmicScript",
+    "isSystem": true
+  },
+  {
+    "name": "AgnosticScript",
+    "isSystem": true
+  },
+  {
+    "name": "PowerShell Core",
+    "isSystem": true
+  },
+  {
+    "name": "AdaScript",
+    "isSystem": true
+  },
+  {
+    "name": "CalcScript",
+    "isSystem": true
+  },
+  {
+    "name": "JuliaLangScript",
+    "isSystem": true
+  },
+  {
+    "name": "ZebraScript",
+    "isSystem": true
+  },
+  {
+    "name": "SolarScript",
+    "isSystem": true
+  },
+  {
+    "name": "LionScript",
+    "isSystem": true
+  },
+  {
+    "name": "ScriptableScript",
+    "isSystem": true
+  },
+  {
+    "name": "AppleScriptGL",
+    "isSystem": true
+  },
+  {
+    "name": "VideoScript",
+    "isSystem": true
+  },
+  {
+    "name": "TikZScript",
+    "isSystem": true
+  },
+  {
+    "name": "GradleScript",
+    "isSystem": true
+  },
+  {
+    "name": "ElasticScript",
+    "isSystem": true
+  },
+  {
+    "name": "ClojureX",
+    "isSystem": true
+  },
+  {
+    "name": "JuliaScript",
+    "isSystem": true
+  },
+  {
+    "name": "PloScript",
+    "isSystem": true
+  },
+  {
+    "name": "SnapScript",
+    "isSystem": true
+  },
+  {
+    "name": "KeaScript",
+    "isSystem": true
+  },
+  {
+    "name": "NextScript",
+    "isSystem": true
+  },
+  {
+    "name": "EmacsLisp",
+    "isSystem": true
+  },
+  {
+    "name": "BootstrapScript",
+    "isSystem": true
+  },
+  {
+    "name": "AlgebricScript",
+    "isSystem": true
+  },
+  {
+    "name": "LoopScript",
+    "isSystem": true
+  },
+  {
+    "name": "MoScript",
+    "isSystem": true
+  },
+  {
+    "name": "ABCL",
+    "isSystem": true
+  },
+  {
+    "name": "XojoScript 3",
+    "isSystem": true
+  },
+  {
+    "name": "SureScript",
+    "isSystem": true
+  },
+  {
+    "name": "PiScript",
+    "isSystem": true
+  },
+  {
+    "name": "FudgeScript",
+    "isSystem": true
+  },
+  {
+    "name": "HarmonyScript",
+    "isSystem": true
+  },
+  {
+    "name": "FlashActionScript",
+    "isSystem": true
+  },
+  {
+    "name": "ValaScript",
+    "isSystem": true
+  },
+  {
+    "name": "RedScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "MachScript",
+    "isSystem": true
+  },
+  {
+    "name": "SwiftPlusScript",
+    "isSystem": true
+  },
+  {
+    "name": "HyperScript",
+    "isSystem": true
+  },
+  {
+    "name": "KScript 2",
+    "isSystem": true
+  },
+  {
+    "name": "PlutoScript",
+    "isSystem": true
+  },
+  {
+    "name": "FlashScript",
+    "isSystem": true
+  },
+  {
+    "name": "MiskScript",
+    "isSystem": true
+  },
+  {
+    "name": "BraidScript",
+    "isSystem": true
+  },
+  {
+    "name": "RxScript",
+    "isSystem": true
+  },
+  {
+    "name": "SeqScript",
+    "isSystem": true
+  },
+  {
+    "name": "V-Code",
+    "isSystem": true
+  },
+  {
+    "name": "BoomerangScript",
+    "isSystem": true
+  },
+  {
+    "name": "ImprovScript",
+    "isSystem": true
+  },
+  {
+    "name": "Assembly language",
+    "isSystem": true
+  },
+  {
+    "name": "Machine code",
+    "isSystem": true
+  },
+  {
+    "name": "HTML",
+    "isSystem": true
+  },
+  {
+    "name": "XML",
+    "isSystem": true
+  },
+  {
+    "name": "Markdown",
+    "isSystem": true
+  },
+  {
+    "name": "SPARQL",
+    "isSystem": true
+  },
+  {
+    "name": "CSS",
+    "isSystem": true
+  },
+  {
+    "name": "x86 Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "ARM Assembly",
+    "isSystem": true
+  },
+  {
+    "name": "RISC Assembly",
+    "isSystem": true
+  }
 ]

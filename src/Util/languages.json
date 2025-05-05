@@ -1,95 +1,370 @@
 [
-    "React",
-    "Vue.js",
-    "Angular",
-    "Svelte",
-    "Next.js",
-    "Nuxt.js",
-    "Express.js",
-    "NestJS",
-    "Fastify",
-    "Hapi.js",
-    "Django",
-    "Flask",
-    "FastAPI",
-    "Tornado",
-    "Pyramid",
-    "Laravel",
-    "Symfony",
-    "CodeIgniter",
-    "CakePHP",
-    "Yii",
-    "Spring Boot",
-    "JSF",
-    "Struts",
-    "Vaadin",
-    "ASP.NET Core",
-    "Blazor",
-    "NancyFX",
-    "Ruby on Rails",
-    "Sinatra",
-    "Hanami",
-    "Gin",
-    "Echo",
-    "Beego",
-    "Fiber",
-    "Express",
-    "Koa",
-    "NestJS",
-    "React Native",
-    "Flutter",
-    "SwiftUI",
-    "Jetpack Compose",
-    "Ionic",
-    "Phoenix",
-    "Meteor",
-    "Ember.js",
-    "Backbone.js",
-    "Marionette.js",
-    "Alpine.js",
-    "Marko",
-    "Stimulus",
-    "Lit",
-    "Inferno",
-    "Feathers.js",
-    "Sapper",
-    "Remix",
-    "RedwoodJS",
-    "Quasar",
-    "Capacitor",
-    "Electron",
-    "NativeScript",
-    "Expo",
-    "Onsen UI",
-    "Bottle",
-    "Web2py",
-    "CherryPy",
-    "Sanic",
-    "Hug",
-    "Falcon",
-    "Masonite",
-    "Growler",
-    "Nameko",
-    "Responder",
-    "Slim",
-    "FuelPHP",
-    "Phalcon",
-    "Lumen",
-    "TypiCMS",
-    "Modx",
-    "Nette",
-    "Zikula",
-    "SilverStripe",
-    "OctoberCMS",
-    "Dropwizard",
-    "Micronaut",
-    "JHipster",
-    "Quarkus",
-    "Helidon",
-    "Play Framework",
-    "Vert.x",
-    "Grails",
-    "Blade",
-    "Ratpack"
+    {
+        "name": "React",
+        "isSystem": true
+    },
+    {
+        "name": "Vue.js",
+        "isSystem": true
+    },
+    {
+        "name": "Angular",
+        "isSystem": true
+    },
+    {
+        "name": "Svelte",
+        "isSystem": true
+    },
+    {
+        "name": "Next.js",
+        "isSystem": true
+    },
+    {
+        "name": "Nuxt.js",
+        "isSystem": true
+    },
+    {
+        "name": "Express.js",
+        "isSystem": true
+    },
+    {
+        "name": "NestJS",
+        "isSystem": true
+    },
+    {
+        "name": "Fastify",
+        "isSystem": true
+    },
+    {
+        "name": "Hapi.js",
+        "isSystem": true
+    },
+    {
+        "name": "Django",
+        "isSystem": true
+    },
+    {
+        "name": "Flask",
+        "isSystem": true
+    },
+    {
+        "name": "FastAPI",
+        "isSystem": true
+    },
+    {
+        "name": "Tornado",
+        "isSystem": true
+    },
+    {
+        "name": "Pyramid",
+        "isSystem": true
+    },
+    {
+        "name": "Laravel",
+        "isSystem": true
+    },
+    {
+        "name": "Symfony",
+        "isSystem": true
+    },
+    {
+        "name": "CodeIgniter",
+        "isSystem": true
+    },
+    {
+        "name": "CakePHP",
+        "isSystem": true
+    },
+    {
+        "name": "Yii",
+        "isSystem": true
+    },
+    {
+        "name": "Spring Boot",
+        "isSystem": true
+    },
+    {
+        "name": "JSF",
+        "isSystem": true
+    },
+    {
+        "name": "Struts",
+        "isSystem": true
+    },
+    {
+        "name": "Vaadin",
+        "isSystem": true
+    },
+    {
+        "name": "ASP.NET Core",
+        "isSystem": true
+    },
+    {
+        "name": "Blazor",
+        "isSystem": true
+    },
+    {
+        "name": "NancyFX",
+        "isSystem": true
+    },
+    {
+        "name": "Ruby on Rails",
+        "isSystem": true
+    },
+    {
+        "name": "Sinatra",
+        "isSystem": true
+    },
+    {
+        "name": "Hanami",
+        "isSystem": true
+    },
+    {
+        "name": "Gin",
+        "isSystem": true
+    },
+    {
+        "name": "Echo",
+        "isSystem": true
+    },
+    {
+        "name": "Beego",
+        "isSystem": true
+    },
+    {
+        "name": "Fiber",
+        "isSystem": true
+    },
+    {
+        "name": "Express",
+        "isSystem": true
+    },
+    {
+        "name": "Koa",
+        "isSystem": true
+    },
+    {
+        "name": "NestJS",
+        "isSystem": true
+    },
+    {
+        "name": "React Native",
+        "isSystem": true
+    },
+    {
+        "name": "Flutter",
+        "isSystem": true
+    },
+    {
+        "name": "SwiftUI",
+        "isSystem": true
+    },
+    {
+        "name": "Jetpack Compose",
+        "isSystem": true
+    },
+    {
+        "name": "Ionic",
+        "isSystem": true
+    },
+    {
+        "name": "Phoenix",
+        "isSystem": true
+    },
+    {
+        "name": "Meteor",
+        "isSystem": true
+    },
+    {
+        "name": "Ember.js",
+        "isSystem": true
+    },
+    {
+        "name": "Backbone.js",
+        "isSystem": true
+    },
+    {
+        "name": "Marionette.js",
+        "isSystem": true
+    },
+    {
+        "name": "Alpine.js",
+        "isSystem": true
+    },
+    {
+        "name": "Marko",
+        "isSystem": true
+    },
+    {
+        "name": "Stimulus",
+        "isSystem": true
+    },
+    {
+        "name": "Lit",
+        "isSystem": true
+    },
+    {
+        "name": "Inferno",
+        "isSystem": true
+    },
+    {
+        "name": "Feathers.js",
+        "isSystem": true
+    },
+    {
+        "name": "Sapper",
+        "isSystem": true
+    },
+    {
+        "name": "Remix",
+        "isSystem": true
+    },
+    {
+        "name": "RedwoodJS",
+        "isSystem": true
+    },
+    {
+        "name": "Quasar",
+        "isSystem": true
+    },
+    {
+        "name": "Capacitor",
+        "isSystem": true
+    },
+    {
+        "name": "Electron",
+        "isSystem": true
+    },
+    {
+        "name": "NativeScript",
+        "isSystem": true
+    },
+    {
+        "name": "Expo",
+        "isSystem": true
+    },
+    {
+        "name": "Onsen UI",
+        "isSystem": true
+    },
+    {
+        "name": "Bottle",
+        "isSystem": true
+    },
+    {
+        "name": "Web2py",
+        "isSystem": true
+    },
+    {
+        "name": "CherryPy",
+        "isSystem": true
+    },
+    {
+        "name": "Sanic",
+        "isSystem": true
+    },
+    {
+        "name": "Hug",
+        "isSystem": true
+    },
+    {
+        "name": "Falcon",
+        "isSystem": true
+    },
+    {
+        "name": "Masonite",
+        "isSystem": true
+    },
+    {
+        "name": "Growler",
+        "isSystem": true
+    },
+    {
+        "name": "Nameko",
+        "isSystem": true
+    },
+    {
+        "name": "Responder",
+        "isSystem": true
+    },
+    {
+        "name": "Slim",
+        "isSystem": true
+    },
+    {
+        "name": "FuelPHP",
+        "isSystem": true
+    },
+    {
+        "name": "Phalcon",
+        "isSystem": true
+    },
+    {
+        "name": "Lumen",
+        "isSystem": true
+    },
+    {
+        "name": "TypiCMS",
+        "isSystem": true
+    },
+    {
+        "name": "Modx",
+        "isSystem": true
+    },
+    {
+        "name": "Nette",
+        "isSystem": true
+    },
+    {
+        "name": "Zikula",
+        "isSystem": true
+    },
+    {
+        "name": "SilverStripe",
+        "isSystem": true
+    },
+    {
+        "name": "OctoberCMS",
+        "isSystem": true
+    },
+    {
+        "name": "Dropwizard",
+        "isSystem": true
+    },
+    {
+        "name": "Micronaut",
+        "isSystem": true
+    },
+    {
+        "name": "JHipster",
+        "isSystem": true
+    },
+    {
+        "name": "Quarkus",
+        "isSystem": true
+    },
+    {
+        "name": "Helidon",
+        "isSystem": true
+    },
+    {
+        "name": "Play Framework",
+        "isSystem": true
+    },
+    {
+        "name": "Vert.x",
+        "isSystem": true
+    },
+    {
+        "name": "Grails",
+        "isSystem": true
+    },
+    {
+        "name": "Blade",
+        "isSystem": true
+    },
+    {
+        "name": "Ratpack",
+        "isSystem": true
+    }
 ]
-   
