@@ -52,7 +52,7 @@ export const createProject = async (req: any, res: Response) => {
         const updatedProjects = [];
         const casestudyData = await getCategoryWithUserIds();
 
-        const allowedProjectTypes = ["Product", "Development/Service", "Staff Augmentation"];
+        const allowedProjectTypes = ["Product", "Development/Service", "StaffAugmentation"];
 
         for (const project of data) {
             try {
