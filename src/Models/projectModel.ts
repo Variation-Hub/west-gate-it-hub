@@ -68,7 +68,7 @@ const projectModel = new mongoose.Schema({
         type: [String],
         default: [],
         set: function (values: any) {
-            const allowedValues = ["Product", "Development/Service", "Staff Augmentation"];
+            const allowedValues = ["Product", "Development/Service", "StaffAugmentation"];
             return values.map((value: any) => allowedValues.includes(value) ? value : "");
         }
     },
