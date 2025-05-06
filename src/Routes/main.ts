@@ -18,6 +18,7 @@ import databaseRoute from './databaseRoute';
 import candidateCvRoute from './candidateCv';
 import roleRoute from './roleRoute';
 import techLanguageRoute from './techLanguageRoute';
+import subExpertiseRoute from './subExpertiseRoute';
 
 const Routes = express.Router();
 
@@ -40,5 +41,6 @@ Routes.use("/database", databaseRoute);
 Routes.use("/candidate", candidateCvRoute);
 Routes.use("/roles", roleRoute);
 Routes.use("/tech-language", techLanguageRoute);
+Routes.use("/sub-expertise", subExpertiseRoute);
 
 export default Routes;
