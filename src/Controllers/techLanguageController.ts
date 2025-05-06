@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import Technology from "../Models/technologyModel";
 import Language from "../Models/languageModel";
+import userModel from "../Models/userModel";
+import CandidateCvModel from "../Models/candidateCv";
 import mongoose from "mongoose";
 
 // Create a new technology
@@ -117,8 +119,15 @@ export const deleteTechnology = async (req: Request, res: Response) => {
             });
         }
         
+        const techName = technology.name;
+
         await Technology.findByIdAndDelete(id);
-        
+
+        await userModel.updateMany(
+            { technologyStack: techName },
+            { $pull: { technologyStack: techName } }
+        );
+
         return res.status(200).json({
             message: "Technology deleted successfully",
             status: true
@@ -158,9 +167,16 @@ export const deleteLanguage = async (req: Request, res: Response) => {
                 status: false
             });
         }
-        
+
+        const langName = language.name;
+
         await Language.findByIdAndDelete(id);
-        
+
+        await CandidateCvModel.updateMany(
+            { languagesKnown: langName },
+            { $pull: { languagesKnown: langName } }
+        );
+
         return res.status(200).json({
             message: "Language deleted successfully",
             status: true
