@@ -962,3 +962,65 @@ export const getlanguages = async (req: any, res: Response) => {
         });
     }
 };
+
+export const deleteMasterListExpertise = async (req: Request, res: Response) => {
+    try {
+        // Check if user is admin
+        const isAdmin = (req as any).user?.role === userRoles.Admin;
+        if (!isAdmin) {
+            return res.status(403).json({ 
+                message: "Only admin can delete expertise from masterList", 
+                status: false 
+            });
+        }
+
+        const { id } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid expertise ID",
+                status: false
+            });
+        }
+        
+        // Find the expertise in masterList
+        const expertise = await masterList.findById(id);
+        
+        if (!expertise) {
+            return res.status(404).json({
+                message: "Expertise not found",
+                status: false
+            });
+        }
+        
+        const expertiseName = expertise.name;
+        
+        const suppliers = await userModel.find({ "expertise.itemId": new mongoose.Types.ObjectId(id) });
+        
+        for (const supplier of suppliers) {
+            await userModel.updateOne(
+                { _id: supplier._id },
+                { $pull: { expertise: { itemId: id } } }
+            );
+            
+            // Delete related files
+            await FileModel.deleteMany({ 
+                supplierId: supplier._id, 
+                expertise: expertiseName 
+            });
+        }
+        
+        // Delete the expertise from masterList
+        await masterList.findByIdAndDelete(id);
+        
+        return res.status(200).json({
+            message: `Expertise deleted successfully`,
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to delete expertise",
+            status: false
+        });
+    }
+};
