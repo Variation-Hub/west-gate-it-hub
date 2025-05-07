@@ -322,7 +322,7 @@ export const roleList = async (req: Request, res: Response) => {
             ];
         }
 
-        const roles = await RoleModel.find({});
+        const roles = await RoleModel.find(query);
 
         //const totalRoles = await RoleModel.countDocuments(query);
 
