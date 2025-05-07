@@ -1,6 +1,7 @@
 import { Request, Response } from "express"
 import CandidateCvModel from "../Models/candidateCv"
 import userModel from "../Models/userModel"
+import RoleModel from "../Models/roleModel"
 import mongoose from "mongoose";
 
 export const createCandidateCV = async (req: any, res: Response) => {
@@ -11,7 +12,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid data format", status: false });
         }
 
-        data.forEach(candidate => {
+        for (const candidate of data) {
             if (!Array.isArray(candidate.roleId)) {
                 throw new Error("roleId must be an array");
             }
@@ -22,7 +23,41 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 candidate.executive = false;
             }
 
-        });
+            const processedRoleIds = [];
+            for (let i = 0; i < candidate.roleId.length; i++) {
+                const roleId = candidate.roleId[i];
+
+                // If roleId is a valid ObjectId, check if it exists
+                if (mongoose.Types.ObjectId.isValid(roleId)) {
+                    const existingRole = await RoleModel.findById(roleId);
+
+                    if (existingRole) {
+                        processedRoleIds.push(roleId);
+                    } else {
+                        const newRole = await RoleModel.create({
+                            name: `Role ${roleId}`,
+                            otherRoles: []
+                        });
+                        processedRoleIds.push(newRole._id);
+                    }
+                }
+                // If roleId is a string
+                else if (typeof roleId === 'string') {
+                    let existingRole = await RoleModel.findOne({ name: roleId });
+
+                    if (!existingRole) {
+                        existingRole = await RoleModel.create({
+                            name: roleId,
+                            otherRoles: []
+                        });
+                    }
+
+                    processedRoleIds.push(existingRole._id);
+                }
+            }
+
+            candidate.roleId = processedRoleIds;
+        }
 
         const candidates = await CandidateCvModel.insertMany(data);
 
