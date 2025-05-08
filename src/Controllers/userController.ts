@@ -114,7 +114,7 @@ export const loginUser = async (req: Request, res: Response) => {
 
         if (!user.active) {
             return res.status(400).json({
-                message: user.activeStatus[0]?.log,
+                message: user.activeStatus[0]?.log || 'User deactivated',
                 status: false,
                 data: null
             })
@@ -184,7 +184,7 @@ export const updateUser = async (req: any, res: Response) => {
             };
 
             user.activeStatus.push(logEntry);
-            delete updateData.activeStatus; 
+            delete updateData.activeStatus;
         }
 
         if (updateData.active === true) {
@@ -311,6 +311,40 @@ export const userPasswordChange = async (req: Request, res: Response) => {
     }
 }
 
+// Function to be used to the reset password
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { email, password, role } = req.body;
+        console.log("email, password, role ", email, password, role);
+
+        const user = await userModel.findOne({ email, role });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        user.password = password;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "User password update success",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
 export const userForgotPassword = async (req: Request, res: Response) => {
     try {
         const { email, role } = req.body;
@@ -329,6 +363,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
         user.password = newPassword;
 
         await user.save();
+
         emailHelper(email, newPassword).then(data => console.log(data)).catch(err => console.log(err));
 
         return res.status(200).json({
@@ -449,7 +484,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 }
             }
         ]);
-        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin,  isDeleted: true });
+        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin, isDeleted: true });
 
         const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
@@ -482,7 +517,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
                 }
             }
         ]);
-        
+
         const candidateMap = new Map(candidateCounts.map(item => [item._id.toString(), item.totalCandidates]));
         const projects = await projectModel.find({
             bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },

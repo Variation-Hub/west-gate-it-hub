@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
-import { fromMail, transporter } from "../Util/nodemailer"
+import { fromMail, sendRegisterMailToSupplier, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { subExpertise, userRoles } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
@@ -71,6 +71,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
         const newUser: any = await userModel.create(req.body)
 
         await sendMail(req.body)
+        await sendRegisterMailToSupplier(req.body?.email);
 
         const token = generateToken({
             id: newUser._id,
