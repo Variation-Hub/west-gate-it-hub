@@ -295,12 +295,22 @@ export async function sendContactEmail(recipientEmail: string, formData: any) {
 // Function to be used for the send mail to new register supplier for reset password 
 export async function sendRegisterMailToSupplier(receiverEmail: string) {
     try {
-        
+
+        // const transporterTest = nodemailer.createTransport({
+        //     service: 'gmail',
+        //     auth: {
+        //         user: 'darshandumaraliya@gmail.com',
+        //         pass: 'scax jznf deob atoh'  // Not your Gmail password!
+        //     }
+        // });
+
         const transporterTest = nodemailer.createTransport({
-            service: 'gmail',
+            host: "smtpout.secureserver.net",
+            port: 587,
+            secure: false, // use STARTTLS
             auth: {
-                user: 'darshandumaraliya@gmail.com',
-                pass: 'scax jznf deob atoh'  // Not your Gmail password!
+                user: "no-reply@westgateithub.in",  // your email
+                pass: "Abhishek23*",        // app password or mailbox password
             }
         });
 
@@ -308,7 +318,7 @@ export async function sendRegisterMailToSupplier(receiverEmail: string) {
         // const template = `http://localhost:3000/#/reset-password?email=${receiverEmail}`
 
         await transporterTest.sendMail({
-            from: fromMail, // sender address
+            from: "no-reply@westgateithub.in", // sender address
             to: receiverEmail, // list of receivers
             subject: "Reset Password", // Subject line
             text: `Here is the link for reset password : `, // plain text body
