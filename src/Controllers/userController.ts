@@ -319,7 +319,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         const { email, password, role } = req.body;
         console.log("email, password, role ", email, password, role);
 
-        const user = await userModel.findOne({ email, role });
+        const user = await userModel.findOne({ poc_email: email, role });
 
         if (!user) {
             return res.status(404).json({

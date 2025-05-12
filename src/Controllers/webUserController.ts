@@ -2,9 +2,9 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
-import { fromMail, sendRegisterMailToSupplier, transporter } from "../Util/nodemailer"
+import { fromMail, emailHelper, sendRegisterMailToSupplier, transporter } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
-import { subExpertise, userRoles } from "../Util/contant"
+import { subExpertise, userRoles, generatePass } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
 import FileModel from "../Models/fileModel"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
@@ -99,11 +99,28 @@ export const registerWebUser = async (req: Request, res: Response) => {
 export const loginWebUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body
-        const user: any = await userModel.findOne({ email: email.toLowerCase(), role: userRoles.SupplierAdmin })
+        const user: any = await userModel.findOne({ poc_email: email.toLowerCase(), role: userRoles.SupplierAdmin })
+        console.log(user, "sdsd", email, password);
 
         if (!user) {
             return res.status(404).json({
-                message: "user not found",
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!user?.active) {
+            return res.status(404).json({
+                message: "Suppllier is in active.",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!user?.companyActive) {
+            return res.status(404).json({
+                message: "Company is inactive.",
                 status: false,
                 data: null
             })
@@ -134,6 +151,93 @@ export const loginWebUser = async (req: Request, res: Response) => {
             message: "User login success",
             status: true,
             data: { token }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const userForgotPassword = async (req: Request, res: Response) => {
+    try {
+        const { email, role } = req.body;
+        console.log("this is testng user", email, role);
+
+        const user = await userModel.findOne({ poc_email: email.toLowerCase(), role });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+        
+        if (!user?.active) {
+            return res.status(404).json({
+                message: "Suppllier is in active.",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!user?.companyActive) {
+            return res.status(404).json({
+                message: "Company is inactive.",
+                status: false,
+                data: null
+            })
+        }
+
+        // const newPassword = generatePass();
+        // user.password = newPassword;
+
+        // await user.save();
+
+        // emailHelper(email, newPassword).then(data => console.log(data)).catch(err => console.log(err));
+        await sendRegisterMailToSupplier(email);
+
+        return res.status(200).json({
+            message: "Email sent successfully",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+// Function to be used to the reset password
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { email, password, role } = req.body;
+        console.log("email, password, role ", email, password, role);
+
+        const user = await userModel.findOne({ poc_email: email, role });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        user.password = password;
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "User password update success",
+            status: true,
+            data: null
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -329,9 +433,9 @@ export const getAllExpertise = async (req: any, res: Response) => {
                     _id: "$expertise.name",
                     totalSupplierCount: { $sum: 1 },
                     activeSupplierCount: { $sum: { $cond: [{ $eq: ["$active", true] }, 1, 0] } },
-                    subExpertiseList: { 
-                        $addToSet: { 
-                            $cond: { if: { $ne: ["$expertise.subExpertise", null] }, then: "$expertise.subExpertise", else: "$$REMOVE" } 
+                    subExpertiseList: {
+                        $addToSet: {
+                            $cond: { if: { $ne: ["$expertise.subExpertise", null] }, then: "$expertise.subExpertise", else: "$$REMOVE" }
                         }
                     }
                 }
@@ -387,113 +491,113 @@ export const getAllExpertise = async (req: any, res: Response) => {
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
         const { type, search, supplierId, startDate, endDate } = req.query;
-    
+
         const expertiseQuery: any = {};
         if (supplierId && typeof supplierId === 'string') {
             expertiseQuery._id = new mongoose.Types.ObjectId(supplierId);
         }
-    
-         
+
+
         if (type) {
             const mainType = type as string;
             expertiseQuery["$or"] = [
-              { type: new RegExp(`^${mainType}$`, "i") },
-              { type: new RegExp(`^${mainType}-other$`, "i") }
+                { type: new RegExp(`^${mainType}$`, "i") },
+                { type: new RegExp(`^${mainType}-other$`, "i") }
             ];
-          }
+        }
 
-          if (search) {
+        if (search) {
             const regex = new RegExp(search as string, "i");
             expertiseQuery["name"] = { $regex: regex };
-          }
+        }
 
-          const expertiseList = await masterList.find(expertiseQuery).lean();
-          const matchStage: any = { "expertise.name": { $exists: true } };
+        const expertiseList = await masterList.find(expertiseQuery).lean();
+        const matchStage: any = { "expertise.name": { $exists: true } };
 
-          if (startDate && endDate) {
+        if (startDate && endDate) {
             const start = new Date(startDate as string);
             const end = new Date(endDate as string);
             end.setHours(23, 59, 59, 999);
             matchStage.createdAt = { $gte: start, $lte: end };
-          }
+        }
 
         const allSuppliers = await userModel.find(
             matchStage,
             { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
-          ).lean();
-    
+        ).lean();
+
         const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
 
         let expertiseData = expertiseList.map(exp => {
-          const expName = exp.name;
-    
-          const suppliersForExp = allSuppliers.filter(user =>
-            user.expertise.some(e => e.name === expName)
-          );
-    
-          const validSuppliers = suppliersForExp.filter(s => !s.isDeleted && !s.isInHold);
+            const expName = exp.name;
 
-          const totalSupplierCount = validSuppliers.length;
-          const activeSupplierCount = validSuppliers.filter(s => s.active).length;
-    
-          const subExpertiseMap = new Map<string, { supplierName: string, files: any[] }[]>();
+            const suppliersForExp = allSuppliers.filter(user =>
+                user.expertise.some(e => e.name === expName)
+            );
 
-          validSuppliers
-          .filter(s => s.active)
-          .forEach(user => {
-            const matchedExp = user.expertise.find(e => e.name === expName);
-            matchedExp?.subExpertise?.forEach(sub => {
-              const supplierFiles = files.filter(file =>
-                file.supplierId?._id?.toString() === user._id.toString() &&
-                file.subExpertise?.includes(sub) &&
-                !(file.supplierId as any)?.isDeleted
-              );
-    
-              if (!subExpertiseMap.has(sub)) {
-                subExpertiseMap.set(sub, []);
-              }
-    
-              subExpertiseMap.get(sub)?.push({
-                supplierName: user.companyName || "Unknown",
-                files: supplierFiles
-              });
-            });
-          });
-    
-          const subExpertiseList = Array.from(subExpertiseMap.entries()).map(([name, suppliers]) => ({
-            name,
-            suppliers
-          }));
+            const validSuppliers = suppliersForExp.filter(s => !s.isDeleted && !s.isInHold);
 
-          return {
-            _id: exp._id, 
-            name: exp.name,
-            type: exp.type,
-            isSystem: exp.isSystem,
-            totalSupplierCount,
-            activeSupplierCount,
-            subExpertiseList,
-            subExpertiseCount: subExpertiseList.length
-          };
+            const totalSupplierCount = validSuppliers.length;
+            const activeSupplierCount = validSuppliers.filter(s => s.active).length;
+
+            const subExpertiseMap = new Map<string, { supplierName: string, files: any[] }[]>();
+
+            validSuppliers
+                .filter(s => s.active)
+                .forEach(user => {
+                    const matchedExp = user.expertise.find(e => e.name === expName);
+                    matchedExp?.subExpertise?.forEach(sub => {
+                        const supplierFiles = files.filter(file =>
+                            file.supplierId?._id?.toString() === user._id.toString() &&
+                            file.subExpertise?.includes(sub) &&
+                            !(file.supplierId as any)?.isDeleted
+                        );
+
+                        if (!subExpertiseMap.has(sub)) {
+                            subExpertiseMap.set(sub, []);
+                        }
+
+                        subExpertiseMap.get(sub)?.push({
+                            supplierName: user.companyName || "Unknown",
+                            files: supplierFiles
+                        });
+                    });
+                });
+
+            const subExpertiseList = Array.from(subExpertiseMap.entries()).map(([name, suppliers]) => ({
+                name,
+                suppliers
+            }));
+
+            return {
+                _id: exp._id,
+                name: exp.name,
+                type: exp.type,
+                isSystem: exp.isSystem,
+                totalSupplierCount,
+                activeSupplierCount,
+                subExpertiseList,
+                subExpertiseCount: subExpertiseList.length
+            };
         });
-    
+
         let finalExpertiseList = expertiseData.filter(
             exp => !(exp.totalSupplierCount === 0 && (exp.isSystem === false || exp.type.endsWith("-other")))
-          );
-          
+        );
+
         return res.status(200).json({
-          message: "Expertise list fetched successfully",
-          status: true,
-          data: finalExpertiseList
+            message: "Expertise list fetched successfully",
+            status: true,
+            data: finalExpertiseList
         });
-    
-      } catch (err: any) {
+
+    } catch (err: any) {
         return res.status(500).json({
-          message: err.message,
-          status: false,
-          data: null
+            message: err.message,
+            status: false,
+            data: null
         });
-      }
+    }
 };
 
 
@@ -577,75 +681,75 @@ export const getSuppliersByExpertise = async (req: any, res: Response) => {
 
 export const updateSupplierExpertise = async (req: any, res: Response) => {
     try {
-      const { supplierId, expertise } = req.body;
-  
-      if (!supplierId || !Array.isArray(expertise) || expertise.length === 0) {
-        return res.status(400).json({
-          message: "Supplier ID and expertise list are required",
-          status: false
-        });
-      }
-  
-      const supplier = await userModel.findById(supplierId);
-      if (!supplier) {
-        return res.status(404).json({
-          message: "Supplier not found",
-          status: false
-        });
-      }
-  
-      const existingItemIds = supplier.expertise.map((e: any) => e.itemId.toString());
-  
-      const newExpertise = expertise
-        .filter((exp: any) => !existingItemIds.includes(exp.itemId))
-        .map((exp: any) => ({
-          itemId: exp.itemId,
-          name: exp.name,
-          type: exp.type,
-          subExpertise: []
-        }));
-  
-      if (newExpertise.length === 0) {
-        return res.status(400).json({
-          message: "All expertise already exist. Nothing to update.",
-          status: false
-        });
-      }
-  
-      for (const exp of newExpertise) {
-        const existsInMasterList = await masterList.findOne({ name: exp.name, type: exp.type });
-  
-        if (!existsInMasterList) {
-          await masterList.create({
-            name: exp.name,
-            type: exp.type,
-            isSystem: false,
-          });
+        const { supplierId, expertise } = req.body;
+
+        if (!supplierId || !Array.isArray(expertise) || expertise.length === 0) {
+            return res.status(400).json({
+                message: "Supplier ID and expertise list are required",
+                status: false
+            });
         }
-        else {
-            if (exp.type.endsWith('-other')) {
-                await masterList.updateOne(
-                    { _id: existsInMasterList._id }, 
-                    { $set: { type: exp.type, isSystem: false } } 
-                  );
+
+        const supplier = await userModel.findById(supplierId);
+        if (!supplier) {
+            return res.status(404).json({
+                message: "Supplier not found",
+                status: false
+            });
+        }
+
+        const existingItemIds = supplier.expertise.map((e: any) => e.itemId.toString());
+
+        const newExpertise = expertise
+            .filter((exp: any) => !existingItemIds.includes(exp.itemId))
+            .map((exp: any) => ({
+                itemId: exp.itemId,
+                name: exp.name,
+                type: exp.type,
+                subExpertise: []
+            }));
+
+        if (newExpertise.length === 0) {
+            return res.status(400).json({
+                message: "All expertise already exist. Nothing to update.",
+                status: false
+            });
+        }
+
+        for (const exp of newExpertise) {
+            const existsInMasterList = await masterList.findOne({ name: exp.name, type: exp.type });
+
+            if (!existsInMasterList) {
+                await masterList.create({
+                    name: exp.name,
+                    type: exp.type,
+                    isSystem: false,
+                });
+            }
+            else {
+                if (exp.type.endsWith('-other')) {
+                    await masterList.updateOne(
+                        { _id: existsInMasterList._id },
+                        { $set: { type: exp.type, isSystem: false } }
+                    );
+                }
             }
         }
-      }
-  
-      supplier.expertise.push(...newExpertise);
-      await supplier.save();
-  
-      return res.status(200).json({
-        message: "Expertise updated successfully",
-        status: true,
-        data: supplier.expertise
-      });
-  
+
+        supplier.expertise.push(...newExpertise);
+        await supplier.save();
+
+        return res.status(200).json({
+            message: "Expertise updated successfully",
+            status: true,
+            data: supplier.expertise
+        });
+
     } catch (err: any) {
-      return res.status(500).json({
-        message: err.message,
-        status: false
-      });
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
     }
 };
 
@@ -653,7 +757,7 @@ export const getAlldata = async (req: any, res: Response) => {
     try {
         const { type, search } = req.query;
 
-        const queryObj: any = {}; 
+        const queryObj: any = {};
 
         if (type === "other") {
             queryObj["type"] = { $regex: "-other$", $options: "i" };
@@ -695,77 +799,77 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-      const { itemId, promoteToType } = req.body;
-  
-      if (!itemId || !promoteToType) {
-        return res.status(400).json({ message: "Missing data", status: false });
-      }
-  
-      const validTypes = ["domain", "technologies", "product"];
-      if (!validTypes.includes(promoteToType)) {
-        return res.status(400).json({ message: "Invalid type", status: false });
-      }
-  
-      const updated = await masterList.findByIdAndUpdate(
-        itemId,
-        { type: promoteToType },
-        { new: true }
-      );
-  
-      if (!updated) {
-        return res.status(404).json({ message: "Item not found", status: false });
-      }
-  
-      return res.status(200).json({
-        message: "Item promoted successfully",
-        status: true,
-        data: updated,
-      });
+        const { itemId, promoteToType } = req.body;
+
+        if (!itemId || !promoteToType) {
+            return res.status(400).json({ message: "Missing data", status: false });
+        }
+
+        const validTypes = ["domain", "technologies", "product"];
+        if (!validTypes.includes(promoteToType)) {
+            return res.status(400).json({ message: "Invalid type", status: false });
+        }
+
+        const updated = await masterList.findByIdAndUpdate(
+            itemId,
+            { type: promoteToType },
+            { new: true }
+        );
+
+        if (!updated) {
+            return res.status(404).json({ message: "Item not found", status: false });
+        }
+
+        return res.status(200).json({
+            message: "Item promoted successfully",
+            status: true,
+            data: updated,
+        });
     } catch (error: any) {
-      return res.status(500).json({
-        message: "Internal Server Error",
-        status: false,
-        error: error.message,
-      });
+        return res.status(500).json({
+            message: "Internal Server Error",
+            status: false,
+            error: error.message,
+        });
     }
 };
 
 export const addCustomItem = async (req: any, res: Response) => {
     try {
-      const { name, type } = req.body;
-  
-      if (!name || !type) {
-        return res.status(400).json({ message: "Name and type required", status: false });
-      }
-  
-      const validTypes = [ "domain", "technologies", "product" ];
-  
-      if (!validTypes.includes(type)) {
-        return res.status(400).json({ message: "Invalid type", status: false });
-      }
-  
-      const exists = await masterList.findOne({ name: name.trim(), type });
-      if (exists) {
-        return res.status(409).json({ message: "Item already exists", status: false });
-      }
-  
-      const newItem = await masterList.create({
-        name: name.trim(),
-        type,
-        isSystem: false,
-      });
-  
-      return res.status(201).json({
-        message: "Item added successfully",
-        status: true,
-        data: newItem,
-      });
+        const { name, type } = req.body;
+
+        if (!name || !type) {
+            return res.status(400).json({ message: "Name and type required", status: false });
+        }
+
+        const validTypes = ["domain", "technologies", "product"];
+
+        if (!validTypes.includes(type)) {
+            return res.status(400).json({ message: "Invalid type", status: false });
+        }
+
+        const exists = await masterList.findOne({ name: name.trim(), type });
+        if (exists) {
+            return res.status(409).json({ message: "Item already exists", status: false });
+        }
+
+        const newItem = await masterList.create({
+            name: name.trim(),
+            type,
+            isSystem: false,
+        });
+
+        return res.status(201).json({
+            message: "Item added successfully",
+            status: true,
+            data: newItem,
+        });
     } catch (error: any) {
-      return res.status(500).json({
-        message: "Error adding item",
-        status: false,
-        error: error.message,
-      });
+        return res.status(500).json({
+            message: "Error adding item",
+            status: false,
+            error: error.message,
+        });
     }
 };
 
@@ -866,8 +970,8 @@ export const deleteExpertise = async (req: any, res: Response) => {
 
         if (!mongoose.Types.ObjectId.isValid(itemId)) {
             return res.status(400).json({
-              status: false,
-              message: 'Invalid itemId format',
+                status: false,
+                message: 'Invalid itemId format',
             });
         }
 
@@ -916,12 +1020,12 @@ export const deleteSubExpertise = async (req: any, res: Response) => {
 
         const expertiseItem = supplier.expertise.find((exp: any) => exp.itemId.toString() === itemId);
         if (!expertiseItem) return res.status(404).json({ message: "Expertise not found", status: false });
-        
+
         await userModel.updateOne(
             { _id: supplierId, "expertise.itemId": itemId },
             { $pull: { "expertise.$.subExpertise": subExpertise } }
         );
-        
+
         const result = await FileModel.deleteMany({ supplierId, expertise: expertiseItem.name, subExpertise });
 
         return res.status(200).json({
@@ -969,51 +1073,51 @@ export const deleteMasterListExpertise = async (req: Request, res: Response) => 
         // Check if user is admin
         const isAdmin = (req as any).user?.role === userRoles.Admin;
         if (!isAdmin) {
-            return res.status(403).json({ 
-                message: "Only admin can delete expertise from masterList", 
-                status: false 
+            return res.status(403).json({
+                message: "Only admin can delete expertise from masterList",
+                status: false
             });
         }
 
         const { id } = req.params;
-        
+
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 message: "Invalid expertise ID",
                 status: false
             });
         }
-        
+
         // Find the expertise in masterList
         const expertise = await masterList.findById(id);
-        
+
         if (!expertise) {
             return res.status(404).json({
                 message: "Expertise not found",
                 status: false
             });
         }
-        
+
         const expertiseName = expertise.name;
-        
+
         const suppliers = await userModel.find({ "expertise.itemId": new mongoose.Types.ObjectId(id) });
-        
+
         for (const supplier of suppliers) {
             await userModel.updateOne(
                 { _id: supplier._id },
                 { $pull: { expertise: { itemId: id } } }
             );
-            
+
             // Delete related files
-            await FileModel.deleteMany({ 
-                supplierId: supplier._id, 
-                expertise: expertiseName 
+            await FileModel.deleteMany({
+                supplierId: supplier._id,
+                expertise: expertiseName
             });
         }
-        
+
         // Delete the expertise from masterList
         await masterList.findByIdAndDelete(id);
-        
+
         return res.status(200).json({
             message: `Expertise deleted successfully`,
             status: true
