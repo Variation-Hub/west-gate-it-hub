@@ -3,7 +3,7 @@ import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import { BidManagerStatus, generatePass, projectStatus, userRoles } from "../Util/contant"
-import { emailHelper } from "../Util/nodemailer"
+import { emailHelper, sendRegisterMailToSupplier } from "../Util/nodemailer"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
@@ -198,6 +198,8 @@ export const updateUser = async (req: any, res: Response) => {
                     });
                 }
             }
+
+            await sendRegisterMailToSupplier(user?.poc_email);
             updateData.isInHold = false
         }
 

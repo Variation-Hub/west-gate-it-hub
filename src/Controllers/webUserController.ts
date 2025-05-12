@@ -71,7 +71,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
         const newUser: any = await userModel.create(req.body)
 
         await sendMail(req.body)
-        await sendRegisterMailToSupplier(req.body?.email);
+        // await sendRegisterMailToSupplier(req.body?.email);
 
         const token = generateToken({
             id: newUser._id,
