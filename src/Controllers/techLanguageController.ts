@@ -112,12 +112,12 @@ export const deleteTechnology = async (req: Request, res: Response) => {
             });
         }
         
-        if (technology.isSystem) {
-            return res.status(403).json({
-                message: "System technologies cannot be deleted",
-                status: false
-            });
-        }
+        // if (technology.isSystem) {
+        //     return res.status(403).json({
+        //         message: "System technologies cannot be deleted",
+        //         status: false
+        //     });
+        // }
         
         const techName = technology.name;
 
@@ -161,12 +161,12 @@ export const deleteLanguage = async (req: Request, res: Response) => {
             });
         }
         
-        if (language.isSystem) {
-            return res.status(403).json({
-                message: "System languages cannot be deleted",
-                status: false
-            });
-        }
+        // if (language.isSystem) {
+        //     return res.status(403).json({
+        //         message: "System languages cannot be deleted",
+        //         status: false
+        //     });
+        // }
 
         const langName = language.name;
 
