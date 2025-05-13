@@ -1548,32 +1548,44 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
     };
 
     for (const task of tasks) {
-        const isCompleted = task.status?.toLowerCase() === "completed";
+        // Filter comments based on date range
+        const filteredComments = (task.comments || []).filter((c: any) => {
+            const commentDate = new Date(c.date);
+            return commentDate >= start && commentDate <= end;
+        });
+
+        // Check if there's at least one comment in the date range
+        const hasComments = filteredComments.length > 0;
+
+        // Set isCompleted to true if there's at least one comment, otherwise isPending to true
+        const isCompleted = hasComments;
+        const isPending = !hasComments;
+
+        // Update summary counts
         if (isCompleted) result.summary.completedTasks++;
         else result.summary.pendingTasks++;
 
-        const taskTotalMinutes = (task.comments || []).reduce((sum: number, c: any) => sum + (c.minutes || 0), 0);
+        // Calculate total minutes only from filtered comments
+        const taskTotalMinutes = filteredComments.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0);
         const taskTotalHours = +(taskTotalMinutes / 60).toFixed(2);
         result.summary.totalWorkingHours += taskTotalHours;
 
-        // Check for auto comments and user comments
-        const hasAutoComments = (task.comments || []).some((c: any) => c.auto);
-        const hasUserComments = (task.comments || []).some((c: any) => !c.auto);
+        // Check for auto comments and user comments in filtered comments
+        const hasAutoComments = filteredComments.some((c: any) => c.auto);
+        const hasUserComments = filteredComments.some((c: any) => !c.auto);
 
         // Calculate pending since for tasks with only auto comments
         let pendingSince = null;
-        let isPending = false;
 
-        if (!isCompleted && hasAutoComments && !hasUserComments) {
+        if (isPending && hasAutoComments && !hasUserComments) {
             // Find the earliest auto comment to calculate pending since
-            const autoComments = (task.comments || [])
+            const autoComments = filteredComments
                 .filter((c: any) => c.auto)
                 .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
             if (autoComments.length > 0) {
                 const firstAutoComment = autoComments[0];
                 pendingSince = new Date(firstAutoComment.date);
-                isPending = true;
                 result.summary.pendingTasksWithAutoComments++;
             }
         }
@@ -1588,7 +1600,7 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
             pendingDays: isCompleted ? 0 : Math.floor((Date.now() - new Date(task.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
             totalHours: taskTotalHours,
             totalMinutes: taskTotalMinutes,
-            comments: (task.comments || []).map((c: any) => ({
+            comments: filteredComments.map((c: any) => ({
                 id: c.commentId,
                 text: c.comment,
                 date: c.date,
