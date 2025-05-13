@@ -26,8 +26,8 @@ const caseStudyModel = new mongoose.Schema({
         required: true
     },
     date: {
-        type: Date,
-        default: null
+        type: String,
+        default: ""
     },
     industry: {
         type: String,
