@@ -1531,7 +1531,13 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
     const result = {
         byUser: {} as any,
         byDate: {} as any,
-        summary: { totalTasks: tasks.length, completedTasks: 0, pendingTasks: 0, totalWorkingHours: 0 },
+        summary: {
+            totalTasks: tasks.length,
+            completedTasks: 0,
+            pendingTasks: 0,
+            pendingTasksWithAutoComments: 0,
+            totalWorkingHours: 0
+        },
         users: users.map(u => ({ id: u._id, name: u.name, email: u.email, role: u.role }))
     };
 
@@ -1550,6 +1556,28 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
         const taskTotalHours = +(taskTotalMinutes / 60).toFixed(2);
         result.summary.totalWorkingHours += taskTotalHours;
 
+        // Check for auto comments and user comments
+        const hasAutoComments = (task.comments || []).some((c: any) => c.auto);
+        const hasUserComments = (task.comments || []).some((c: any) => !c.auto);
+
+        // Calculate pending since for tasks with only auto comments
+        let pendingSince = null;
+        let isPending = false;
+
+        if (!isCompleted && hasAutoComments && !hasUserComments) {
+            // Find the earliest auto comment to calculate pending since
+            const autoComments = (task.comments || [])
+                .filter((c: any) => c.auto)
+                .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+            if (autoComments.length > 0) {
+                const firstAutoComment = autoComments[0];
+                pendingSince = new Date(firstAutoComment.date);
+                isPending = true;
+                result.summary.pendingTasksWithAutoComments++;
+            }
+        }
+
         const taskObj = {
             id: task._id,
             name: task.task,
@@ -1561,9 +1589,18 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
             totalHours: taskTotalHours,
             totalMinutes: taskTotalMinutes,
             comments: (task.comments || []).map((c: any) => ({
-                id: c.commentId, text: c.comment, date: c.date, minutes: c.minutes || 0, user: c.userId
+                id: c.commentId,
+                text: c.comment,
+                date: c.date,
+                minutes: c.minutes || 0,
+                user: c.userId,
+                auto: c.auto || false
             })),
-            isCompleted
+            isCompleted,
+            isPending,
+            pendingSince: pendingSince ? pendingSince.toISOString().split('T')[0] : null,
+            hasAutoComments,
+            hasUserComments
         };
 
         const dateKey = new Date(task.createdAt).toISOString().split("T")[0];
@@ -1578,25 +1615,64 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
                 tasks: [],
                 completedTasks: 0,
                 pendingTasks: 0,
+                pendingTasksWithAutoComments: 0,
                 totalHours: 0
             };
             result.byUser[userId].tasks.push(taskObj);
-            result.byUser[userId][isCompleted ? "completedTasks" : "pendingTasks"]++;
+
+            if (isCompleted) {
+                result.byUser[userId].completedTasks++;
+            } else {
+                result.byUser[userId].pendingTasks++;
+                if (isPending) {
+                    result.byUser[userId].pendingTasksWithAutoComments++;
+                }
+            }
+
             result.byUser[userId].totalHours += taskTotalHours;
 
             // Group by date
             result.byDate[dateKey] = result.byDate[dateKey] || {
-                date: dateKey, tasks: [], completedTasks: 0, pendingTasks: 0, totalHours: 0, users: {}
+                date: dateKey,
+                tasks: [],
+                completedTasks: 0,
+                pendingTasks: 0,
+                pendingTasksWithAutoComments: 0,
+                totalHours: 0,
+                users: {}
             };
             result.byDate[dateKey].tasks.push(taskObj);
-            result.byDate[dateKey][isCompleted ? "completedTasks" : "pendingTasks"]++;
+
+            if (isCompleted) {
+                result.byDate[dateKey].completedTasks++;
+            } else {
+                result.byDate[dateKey].pendingTasks++;
+                if (isPending) {
+                    result.byDate[dateKey].pendingTasksWithAutoComments++;
+                }
+            }
+
             result.byDate[dateKey].totalHours += taskTotalHours;
 
             result.byDate[dateKey].users[userId] = result.byDate[dateKey].users[userId] || {
-                user: getUserInfo(userId), tasks: [], completedTasks: 0, pendingTasks: 0, totalHours: 0
+                user: getUserInfo(userId),
+                tasks: [],
+                completedTasks: 0,
+                pendingTasks: 0,
+                pendingTasksWithAutoComments: 0,
+                totalHours: 0
             };
             result.byDate[dateKey].users[userId].tasks.push(taskObj);
-            result.byDate[dateKey].users[userId][isCompleted ? "completedTasks" : "pendingTasks"]++;
+
+            if (isCompleted) {
+                result.byDate[dateKey].users[userId].completedTasks++;
+            } else {
+                result.byDate[dateKey].users[userId].pendingTasks++;
+                if (isPending) {
+                    result.byDate[dateKey].users[userId].pendingTasksWithAutoComments++;
+                }
+            }
+
             result.byDate[dateKey].users[userId].totalHours += taskTotalHours;
         }
     }
