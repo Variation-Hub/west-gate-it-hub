@@ -285,6 +285,14 @@ const userModel = new mongoose.Schema({
           subExpertise: { type: [String], default: [] }
         }
     ],
+    expertiseICanDo: [
+        {
+          itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
+          name: { type: String, default: "" },
+          type: { type: String, default: "" },
+          subExpertise: { type: [String], default: [] }
+        }
+    ],
     poc_name: { type: String, default: "" },
     poc_phone: { type: String, default: "" },
     poc_email: { type: String, default: "" },
