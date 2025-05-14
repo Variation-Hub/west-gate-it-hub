@@ -1500,11 +1500,17 @@ export const getTaskGraphData = async (req: any, res: Response) => {
         }
 
         const userIdArray = userIds ? userIds.split(',') : [];
+
+        // Create the base filter without status for custom status handling
         const filter: any = {
             createdAt: { $gte: parsedStartDate, $lte: parsedEndDate },
-            ...(userIdArray.length && { "assignTo.userId": { $in: userIdArray } }),
-            ...(status && { status: Array.isArray(status) ? { $in: status } : status })
+            ...(userIdArray.length && { "assignTo.userId": { $in: userIdArray } })
         };
+
+        // Only add the standard status filter if it's not one of our custom statuses
+        if (status && status !== 'complete' && status !== 'pending') {
+            filter.status = Array.isArray(status) ? { $in: status } : status;
+        }
 
         const [tasks, users] = await Promise.all([
             taskModel.find(filter)
@@ -1514,7 +1520,7 @@ export const getTaskGraphData = async (req: any, res: Response) => {
             userModel.find(userIdArray.length ? { _id: { $in: userIdArray } } : {}).select("name email role")
         ]);
 
-        const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate);
+        const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate, status);
 
         return res.status(200).json({
             message: "Task graph data fetched successfully",
@@ -1527,7 +1533,7 @@ export const getTaskGraphData = async (req: any, res: Response) => {
     }
 };
 
-function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
+function processGraphData(tasks: any[], users: any[], start: Date, end: Date, statusFilter?: string) {
     const result = {
         byUser: {} as any,
         byDate: {} as any,
@@ -1547,7 +1553,38 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date) {
             { id, name: "Unknown User", email: "", role: "" };
     };
 
-    for (const task of tasks) {
+    // Filter tasks based on custom status filters
+    let filteredTasks = [...tasks];
+
+    if (statusFilter === 'complete' || statusFilter === 'pending') {
+        filteredTasks = [];
+
+        for (const task of tasks) {
+            // Filter comments based on date range
+            const dateFilteredComments = (task.comments || []).filter((c: any) => {
+                const commentDate = new Date(c.date);
+                return commentDate >= start && commentDate <= end;
+            });
+
+            // Check for user-added comments (not auto-generated)
+            const hasUserComments = dateFilteredComments.some((c: any) => !c.auto);
+
+            // For 'complete' status, include tasks with user-added comments
+            if (statusFilter === 'complete' && hasUserComments) {
+                filteredTasks.push(task);
+            }
+
+            // For 'pending' status, include tasks with no comments or only auto-generated comments
+            if (statusFilter === 'pending' && !hasUserComments) {
+                filteredTasks.push(task);
+            }
+        }
+    }
+
+    // Update the summary count
+    result.summary.totalTasks = filteredTasks.length;
+
+    for (const task of filteredTasks) {
         // Filter comments based on date range
         const filteredComments = (task.comments || []).filter((c: any) => {
             const commentDate = new Date(c.date);
