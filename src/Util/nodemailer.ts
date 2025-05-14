@@ -295,15 +295,6 @@ export async function sendContactEmail(recipientEmail: string, formData: any) {
 // Function to be used for the send mail to new register supplier for reset password 
 export async function sendRegisterMailToSupplier(receiverEmail: string) {
     try {
-
-        // const transporterTest = nodemailer.createTransport({
-        //     service: 'gmail',
-        //     auth: {
-        //         user: 'darshandumaraliya@gmail.com',
-        //         pass: 'scax jznf deob atoh'  // Not your Gmail password!
-        //     }
-        // });
-
         const transporterTest = nodemailer.createTransport({
             host: "smtpout.secureserver.net",
             port: 587,
@@ -314,15 +305,85 @@ export async function sendRegisterMailToSupplier(receiverEmail: string) {
             }
         });
 
-        const template = `https://supplier.westgateithub.com/#/reset-password?email=${receiverEmail}`
-        // const template = `http://localhost:3000/#/reset-password?email=${receiverEmail}`
+        const resetLink = `https://supplier.westgateithub.com/#/reset-password?email=${receiverEmail}`;
+        
+        const template = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                }
+                .container {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                .header {
+                    text-align: center;
+                    padding: 20px 0;
+                }
+                .content {
+                    padding: 20px;
+                    background-color: #ffffff;
+                }
+                .button {
+                    display: inline-block;
+                    padding: 12px 24px;
+                    background-color: #0078d4;
+                    color: #ffffff;
+                    text-decoration: none;
+                    border-radius: 4px;
+                    margin: 20px 0;
+                }
+                .footer {
+                    text-align: center;
+                    padding: 20px;
+                    font-size: 14px;
+                    color: #666666;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="content">
+                    <h2>Your Profile is Activated – Please Set Your Password</h2>
+                    
+                    <p>Dear Supplier,</p>
+                    
+                    <p>This is an auto-generated email to inform you that your profile has been successfully activated on our supplier portal. To get started, please follow the steps below:</p>
+                    
+                    <h3>Set your password:</h3>
+                    <p>Click the button below to set your password and gain access to the portal.</p>
+                    <a href="${resetLink}" class="button" style="color: #ffffff;">Set Your Password</a>
+                    
+                    <h3>Login to the portal:</h3>
+                    <p>Once your password is set, you can log in here:<br>
+                    <a href="https://supplier.westgateithub.com/">https://supplier.westgateithub.com/</a></p>
+                    
+                    <h3>Track project progress:</h3>
+                    <p>After logging in, you'll be able to easily track the progress of your projects, view updates, and manage your tasks.</p>
+                    
+                    <p>If you have any questions or run into any issues, please don't hesitate to reach out to us. We're here to help!</p>
+                    
+                    <p>Looking forward to working together and supporting you throughout the project journey.</p>
+                    
+                    <p>Best regards,<br>
+                    WestGate IT Hub (P) Ltd</p>
+                </div>
+            </div>
+        </body>
+        </html>`;
 
         await transporterTest.sendMail({
-            from: "no-reply@westgateithub.in", // sender address
-            to: receiverEmail, // list of receivers
-            subject: "Reset Password", // Subject line
-            text: `Here is the link for reset password : `, // plain text body
-            html: `<a href=${template} target="_blank">Click here to create password</a>`, // html body
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Your Profile is Activated – Please Set Your Password",
+            text: `Your profile has been activated. Please set your password by visiting: ${resetLink}`,
+            html: template,
         });
     } catch (error) {
         console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
