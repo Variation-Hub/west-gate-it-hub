@@ -291,3 +291,40 @@ export async function sendContactEmail(recipientEmail: string, formData: any) {
         console.error("Error sending email:", error);
     }
 }
+
+// Function to be used for the send mail to new register supplier for reset password 
+export async function sendRegisterMailToSupplier(receiverEmail: string) {
+    try {
+
+        // const transporterTest = nodemailer.createTransport({
+        //     service: 'gmail',
+        //     auth: {
+        //         user: 'darshandumaraliya@gmail.com',
+        //         pass: 'scax jznf deob atoh'  // Not your Gmail password!
+        //     }
+        // });
+
+        const transporterTest = nodemailer.createTransport({
+            host: "smtpout.secureserver.net",
+            port: 587,
+            secure: false, // use STARTTLS
+            auth: {
+                user: "no-reply@westgateithub.in",  // your email
+                pass: "Abhishek23*",        // app password or mailbox password
+            }
+        });
+
+        const template = `https://supplier.westgateithub.com/#/reset-password?email=${receiverEmail}`
+        // const template = `http://localhost:3000/#/reset-password?email=${receiverEmail}`
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in", // sender address
+            to: receiverEmail, // list of receivers
+            subject: "Reset Password", // Subject line
+            text: `Here is the link for reset password : `, // plain text body
+            html: `<a href=${template} target="_blank">Click here to create password</a>`, // html body
+        });
+    } catch (error) {
+        console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
+    }
+}

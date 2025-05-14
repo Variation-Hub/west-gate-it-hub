@@ -18,7 +18,8 @@ import {
     fetchSuplierAdmin,
     getSupplierDetails,
     GetUserLogin,
-    fetchSupplierWithProjectStatus
+    fetchSupplierWithProjectStatus,
+    resetPassword
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -38,6 +39,7 @@ userRoutes.get("/get", authorizeRoles(), getUserDetails);
 userRoutes.get("/list", authorizeRoles(), getUserList);
 userRoutes.post("/connect", authorizeRoles(), connectUserToSocket);
 userRoutes.get("/login-details/:id", authorizeRoles(), GetUserLogin);
+userRoutes.post("/reset-password", resetPassword);
 
 // Supplier APIs
 userRoutes.post("/suplier/register", authorizeRoles(userRoles.SupplierAdmin, userRoles.Admin), createSuplierUser);
