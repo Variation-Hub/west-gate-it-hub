@@ -761,6 +761,12 @@ export const getAlldata = async (req: any, res: Response) => {
 
         if (type === "other") {
             queryObj["type"] = { $regex: "-other$", $options: "i" };
+        } else if (type?.includes("-other")) {
+            const baseType = type.replace("-other", "");
+            queryObj["$or"] = [
+                { type: { $regex: `^${baseType}$`, $options: "i" } },
+                { type: { $regex: `^${baseType}-other$`, $options: "i" } }
+            ];
         } else if (type) {
             queryObj["type"] = { $regex: `^${type}$`, $options: "i" };
         }
