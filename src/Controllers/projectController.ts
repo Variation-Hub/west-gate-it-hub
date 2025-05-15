@@ -70,7 +70,7 @@ export const createProject = async (req: any, res: Response) => {
 
                 project.expiredData = (() => {
                     const matchedCategory = casestudyData.find(data =>
-                        data.category === project.category 
+                        data.category === project.category
                        // project.category.some((category: string) => category === data.category)
                     );
                     if (matchedCategory) {
@@ -626,7 +626,7 @@ export const getProject = async (req: any, res: Response) => {
 
         if (project?.selectedUserIds?.length) {
             const userIds = project.selectedUserIds.map((u:any) => u.userId);
-            
+
             const users = await userModel.find({ _id: { $in: userIds } }).select("name");
             project.selectedUserIds = project.selectedUserIds.map((sel: any) => {
                 const user = users.find(u => u._id.toString() === sel.userId.toString());
@@ -636,7 +636,7 @@ export const getProject = async (req: any, res: Response) => {
                 };
             });
         }
-        
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
@@ -751,7 +751,7 @@ export const exportProjectsToCSV = async (req: any, res: any) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId } = req.query as any
 
         category = category?.split(',');
         industry = industry?.split(',');
@@ -1215,6 +1215,47 @@ export const getProjects = async (req: any, res: Response) => {
         if (BidManagerAppointed) {
             filter.appointedBidManager = { $elemMatch: { $eq: BidManagerAppointed } };
         }
+
+        // Filter by assigned bid manager ID
+        if (assignBidManagerId) {
+            // Find tasks assigned to this bid manager
+            const tasks = await taskModel.find({
+                'assignTo.userId': assignBidManagerId,
+            }).select('project');
+
+            // Extract project IDs from tasks
+            const projectIds = tasks.map(task => task.project);
+
+            // Add to filter
+            if (projectIds.length > 0) {
+                if (filter._id) {
+                    // If _id filter already exists, use $and to combine them
+                    filter = {
+                        $and: [
+                            filter,
+                            { _id: { $in: projectIds } }
+                        ]
+                    };
+                } else {
+                    filter._id = { $in: projectIds };
+                }
+            } else {
+                // If no projects found, return empty result
+                return res.status(200).json({
+                    message: "projects fetch success",
+                    status: true,
+                    data: {
+                        data: [],
+                        meta_data: {
+                            page: req.pagination?.page,
+                            items: 0,
+                            page_size: req.pagination?.limit,
+                            pages: 0
+                        }
+                    }
+                });
+            }
+        }
         if (feasibilityReview) {
             filter.feasibilityStatus = { $ne: null };
         }
@@ -1252,7 +1293,7 @@ export const getProjects = async (req: any, res: Response) => {
             .populate('sortListUserId')
             .populate({
                 path: 'selectedUserIds.userId',
-                select: '_id name' 
+                select: '_id name'
             });
         // .lean();
 
@@ -1580,13 +1621,13 @@ export const getProjects = async (req: any, res: Response) => {
 
                         task.comments.sort((a: any, b: any) => {
                             if (a.pinnedAt && b.pinnedAt) {
-                                return b.pinnedAt - a.pinnedAt; 
+                                return b.pinnedAt - a.pinnedAt;
                             } else if (a.pinnedAt) {
-                                return -1; 
+                                return -1;
                             } else if (b.pinnedAt) {
-                                return 1; 
+                                return 1;
                             } else {
-                                return b.date - a.date; 
+                                return b.date - a.date;
                             }
                         });
 
@@ -1698,7 +1739,7 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 
 const formatDateIfNeeded = (value: any): string => {
             if (!value) return "";
-        
+
             const date = new Date(value);
             return date.toLocaleString("en-GB", {
                 timeZone: "Asia/Kolkata",
@@ -1782,7 +1823,7 @@ export const updateProject = async (req: any, res: Response) => {
                         continue;
                     }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, 
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>,
                          ${!isEmpty(oldValue)
                                 ? `updated from ${oldValue} to ${newValue}`
                                 : `updated to ${newValue}`
@@ -1790,8 +1831,8 @@ export const updateProject = async (req: any, res: Response) => {
                         date: new Date(),
                         type: "timeBased"
                     };
-                } 
-                if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
+                }
+                else if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
                     if (oldValue === newValue) continue;
 
                     const formattedOld = formatDateIfNeeded(oldValue);
@@ -1804,10 +1845,10 @@ export const updateProject = async (req: any, res: Response) => {
                         type: "projectBased"
                     };
                 }
-                else {                    
+                else {
                     if (areArraysEqual(newValue, oldValue)) {
                         continue;
-                    }               
+                    }
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
                             !isEmpty(oldValue)
@@ -1971,7 +2012,7 @@ export const sortList = async (req: any, res: Response) => {
                     project.sortListUserId.push(userId);
 
                 // const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
-                
+
                 // if (!alreadyExist) {
                 //     project.selectedUserIds.push({ userId, isSelected: false });
                 // }
@@ -2170,7 +2211,7 @@ export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => 
                 totalNotAwardedValue: 0,
                 totalpassedValue: 0,
                 totalWaitingForResult: 0,
-                //new 
+                //new
                 sortListedValue: 0,
                 dropValue: 0,
                 insolutionValue: 0,
@@ -2420,7 +2461,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         continue;
                     }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, 
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>,
                         ${!isEmpty(oldValue)
                                 ? `updated from ${oldValue} to ${newValue}`
                                 : `updated to ${newValue}`
@@ -3322,7 +3363,7 @@ export const getProjectLogs = async (req: any, res: Response) => {
 
         const formattedLogs = logs
             .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
+
         return res.status(200).json({
             message: "Project Logs fatch successfully",
             status: true,
@@ -4326,7 +4367,7 @@ export const selectUserForProject = async (req: any, res: Response) => {
         else {
             project.selectedUserIds.pull({ userId });
         }
-        
+
         await project.save();
 
         return res.status(200).json({

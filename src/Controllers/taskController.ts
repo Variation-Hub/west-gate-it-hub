@@ -6,6 +6,25 @@ import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
 import moment from 'moment';
 
+// Helper function to get date string in YYYY-MM-DD format
+function getDateString(date: Date): string {
+    return date.toISOString().split('T')[0];
+}
+
+// Helper function to format minutes into "X hours Y minutes" format
+function formatMinutesToHoursAndMinutes(totalMinutes: number): string {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = Math.round(totalMinutes % 60);
+
+    if (hours === 0) {
+        return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    } else if (minutes === 0) {
+        return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    } else {
+        return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    }
+}
+
 export const createTask = async (req: any, res: Response) => {
     try {
         let { assignTo } = req.body
@@ -312,7 +331,7 @@ export const getTasks = async (req: any, res: Response) => {
             // } else {
             //     filter.myDay = { $in: [req.user.id] }
             // }
-            filter.myDay = { $in: [req.user.id] };            
+            filter.myDay = { $in: [req.user.id] };
         }
 
         const sortOptions: any = {};
@@ -502,7 +521,7 @@ export const addCommentToTask = async (req: any, res: Response) => {
                 message: "Comment and valid minutes are required.",
                 status: false,
             });
-        }   
+        }
 
         const task: any = await taskModel.findById(id);
 
@@ -552,7 +571,8 @@ export const addCommentToTask = async (req: any, res: Response) => {
             minutes,
             date: new Date(),
             userId: userId.toString(),
-            pin: false
+            pin: false,
+            auto: false
         })
 
         await task.save();
@@ -832,8 +852,8 @@ export const addSubTask = async (req: Request, res: Response) => {
 
         return res.status(200).json({
             message: "Subtasks added successfully",
-            success: true, 
-            task: updatedTask 
+            success: true,
+            task: updatedTask
         });
     } catch (error: any) {
         return res.status(500).json({
@@ -855,9 +875,9 @@ export const deleteSubTask = async (req: Request, res: Response) => {
         );
 
         return res.status(200).json({
-            message: "Subtasks deleted successfully", 
-            success: true, 
-            task: updatedTask 
+            message: "Subtasks deleted successfully",
+            success: true,
+            task: updatedTask
         });
     } catch (error: any) {
         return res.status(500).json({
@@ -880,9 +900,9 @@ export const addCandidate = async (req: Request, res: Response) => {
         );
 
         return res.status(200).json({
-            message: "Added candidate to Subtasks successfully", 
-            success: true, 
-            task: updatedTask 
+            message: "Added candidate to Subtasks successfully",
+            success: true,
+            task: updatedTask
         });
     } catch (error: any) {
         return res.status(500).json({
@@ -1038,7 +1058,7 @@ export const logoutAndCommentUnfinishedTasks = async (req: any, res: Response) =
             status: false
         });
     }
-}; 
+};
 
 export const getCommentBoxData = async (req: any, res: Response) => {
     try {
@@ -1134,354 +1154,6 @@ export const getTask = async (req: any, res: Response) => {
 }
 
 
-// export const getTaskGraphData = async (req: any, res: Response) => {
-//     try {
-//         // Extract query parameters
-//         const {
-//             startDate,
-//             endDate,
-//             userIds,
-//             status
-//         } = req.query;
-
-//         // Validate required parameters
-//         if (!startDate || !endDate) {
-//             return res.status(400).json({
-//                 message: "Start date and end date are required",
-//                 status: false,
-//                 data: null
-//             });
-//         }
-
-//         // Parse date range
-//         const parsedStartDate = new Date(startDate);
-//         const parsedEndDate = new Date(endDate);
-//         parsedStartDate.setHours(0, 0, 0, 0);
-//         parsedEndDate.setHours(23, 59, 59, 999);
-
-//         // Validate date range
-//         if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
-//             return res.status(400).json({
-//                 message: "Invalid date format. Please use YYYY-MM-DD format",
-//                 status: false,
-//                 data: null
-//             });
-//         }
-
-//         // Parse user IDs (support for multi-select)
-//         const userIdArray = userIds ? userIds.split(',') : [];
-
-//         // Build filter object
-//         const filter: any = {
-//             createdAt: {
-//                 $gte: parsedStartDate,
-//                 $lte: parsedEndDate
-//             }
-//         };
-
-//         // Add user filter if provided
-//         if (userIdArray.length > 0) {
-//             filter["assignTo.userId"] = { $in: userIdArray };
-//         }
-
-//         // Add status filter if provided
-//         if (status) {
-//             if (Array.isArray(status)) {
-//                 filter.status = { $in: status };
-//             } else {
-//                 filter.status = status;
-//             }
-//         }
-
-//         // Fetch tasks based on filters
-//         const tasks = await taskModel.find(filter)
-//             .populate("assignTo.userId", "name email role")
-//             .populate("project", "projectName")
-//             .sort({ createdAt: -1 })
-//             .exec();
-
-//         // Fetch all users for reference
-//         const userFilter = userIdArray.length > 0 ? { _id: { $in: userIdArray } } : {};
-//         const users = await userModel.find(userFilter).select("name email role");
-
-//         // Process data for graph visualization
-//         const graphData = processTasksForGraph(tasks, users, parsedStartDate, parsedEndDate);
-
-//         return res.status(200).json({
-//             message: "Task graph data fetched successfully",
-//             status: true,
-//             data: graphData
-//         });
-//     } catch (error: any) {
-//         return res.status(500).json({
-//             message: error.message,
-//             status: false,
-//             data: null
-//         });
-//     }
-// };
-
-// /**
-//  * Process tasks data for graph visualization
-//  * @param tasks - Array of task documents
-//  * @param users - Array of user documents
-//  * @param startDate - Start date for filtering
-//  * @param endDate - End date for filtering
-//  * @returns Processed data for graph visualization
-//  */
-// function processTasksForGraph(tasks: any[], users: any[], startDate: Date, endDate: Date) {
-//     // Define types for our data structures
-//     interface UserSummary {
-//         user: {
-//             id: string;
-//             name: string;
-//             email: string;
-//             role: string;
-//         };
-//         tasks: any[];
-//         completedTasks: number;
-//         pendingTasks: number;
-//         totalHours: number;
-//     }
-
-//     interface DateSummary {
-//         date: string;
-//         tasks: any[];
-//         completedTasks: number;
-//         pendingTasks: number;
-//         totalHours: number;
-//         users: {
-//             [key: string]: UserSummary;
-//         };
-//     }
-
-//     // Initialize result object with proper type annotations
-//     const result: {
-//         byUser: { [key: string]: UserSummary };
-//         byDate: { [key: string]: DateSummary };
-//         summary: {
-//             totalTasks: number;
-//             completedTasks: number;
-//             pendingTasks: number;
-//             totalWorkingHours: number;
-//         };
-//         users: {
-//             id: string;
-//             name: string;
-//             email: string;
-//             role: string;
-//         }[];
-//     } = {
-//         byUser: {},
-//         byDate: {},
-//         summary: {
-//             totalTasks: tasks.length,
-//             completedTasks: 0,
-//             pendingTasks: 0,
-//             totalWorkingHours: 0
-//         },
-//         users: users.map((user: any) => ({
-//             id: user._id,
-//             name: user.name,
-//             email: user.email,
-//             role: user.role
-//         }))
-//     };
-
-//     // Process each task
-//     tasks.forEach((task: any) => {
-//         // Calculate task status
-//         const isCompleted = task.status?.toLowerCase() === 'completed';
-
-//         // Update summary counts
-//         if (isCompleted) {
-//             result.summary.completedTasks++;
-//         } else {
-//             result.summary.pendingTasks++;
-//         }
-
-//         // Calculate pending duration for non-completed tasks
-//         let pendingDays = 0;
-//         if (!isCompleted && task.createdAt) {
-//             const createdDate = new Date(task.createdAt);
-//             const currentDate = new Date();
-//             pendingDays = Math.floor((currentDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-//         }
-
-//         // Calculate total working hours from comments
-//         let taskTotalMinutes = 0;
-//         const taskComments: any[] = [];
-
-//         if (task.comments && task.comments.length > 0) {
-//             task.comments.forEach((comment: any) => {
-//                 // Add minutes if available
-//                 if (comment.minutes) {
-//                     taskTotalMinutes += comment.minutes;
-//                 }
-
-//                 // Format comment for display
-//                 taskComments.push({
-//                     id: comment.commentId,
-//                     text: comment.comment,
-//                     date: comment.date,
-//                     minutes: comment.minutes || 0,
-//                     user: comment.userId
-//                 });
-//             });
-//         }
-
-//         // Convert minutes to hours
-//         const taskTotalHours = Math.round((taskTotalMinutes / 60) * 100) / 100;
-//         result.summary.totalWorkingHours += taskTotalHours;
-
-//         // Create task object with all required fields
-//         const taskObj = {
-//             id: task._id,
-//             name: task.task,
-//             status: task.status,
-//             createdAt: task.createdAt,
-//             dueDate: task.dueDate,
-//             project: task.project ? {
-//                 id: task.project._id,
-//                 name: task.project.projectName
-//             } : null,
-//             pendingDays,
-//             totalHours: taskTotalHours,
-//             totalMinutes: taskTotalMinutes,
-//             comments: taskComments,
-//             isCompleted
-//         };
-
-//         // Group by user
-//         task.assignTo.forEach((assignee: any) => {
-//             const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
-//             if (!userId) return;
-
-//             if (!result.byUser[userId]) {
-//                 const userObj = users.find((u: any) => u._id.toString() === userId);
-//                 result.byUser[userId] = {
-//                     user: userObj ? {
-//                         id: userObj._id,
-//                         name: userObj.name,
-//                         email: userObj.email,
-//                         role: userObj.role
-//                     } : {
-//                         id: userId,
-//                         name: "Unknown User",
-//                         email: "",
-//                         role: ""
-//                     },
-//                     tasks: [],
-//                     completedTasks: 0,
-//                     pendingTasks: 0,
-//                     totalHours: 0
-//                 };
-//             }
-
-//             // Add task to user's tasks
-//             result.byUser[userId].tasks.push(taskObj);
-
-//             // Update user's summary
-//             if (isCompleted) {
-//                 result.byUser[userId].completedTasks++;
-//             } else {
-//                 result.byUser[userId].pendingTasks++;
-//             }
-
-//             result.byUser[userId].totalHours += taskTotalHours;
-//         });
-
-//         // Group by date (using created date)
-//         if (task.createdAt) {
-//             const dateKey = new Date(task.createdAt).toISOString().split('T')[0];
-
-//             if (!result.byDate[dateKey]) {
-//                 result.byDate[dateKey] = {
-//                     date: dateKey,
-//                     tasks: [],
-//                     completedTasks: 0,
-//                     pendingTasks: 0,
-//                     totalHours: 0,
-//                     users: {}
-//                 };
-//             }
-
-//             // Add task to date's tasks
-//             result.byDate[dateKey].tasks.push(taskObj);
-
-//             // Update date's summary
-//             if (isCompleted) {
-//                 result.byDate[dateKey].completedTasks++;
-//             } else {
-//                 result.byDate[dateKey].pendingTasks++;
-//             }
-
-//             result.byDate[dateKey].totalHours += taskTotalHours;
-
-//             // Group by user within date
-//             task.assignTo.forEach((assignee: any) => {
-//                 const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
-//                 if (!userId) return;
-
-//                 if (!result.byDate[dateKey].users[userId]) {
-//                     const userObj = users.find((u: any) => u._id.toString() === userId);
-//                     result.byDate[dateKey].users[userId] = {
-//                         user: userObj ? {
-//                             id: userObj._id,
-//                             name: userObj.name,
-//                             email: userObj.email,
-//                             role: userObj.role
-//                         } : {
-//                             id: userId,
-//                             name: "Unknown User",
-//                             email: "",
-//                             role: ""
-//                         },
-//                         tasks: [],
-//                         completedTasks: 0,
-//                         pendingTasks: 0,
-//                         totalHours: 0
-//                     };
-//                 }
-
-//                 // Add task to user's tasks for this date
-//                 result.byDate[dateKey].users[userId].tasks.push(taskObj);
-
-//                 // Update user's summary for this date
-//                 if (isCompleted) {
-//                     result.byDate[dateKey].users[userId].completedTasks++;
-//                 } else {
-//                     result.byDate[dateKey].users[userId].pendingTasks++;
-//                 }
-
-//                 result.byDate[dateKey].users[userId].totalHours += taskTotalHours;
-//             });
-//         }
-//     });
-
-//     // Convert objects to arrays for easier consumption by frontend
-//     const byUserArray = Object.values(result.byUser);
-//     const byDateArray = Object.values(result.byDate).map((dateData: any) => ({
-//         ...dateData,
-//         users: Object.values(dateData.users)
-//     }));
-
-//     // Sort date array chronologically
-//     byDateArray.sort((a: any, b: any) => {
-//         return new Date(a.date).getTime() - new Date(b.date).getTime();
-//     });
-
-//     return {
-//         byUser: byUserArray,
-//         byDate: byDateArray,
-//         summary: result.summary,
-//         users: result.users,
-//         dateRange: {
-//             start: startDate,
-//             end: endDate
-//         }
-//     };
-// }
 
 export const getTaskGraphData = async (req: any, res: Response) => {
     try {
@@ -1502,8 +1174,16 @@ export const getTaskGraphData = async (req: any, res: Response) => {
         const userIdArray = userIds ? userIds.split(',') : [];
 
         // Create the base filter without status for custom status handling
+        // We want to include tasks that either:
+        // 1. Were created within the date range, OR
+        // 2. Have comments within the date range
         const filter: any = {
-            createdAt: { $gte: parsedStartDate, $lte: parsedEndDate },
+            $or: [
+                // Tasks created within the date range
+                { createdAt: { $gte: parsedStartDate, $lte: parsedEndDate } },
+                // Tasks with comments within the date range
+                { "comments.date": { $gte: parsedStartDate, $lte: parsedEndDate } }
+            ],
             ...(userIdArray.length && { "assignTo.userId": { $in: userIdArray } })
         };
 
@@ -1522,10 +1202,20 @@ export const getTaskGraphData = async (req: any, res: Response) => {
 
         const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate, status);
 
+        // Get date strings for the response
+        const startDateStr = getDateString(parsedStartDate);
+        const endDateStr = getDateString(parsedEndDate);
+
         return res.status(200).json({
             message: "Task graph data fetched successfully",
             status: true,
-            data: graphData
+            data: {
+                ...graphData,
+                dateRange: {
+                    start: startDateStr,
+                    end: endDateStr
+                }
+            }
         });
 
     } catch (error: any) {
@@ -1542,7 +1232,9 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
             completedTasks: 0,
             pendingTasks: 0,
             pendingTasksWithAutoComments: 0,
-            totalWorkingHours: 0
+            totalWorkingHours: 0,
+            totalWorkingMinutes: 0,
+            totalWorkingHoursFormatted: ''
         },
         users: users.map(u => ({ id: u._id, name: u.name, email: u.email, role: u.role }))
     };
@@ -1563,7 +1255,10 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
             // Filter comments based on date range
             const dateFilteredComments = (task.comments || []).filter((c: any) => {
                 const commentDate = new Date(c.date);
-                return commentDate >= start && commentDate <= end;
+                const commentDateStr = getDateString(commentDate);
+                const startDateStr = getDateString(start);
+                const endDateStr = getDateString(end);
+                return commentDateStr >= startDateStr && commentDateStr <= endDateStr;
             });
 
             // Check for user-added comments (not auto-generated)
@@ -1588,7 +1283,10 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
         // Filter comments based on date range
         const filteredComments = (task.comments || []).filter((c: any) => {
             const commentDate = new Date(c.date);
-            return commentDate >= start && commentDate <= end;
+            const commentDateStr = getDateString(commentDate);
+            const startDateStr = getDateString(start);
+            const endDateStr = getDateString(end);
+            return commentDateStr >= startDateStr && commentDateStr <= endDateStr;
         });
 
         // Check if there's at least one comment in the date range
@@ -1605,24 +1303,21 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
         // Calculate total minutes only from filtered comments
         const taskTotalMinutes = filteredComments.reduce((sum: number, c: any) => sum + (c.minutes || 0), 0);
         const taskTotalHours = +(taskTotalMinutes / 60).toFixed(2);
-        result.summary.totalWorkingHours += taskTotalHours;
 
+        // Update summary totals
+        result.summary.totalWorkingHours += taskTotalHours;
+        result.summary.totalWorkingMinutes += taskTotalMinutes;
+
+        let pendingSince = null;
+        
         // Check for auto comments and user comments in filtered comments
         const hasAutoComments = filteredComments.some((c: any) => c.auto);
         const hasUserComments = filteredComments.some((c: any) => !c.auto);
 
-        // Calculate pending since for tasks with only auto comments
-        let pendingSince = null;
-
-        if (isPending && hasAutoComments && !hasUserComments) {
-            // Find the earliest auto comment to calculate pending since
-            const autoComments = filteredComments
-                .filter((c: any) => c.auto)
-                .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-            if (autoComments.length > 0) {
-                const firstAutoComment = autoComments[0];
-                pendingSince = new Date(firstAutoComment.date);
+        // Calculate pending since for tasks with only auto comments or no comments at all
+        if (isPending && (!hasUserComments || hasAutoComments)) {
+            pendingSince = new Date(task.createdAt);
+            if (hasAutoComments) {
                 result.summary.pendingTasksWithAutoComments++;
             }
         }
@@ -1637,22 +1332,24 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
             pendingDays: isCompleted ? 0 : Math.floor((Date.now() - new Date(task.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
             totalHours: taskTotalHours,
             totalMinutes: taskTotalMinutes,
+            totalHoursFormatted: formatMinutesToHoursAndMinutes(taskTotalMinutes),
             comments: filteredComments.map((c: any) => ({
                 id: c.commentId,
                 text: c.comment,
-                date: c.date,
+                date: c.date, // Include the date string for easier filtering
                 minutes: c.minutes || 0,
                 user: c.userId,
                 auto: c.auto || false
             })),
             isCompleted,
             isPending,
-            pendingSince: pendingSince ? pendingSince.toISOString().split('T')[0] : null,
+            pendingSince: pendingSince ? getDateString(pendingSince) : null,
             hasAutoComments,
             hasUserComments
         };
 
-        const dateKey = new Date(task.createdAt).toISOString().split("T")[0];
+        // Use date string for the date key
+        const dateKey = getDateString(new Date(task.createdAt));
 
         for (const assignee of task.assignTo) {
             const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
@@ -1678,6 +1375,7 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 }
             }
 
+            // Update user's total hours
             result.byUser[userId].totalHours += taskTotalHours;
 
             // Group by date
@@ -1688,7 +1386,10 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 pendingTasks: 0,
                 pendingTasksWithAutoComments: 0,
                 totalHours: 0,
-                users: {}
+                totalMinutes: 0,
+                totalHoursFormatted: '',
+                users: {},
+                userTotalHours: {} // Add a map to track total hours per user for each date
             };
             result.byDate[dateKey].tasks.push(taskObj);
 
@@ -1701,7 +1402,21 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 }
             }
 
+            // Update date's total hours
             result.byDate[dateKey].totalHours += taskTotalHours;
+            result.byDate[dateKey].totalMinutes += taskTotalMinutes;
+            result.byDate[dateKey].totalHoursFormatted = formatMinutesToHoursAndMinutes(result.byDate[dateKey].totalMinutes);
+
+            // Track total hours per user for each date
+            result.byDate[dateKey].userTotalHours[userId] = result.byDate[dateKey].userTotalHours[userId] || {
+                totalHours: 0,
+                totalMinutes: 0,
+                totalHoursFormatted: ''
+            };
+            result.byDate[dateKey].userTotalHours[userId].totalHours += taskTotalHours;
+            result.byDate[dateKey].userTotalHours[userId].totalMinutes += taskTotalMinutes;
+            result.byDate[dateKey].userTotalHours[userId].totalHoursFormatted =
+                formatMinutesToHoursAndMinutes(result.byDate[dateKey].userTotalHours[userId].totalMinutes);
 
             result.byDate[dateKey].users[userId] = result.byDate[dateKey].users[userId] || {
                 user: getUserInfo(userId),
@@ -1709,7 +1424,9 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 completedTasks: 0,
                 pendingTasks: 0,
                 pendingTasksWithAutoComments: 0,
-                totalHours: 0
+                totalHours: 0,
+                totalMinutes: 0,
+                totalHoursFormatted: ''
             };
             result.byDate[dateKey].users[userId].tasks.push(taskObj);
 
@@ -1722,16 +1439,201 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 }
             }
 
+            // Update user's total hours in the date
             result.byDate[dateKey].users[userId].totalHours += taskTotalHours;
+            result.byDate[dateKey].users[userId].totalMinutes += taskTotalMinutes;
+            result.byDate[dateKey].users[userId].totalHoursFormatted =
+                formatMinutesToHoursAndMinutes(result.byDate[dateKey].users[userId].totalMinutes);
         }
     }
 
+    // Calculate and format the total working hours for the summary
+    result.summary.totalWorkingHoursFormatted = formatMinutesToHoursAndMinutes(result.summary.totalWorkingMinutes);
+
+    // Now let's organize comments by date for each task
+    // This will ensure we count comments made on specific dates correctly
+    const byDateWithComments = {} as any;
+
+    // First, collect all tasks with their comments
+    for (const task of filteredTasks) {
+        for (const comment of (task.comments || [])) {
+            const commentDate = new Date(comment.date);
+            const commentDateStr = getDateString(commentDate);
+
+            // Skip comments outside the date range
+            const startDateStr = getDateString(start);
+            const endDateStr = getDateString(end);
+            if (commentDateStr < startDateStr || commentDateStr > endDateStr) continue;
+
+            // Initialize the date entry if it doesn't exist
+            byDateWithComments[commentDateStr] = byDateWithComments[commentDateStr] || {
+                date: commentDateStr,
+                tasks: {},
+                completedTasks: 0,
+                pendingTasks: 0,
+                pendingTasksWithAutoComments: 0,
+                totalHours: 0,
+                totalMinutes: 0,
+                totalHoursFormatted: '',
+                users: {},
+                userTotalHours: {}
+            };
+
+            // Initialize the task entry if it doesn't exist
+            const taskId = task._id.toString();
+            byDateWithComments[commentDateStr].tasks[taskId] = byDateWithComments[commentDateStr].tasks[taskId] || {
+                id: task._id,
+                name: task.task,
+                status: task.status,
+                createdAt: task.createdAt,
+                dueDate: task.dueDate,
+                project: task.project ? { id: task.project._id, name: task.project.projectName } : null,
+                comments: [],
+                totalHours: 0,
+                totalMinutes: 0,
+                totalHoursFormatted: '',
+                isCompleted: false,
+                isPending: true
+            };
+
+            // Add the comment to the task
+            byDateWithComments[commentDateStr].tasks[taskId].comments.push({
+                id: comment.commentId,
+                text: comment.comment,
+                date: comment.date,
+                minutes: comment.minutes || 0,
+                user: comment.userId,
+                auto: comment.auto || false
+            });
+
+            // Update task's total hours
+            const minutes = comment.minutes || 0;
+            byDateWithComments[commentDateStr].tasks[taskId].totalMinutes += minutes;
+            byDateWithComments[commentDateStr].tasks[taskId].totalHours = +(byDateWithComments[commentDateStr].tasks[taskId].totalMinutes / 60).toFixed(2);
+            byDateWithComments[commentDateStr].tasks[taskId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].tasks[taskId].totalMinutes);
+
+            // Update date's total hours
+            byDateWithComments[commentDateStr].totalMinutes += minutes;
+            byDateWithComments[commentDateStr].totalHours = +(byDateWithComments[commentDateStr].totalMinutes / 60).toFixed(2);
+            byDateWithComments[commentDateStr].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].totalMinutes);
+
+            // Mark task as completed if it has at least one non-auto comment
+            if (!comment.auto) {
+                byDateWithComments[commentDateStr].tasks[taskId].isCompleted = true;
+                byDateWithComments[commentDateStr].tasks[taskId].isPending = false;
+                byDateWithComments[commentDateStr].completedTasks++;
+            }
+
+            // Update user data
+            for (const assignee of task.assignTo) {
+                const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
+                if (!userId) continue;
+
+                // Initialize user entry if it doesn't exist
+                byDateWithComments[commentDateStr].users[userId] = byDateWithComments[commentDateStr].users[userId] || {
+                    user: getUserInfo(userId),
+                    tasks: {},
+                    completedTasks: 0,
+                    pendingTasks: 0,
+                    pendingTasksWithAutoComments: 0,
+                    totalHours: 0,
+                    totalMinutes: 0,
+                    totalHoursFormatted: ''
+                };
+
+                // Initialize user's task entry if it doesn't exist
+                byDateWithComments[commentDateStr].users[userId].tasks[taskId] = byDateWithComments[commentDateStr].users[userId].tasks[taskId] || {
+                    ...byDateWithComments[commentDateStr].tasks[taskId]
+                };
+
+                // Update user's total hours
+                byDateWithComments[commentDateStr].users[userId].totalMinutes += minutes;
+                byDateWithComments[commentDateStr].users[userId].totalHours = +(byDateWithComments[commentDateStr].users[userId].totalMinutes / 60).toFixed(2);
+                byDateWithComments[commentDateStr].users[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].users[userId].totalMinutes);
+
+                // Update user total hours for the date
+                byDateWithComments[commentDateStr].userTotalHours[userId] = byDateWithComments[commentDateStr].userTotalHours[userId] || {
+                    totalHours: 0,
+                    totalMinutes: 0,
+                    totalHoursFormatted: ''
+                };
+                byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes += minutes;
+                byDateWithComments[commentDateStr].userTotalHours[userId].totalHours = +(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes / 60).toFixed(2);
+                byDateWithComments[commentDateStr].userTotalHours[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes);
+
+                // Mark user's task as completed if it has at least one non-auto comment
+                if (!comment.auto) {
+                    byDateWithComments[commentDateStr].users[userId].completedTasks++;
+                }
+            }
+        }
+    }
+
+    // Convert the byDateWithComments object to an array
+    const byDateArray = Object.values(byDateWithComments).map((dateData: any) => {
+        // Calculate total minutes for each user across all tasks
+        const userMinutes: {[key: string]: number} = {};
+
+        // Process all tasks to collect user minutes
+        Object.values(dateData.tasks).forEach((task: any) => {
+            task.comments.forEach((comment: any) => {
+                const userId = comment.user;
+                if (!userId) return;
+
+                userMinutes[userId] = (userMinutes[userId] || 0) + (comment.minutes || 0);
+            });
+        });
+
+        // Create enhanced user data with total minutes
+        const enhancedUsers = Object.values(dateData.users).map((userData: any) => {
+            const userId = userData.user.id.toString();
+            return {
+                user: userData.user,
+                completedTasks: userData.completedTasks,
+                pendingTasks: userData.pendingTasks,
+                pendingTasksWithAutoComments: userData.pendingTasksWithAutoComments,
+                totalHours: +(userMinutes[userId] / 60 || 0).toFixed(2),
+                totalMinutes: userMinutes[userId] || 0,
+                totalHoursFormatted: formatMinutesToHoursAndMinutes(userMinutes[userId] || 0)
+            };
+        });
+
+        return {
+            date: dateData.date,
+            completedTasks: dateData.completedTasks,
+            pendingTasks: dateData.pendingTasks,
+            pendingTasksWithAutoComments: dateData.pendingTasksWithAutoComments,
+            totalHours: dateData.totalHours,
+            totalMinutes: dateData.totalMinutes,
+            totalHoursFormatted: dateData.totalHoursFormatted,
+            tasks: Object.values(dateData.tasks), // Keep tasks array at the date level
+            users: enhancedUsers,
+            userTotalHours: Object.entries(dateData.userTotalHours).map(([userId, hours]: [string, any]) => ({
+                userId,
+                totalHours: hours.totalHours,
+                totalMinutes: hours.totalMinutes,
+                totalHoursFormatted: hours.totalHoursFormatted,
+                user: getUserInfo(userId)
+            }))
+        };
+    });
+
     return {
-        byUser: Object.values(result.byUser),
-        byDate: Object.values(result.byDate).map((d: any) => ({ ...d, users: Object.values(d.users) }))
-            .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+        byUser: Object.values(result.byUser).map((user: any) => ({
+            user: user.user,
+            completedTasks: user.completedTasks,
+            pendingTasks: user.pendingTasks,
+            pendingTasksWithAutoComments: user.pendingTasksWithAutoComments,
+            totalHours: user.totalHours,
+            tasks: user.tasks // Keep tasks array at the user level for backward compatibility
+        })),
+        // Use our new date-based data that correctly groups comments by date
+        byDate: byDateArray.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
         summary: result.summary,
         users: result.users,
-        dateRange: { start, end }
+        dateRange: {
+            start: getDateString(start),
+            end: getDateString(end)
+        }
     };
 }
