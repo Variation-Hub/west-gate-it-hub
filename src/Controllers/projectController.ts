@@ -1218,9 +1218,15 @@ export const getProjects = async (req: any, res: Response) => {
 
         // Filter by assigned bid manager ID
         if (assignBidManagerId) {
-            // Find tasks assigned to this bid manager
+            // Convert to array if it's a single value or split comma-separated values
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
             const tasks = await taskModel.find({
-                'assignTo.userId': assignBidManagerId,
+                'assignTo.userId': { $in: bidManagerIds },
             }).select('project');
 
             // Extract project IDs from tasks
@@ -1668,6 +1674,60 @@ export const getProjects = async (req: any, res: Response) => {
 
         //     return result;
         // });
+        let bidManagerCounts = [];
+
+        let bidManagers;
+
+        if (assignBidManagerId) {
+            // If filtering by specific bid managers, only get counts for those managers
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
+            bidManagers = await userModel.find({
+                _id: { $in: bidManagerIds },
+                role: userRoles.ProjectManager
+            }).select('_id name email');
+        } else {
+            bidManagers = await userModel.find({
+                role: userRoles.ProjectManager
+            }).select('_id name email');
+        }
+
+        // Get counts for each bid manager
+        bidManagerCounts = await Promise.all(
+            bidManagers.map(async (manager) => {
+                const tasks = await taskModel.find({
+                    'assignTo.userId': manager._id.toString()
+                }).select('project');
+
+                const projectIds = [...new Set(tasks.map(task => task.project?.toString()))].filter(Boolean);
+
+                // Create a base filter without the _id constraint from the original filter
+                const baseFilter = { ...filter };
+                if (baseFilter._id) {
+                    delete baseFilter._id;
+                }
+
+                let projectCount = 0;
+                if (projectIds.length > 0) {
+                    // Count projects for this manager that match the filter
+                    projectCount = await projectModel.countDocuments({
+                        _id: { $in: projectIds },
+                        ...baseFilter
+                    });
+                }
+
+                return {
+                    _id: manager._id,
+                    name: manager.name,
+                    email: manager.email,
+                    projectCount
+                };
+            })
+        );
 
         return res.status(200).json({
             message: "projects fetch success",
@@ -1679,7 +1739,8 @@ export const getProjects = async (req: any, res: Response) => {
                     items: count,
                     page_size: req.pagination?.limit,
                     pages: Math.ceil(count / (req.pagination?.limit as number))
-                }
+                },
+                bidManagerCounts
             }
         });
     } catch (err: any) {
