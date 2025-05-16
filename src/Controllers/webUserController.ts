@@ -231,6 +231,7 @@ export const resetPassword = async (req: Request, res: Response) => {
         }
 
         user.password = password;
+        user.companyActive = true;
 
         await user.save();
 
