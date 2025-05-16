@@ -766,6 +766,7 @@ export const getProjects = async (req: any, res: Response) => {
         let filter: any = {}
 
         if (keyword) {
+            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const data = (await taskModel.aggregate([
                 {
                     $addFields: {
@@ -807,10 +808,10 @@ export const getProjects = async (req: any, res: Response) => {
             filter = {
                 $or: [
                     { BOSID: keyword },
-                    { clientName: { $regex: keyword, $options: 'i' } },
-                    { website: { $regex: keyword, $options: 'i' } },
-                    { projectName: { $regex: keyword, $options: 'i' } },
-                    { noticeReference: { $regex: keyword, $options: 'i' } },
+                    { clientName: { $regex: safeKeyword, $options: 'i' } },
+                    { website: { $regex: safeKeyword, $options: 'i' } },
+                    { projectName: { $regex: safeKeyword, $options: 'i' } },
+                    { noticeReference: { $regex: safeKeyword, $options: 'i' } },
                     { _id: data }
                 ]
             };
@@ -1981,8 +1982,8 @@ export const updateProject = async (req: any, res: Response) => {
         project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
         project.eligibilityForm = eligibilityForm || project.eligibilityForm;
         project.categorisation = categorisation || project.categorisation;
-        project.loginID = loginID || project.loginID;
-        project.password = password || project.password;
+        project.loginID = loginID !== undefined ? loginID : project.loginID;
+        project.password = password !== undefined ? password : project.password;
         project.linkToPortal = linkToPortal || project.linkToPortal;
         project.documentsLink = documentsLink || project.documentsLink;
         project.chatGptLink = chatGptLink || project.chatGptLink;
