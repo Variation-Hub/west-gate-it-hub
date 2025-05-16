@@ -1227,10 +1227,19 @@ export const getProjects = async (req: any, res: Response) => {
 
             const tasks = await taskModel.find({
                 'assignTo.userId': { $in: bidManagerIds },
-            }).select('project');
+            }).select('project assignTo');
 
-            // Extract project IDs from tasks
-            const projectIds = tasks.map(task => task.project);
+            // Filter tasks to only include those where the first assignee is one of the specified bid managers
+            const filteredTasks = tasks.filter(task => {
+                if (task.assignTo && task.assignTo.length > 0) {
+                    const firstAssigneeId = task.assignTo[0].userId?.toString();
+                    return bidManagerIds.includes(firstAssigneeId);
+                }
+                return false;
+            });
+
+            // Extract project IDs from filtered tasks
+            const projectIds = filteredTasks.map(task => task.project);
 
             // Add to filter
             if (projectIds.length > 0) {
@@ -1701,9 +1710,24 @@ export const getProjects = async (req: any, res: Response) => {
             bidManagers.map(async (manager) => {
                 const tasks = await taskModel.find({
                     'assignTo.userId': manager._id.toString()
-                }).select('project');
+                }).select('project assignTo');
 
-                const projectIds = [...new Set(tasks.map(task => task.project?.toString()))].filter(Boolean);
+                let projectIds;
+
+                // Only filter by first assignee if assignBidManagerId is provided
+                if (assignBidManagerId) {
+                    const filteredTasks = tasks.filter(task => {
+                        if (task.assignTo && task.assignTo.length > 0) {
+                            const firstAssigneeId = task.assignTo[0].userId?.toString();
+                            return firstAssigneeId === manager._id.toString();
+                        }
+                        return false;
+                    });
+
+                    projectIds = [...new Set(filteredTasks.map(task => task.project?.toString()))].filter(Boolean);
+                } else {
+                    projectIds = [...new Set(tasks.map(task => task.project?.toString()))].filter(Boolean);
+                }
 
                 // Create a base filter without the _id constraint from the original filter
                 const baseFilter = { ...filter };
@@ -3132,7 +3156,7 @@ export const newProjectAddMail = async (req: Request, res: Response) => {
 
 export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, expired, categorisation } = req.query;
+        const { startDate, endDate, expired, categorisation, assignBidManagerId } = req.query;
 
         let createdAtFilter: any = {};
 
@@ -3156,6 +3180,87 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
         if (categorisation) {
             createdAtFilter.categorisation = categorisation
         }
+
+        let projectIds: any[] = [];
+        if (assignBidManagerId) {
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
+            const tasks = await taskModel.find({
+                'assignTo.userId': { $in: bidManagerIds },
+            }).select('project assignTo');
+
+            const filteredTasks = tasks.filter(task => {
+                if (task.assignTo && task.assignTo.length > 0) {
+                    const firstAssigneeId = task.assignTo[0].userId?.toString();
+                    return bidManagerIds.includes(firstAssigneeId);
+                }
+                return false;
+            });
+
+            // Extract project IDs from filtered tasks
+            projectIds = filteredTasks.map(task => task.project);
+
+            if (projectIds.length > 0) {
+                createdAtFilter._id = { $in: projectIds };
+            } else {
+                // If no projects found, return empty result
+                return res.status(200).json({
+                    message: "data fetch success",
+                    status: true,
+                    data: {
+                        FeasibilityStatusCount: {
+                            "Awaiting": 0,
+                            "InProgress": 0,
+                            "InHold": 0,
+                            "DocumentsNotFound": 0,
+                            "Passed": 0,
+                            "Fail": 0,
+                            "Not Releted": 0
+                        },
+                        FeasibilityStatusValue: {
+                            "Awaiting": 0,
+                            "InProgress": 0,
+                            "InHold": 0,
+                            "DocumentsNotFound": 0,
+                            "Passed": 0,
+                            "Fail": 0,
+                            "Not Releted": 0
+                        },
+                        BidStatusCount: {
+                            "Shortlisted": 0,
+                            "Awaiting": 0,
+                            "Go-NoGoStage1": 0,
+                            "SupplierConfirmation": 0,
+                            "Go-NoGoStage2": 0,
+                            "InSolution": 0,
+                            "WaitingForResult": 0,
+                            "Awarded": 0,
+                            "NotAwarded": 0,
+                            "Dropped after feasibility": 0,
+                            "Nosuppliermatched": 0,
+                        },
+                        BidStatusValue: {
+                            "Shortlisted": 0,
+                            "Awaiting": 0,
+                            "Go-NoGoStage1": 0,
+                            "SupplierConfirmation": 0,
+                            "Go-NoGoStage2": 0,
+                            "InSolution": 0,
+                            "WaitingForResult": 0,
+                            "Awarded": 0,
+                            "NotAwarded": 0,
+                            "Dropped after feasibility": 0,
+                            "Nosuppliermatched": 0,
+                        }
+                    }
+                });
+            }
+        }
+
         const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
         let data: any = {
             FeasibilityStatusCount: {
