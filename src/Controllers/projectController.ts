@@ -306,7 +306,7 @@ export const getProject = async (req: any, res: Response) => {
             }
         ]);
 
-        if (project.length === 0) {
+        if (project?.length === 0) {
             return res.status(404).json({
                 message: "Project not found",
                 status: false,
@@ -315,14 +315,14 @@ export const getProject = async (req: any, res: Response) => {
         }
         project = project[0];
 
-        if (project.category.length) {
+        if (project?.category?.length) {
             project.casestudy = await caseStudy.find({
                 verify: true,
                 category: { $in: project.category }
             });
         }
 
-        if (project.select.length > 0) {
+        if (project?.select?.length > 0) {
             const supplierIds = project.select.map((item: any) => item.supplierId);
 
             const users = await userModel.find({
@@ -348,13 +348,13 @@ export const getProject = async (req: any, res: Response) => {
             project.select = updatedSelect;
         }
 
-        if (project.casestudy?.length > 0) {
+        if (project?.casestudy?.length > 0) {
             project.casestudy = project.casestudy.filter((casestudy: any) =>
                 casestudy.userId?.toString() === req.user.id
             );
         }
 
-        if (project.sortlistedUsers.length > 0) {
+        if (project?.sortlistedUsers?.length > 0) {
             const updatedSelect = await Promise.all(
                 project.sortlistedUsers.map(async (item: any) => {
                     const matchedCaseStudy = await caseStudy.find({
@@ -373,7 +373,7 @@ export const getProject = async (req: any, res: Response) => {
             project.sortlistedUsers = updatedSelect;
         }
 
-        if (project.statusHistory.length > 0) {
+        if (project?.statusHistory?.length > 0) {
             const userIds = project.statusHistory.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -394,7 +394,7 @@ export const getProject = async (req: any, res: Response) => {
             project.statusHistory = updatedStatusHistory;
         }
 
-        if (project.statusComment.length > 0) {
+        if (project?.statusComment?.length > 0) {
             const userIds = project.statusComment.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -411,7 +411,7 @@ export const getProject = async (req: any, res: Response) => {
 
             project.statusComment = updatedStatusHistory;
         }
-        if (project.bidManagerStatusComment.length > 0) {
+        if (project?.bidManagerStatusComment?.length > 0) {
             const userIds = project.bidManagerStatusComment.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -429,7 +429,7 @@ export const getProject = async (req: any, res: Response) => {
             project.bidManagerStatusComment = updatedStatusHistory;
         }
 
-        if (project.dropUser.length > 0) {
+        if (project?.dropUser?.length > 0) {
             const userIds = project.dropUser.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -446,7 +446,7 @@ export const getProject = async (req: any, res: Response) => {
             project.dropUser = updatedStatusHistory;
         }
 
-        if (project.failStatusReason.length > 0) {
+        if (project?.failStatusReason?.length > 0) {
             const userIds = project.failStatusReason.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -610,7 +610,7 @@ export const getProject = async (req: any, res: Response) => {
         ]);
         let assignBidmanager: any = [];
         let assignFeasibilityUser: any = [];
-        if (bidlatestTask.length > 0) {
+        if (bidlatestTask?.length > 0) {
 
             assignBidmanager = [
                 {
@@ -622,7 +622,7 @@ export const getProject = async (req: any, res: Response) => {
                 }
             ];
         }
-        if (feasibilitylatestTask.length > 0) {
+        if (feasibilitylatestTask?.length > 0) {
 
             assignFeasibilityUser = [
                 {
