@@ -48,6 +48,17 @@ export const createProject = async (req: any, res: Response) => {
             });
         }
 
+        if (data?.length == 1) {
+            const existingProject = await projectModel.findOne({ BOSID: data?.[0]?.BOSID });
+            if (existingProject) {
+                return res.status(400).json({
+                    message: `${data?.[0]?.BOSID} BossId already exist.`,
+                    status: false,
+                    data: null
+                });
+            }
+        }
+
         const insertedProjects = [];
         const updatedProjects = [];
         const casestudyData = await getCategoryWithUserIds();
@@ -71,7 +82,7 @@ export const createProject = async (req: any, res: Response) => {
                 project.expiredData = (() => {
                     const matchedCategory = casestudyData.find(data =>
                         data.category === project.category
-                       // project.category.some((category: string) => category === data.category)
+                        // project.category.some((category: string) => category === data.category)
                     );
                     if (matchedCategory) {
                         return matchedCategory.userIds.map((userId: string) => ({
@@ -97,8 +108,8 @@ export const createProject = async (req: any, res: Response) => {
                     type: "projectBased"
                 };
                 const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
-                if (existingProject) {
 
+                if (existingProject) {
                     const { statusHistory, logs, ...projectWithoutArrays } = project;
                     // Update existing record
                     const updatedProject = await projectModel.findOneAndUpdate(
@@ -295,7 +306,7 @@ export const getProject = async (req: any, res: Response) => {
             }
         ]);
 
-        if (project.length === 0) {
+        if (project?.length === 0) {
             return res.status(404).json({
                 message: "Project not found",
                 status: false,
@@ -304,14 +315,14 @@ export const getProject = async (req: any, res: Response) => {
         }
         project = project[0];
 
-        if (project.category.length) {
+        if (project?.category?.length) {
             project.casestudy = await caseStudy.find({
                 verify: true,
                 category: { $in: project.category }
             });
         }
 
-        if (project.select.length > 0) {
+        if (project?.select?.length > 0) {
             const supplierIds = project.select.map((item: any) => item.supplierId);
 
             const users = await userModel.find({
@@ -337,13 +348,13 @@ export const getProject = async (req: any, res: Response) => {
             project.select = updatedSelect;
         }
 
-        if (project.casestudy?.length > 0) {
+        if (project?.casestudy?.length > 0) {
             project.casestudy = project.casestudy.filter((casestudy: any) =>
                 casestudy.userId?.toString() === req.user.id
             );
         }
 
-        if (project.sortlistedUsers.length > 0) {
+        if (project?.sortlistedUsers?.length > 0) {
             const updatedSelect = await Promise.all(
                 project.sortlistedUsers.map(async (item: any) => {
                     const matchedCaseStudy = await caseStudy.find({
@@ -362,7 +373,7 @@ export const getProject = async (req: any, res: Response) => {
             project.sortlistedUsers = updatedSelect;
         }
 
-        if (project.statusHistory.length > 0) {
+        if (project?.statusHistory?.length > 0) {
             const userIds = project.statusHistory.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -383,7 +394,7 @@ export const getProject = async (req: any, res: Response) => {
             project.statusHistory = updatedStatusHistory;
         }
 
-        if (project.statusComment.length > 0) {
+        if (project?.statusComment?.length > 0) {
             const userIds = project.statusComment.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -400,7 +411,7 @@ export const getProject = async (req: any, res: Response) => {
 
             project.statusComment = updatedStatusHistory;
         }
-        if (project.bidManagerStatusComment.length > 0) {
+        if (project?.bidManagerStatusComment?.length > 0) {
             const userIds = project.bidManagerStatusComment.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -418,7 +429,7 @@ export const getProject = async (req: any, res: Response) => {
             project.bidManagerStatusComment = updatedStatusHistory;
         }
 
-        if (project.dropUser.length > 0) {
+        if (project?.dropUser?.length > 0) {
             const userIds = project.dropUser.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -435,7 +446,7 @@ export const getProject = async (req: any, res: Response) => {
             project.dropUser = updatedStatusHistory;
         }
 
-        if (project.failStatusReason.length > 0) {
+        if (project?.failStatusReason?.length > 0) {
             const userIds = project.failStatusReason.map((item: any) => item.userId);
             const users = await userModel.find({
                 _id: { $in: userIds }
@@ -599,7 +610,7 @@ export const getProject = async (req: any, res: Response) => {
         ]);
         let assignBidmanager: any = [];
         let assignFeasibilityUser: any = [];
-        if (bidlatestTask.length > 0) {
+        if (bidlatestTask?.length > 0) {
 
             assignBidmanager = [
                 {
@@ -611,7 +622,7 @@ export const getProject = async (req: any, res: Response) => {
                 }
             ];
         }
-        if (feasibilitylatestTask.length > 0) {
+        if (feasibilitylatestTask?.length > 0) {
 
             assignFeasibilityUser = [
                 {
@@ -625,7 +636,7 @@ export const getProject = async (req: any, res: Response) => {
         }
 
         if (project?.selectedUserIds?.length) {
-            const userIds = project.selectedUserIds.map((u:any) => u.userId);
+            const userIds = project.selectedUserIds.map((u: any) => u.userId);
 
             const users = await userModel.find({ _id: { $in: userIds } }).select("name");
             project.selectedUserIds = project.selectedUserIds.map((sel: any) => {
@@ -1824,14 +1835,14 @@ function areArraysEqual(arr1: any[], arr2: any[]): boolean {
 }
 
 const formatDateIfNeeded = (value: any): string => {
-            if (!value) return "";
+    if (!value) return "";
 
-            const date = new Date(value);
-            return date.toLocaleString("en-GB", {
-                timeZone: "Asia/Kolkata",
-                hour12: false
-            });
-        };
+    const date = new Date(value);
+    return date.toLocaleString("en-GB", {
+        timeZone: "Asia/Kolkata",
+        hour12: false
+    });
+};
 
 export const updateProject = async (req: any, res: Response) => {
     try {
@@ -1936,12 +1947,11 @@ export const updateProject = async (req: any, res: Response) => {
                         continue;
                     }
                     logEntry = {
-                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${
-                            !isEmpty(oldValue)
-                              ? `updated from ${oldValue} to ${newValue}`
-                              : `updated to ${newValue}`
-                          }`,
-                          userId: req.user._id,
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
+                            ? `updated from ${oldValue} to ${newValue}`
+                            : `updated to ${newValue}`
+                            }`,
+                        userId: req.user._id,
                         date: new Date(),
                         type: "projectBased"
                     };
@@ -1987,6 +1997,43 @@ export const updateProject = async (req: any, res: Response) => {
         project.linkToPortal = linkToPortal || project.linkToPortal;
         project.documentsLink = documentsLink || project.documentsLink;
         project.chatGptLink = chatGptLink || project.chatGptLink;
+
+        // project.projectName = projectName;
+        // project.category = category;
+        // project.industry = industry;
+        // project.description = description;
+        // project.BOSID = BOSID;
+        // project.publishDate = publishDate;
+        // project.submission = submission;
+        // project.link = link;
+        // project.periodOfContractStart = periodOfContractStart;
+        // project.periodOfContractEnd = periodOfContractEnd;
+        // project.dueDate = dueDate;
+        // project.bidsubmissiontime = bidsubmissiontime;
+        // project.projectType = projectType;
+        // project.website = website;
+        // project.mailID = mailID;
+        // project.clientType = clientType;
+        // project.clientName = clientName;
+        // project.supportingDocs = supportingDocs;
+        // project.noticeReference = noticeReference;
+        // project.CPVCodes = CPVCodes;
+        // project.minValue = minValue;
+        // project.maxValue = maxValue;
+        // project.value = value;
+        // project.status = status;
+        // project.bidsubmissionhour = bidsubmissionhour;
+        // project.bidsubmissionminute = bidsubmissionminute;
+        // project.bidManagerStatus = bidManagerStatus;
+        // project.bidManagerStatusComment = bidManagerStatusComment;
+        // project.BidWritingStatus = BidWritingStatus;
+        // project.eligibilityForm = eligibilityForm;
+        // project.categorisation = categorisation;
+        // project.loginID = loginID !== undefined ? loginID : project.loginID;
+        // project.password = password !== undefined ? password : project.password;
+        // project.linkToPortal = linkToPortal;
+        // project.documentsLink = documentsLink;
+        // project.chatGptLink = chatGptLink;
 
         if (droppedAfterFeasibilityStatusReason?.length > 0) {
             droppedAfterFeasibilityStatusReason = droppedAfterFeasibilityStatusReason.map((item: any) => {
@@ -2095,7 +2142,7 @@ export const sortList = async (req: any, res: Response) => {
 
         for (const userId of userIds) {
             if (!project.sortListUserId.includes(userId)) {
-                    project.sortListUserId.push(userId);
+                project.sortListUserId.push(userId);
 
                 // const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
 
@@ -2523,8 +2570,8 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                 else if (updatedComment && field === "status") {
                     logEntry = {
                         log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
-                                ? `updated from ${oldValue} to ${newValue} - ${updatedComment}`
-                                : `updated to ${newValue} - ${updatedComment}`
+                            ? `updated from ${oldValue} to ${newValue} - ${updatedComment}`
+                            : `updated to ${newValue} - ${updatedComment}`
                             }`,
                         userId: req.user._id,
                         date: new Date(),
@@ -2551,7 +2598,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                         ${!isEmpty(oldValue)
                                 ? `updated from ${oldValue} to ${newValue}`
                                 : `updated to ${newValue}`
-                        }`,
+                            }`,
                         userId: req.user._id,
                         date: new Date(),
                         type: "projectBased"

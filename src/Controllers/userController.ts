@@ -478,7 +478,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             {
                 $facet: {
                     totalCount: [{ $count: "count" }],
-                    activeCount: [{ $match: { active: true } }, { $count: "count" }],
+                    activeCount: [{ $match: { active: true, isDeleted: false  } }, { $count: "count" }],
                     inActiveCount: [{ $match: { active: false, isDeleted: false, isInHold: false } }, { $count: "count" }],
                     resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
                     subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
@@ -494,6 +494,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
+        
+        console.log("user", user)
 
         const userIds = user.map(u => u._id);
 

@@ -345,7 +345,7 @@ export const getTasks = async (req: any, res: Response) => {
         }
 
         let allTasks = await taskModel.find(filter)
-            .populate("project", "projectName status bidManagerStatus")
+            .populate("project", "projectName status bidManagerStatus adminStatus")
             .sort(sortOptions)
             .exec();
 
