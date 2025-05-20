@@ -1943,7 +1943,7 @@ export const updateProject = async (req: any, res: Response) => {
                     };
                 }
                 else {
-                    if (areArraysEqual(newValue, oldValue)) {
+                    if (Array.isArray(newValue) && Array.isArray(oldValue) && areArraysEqual(newValue, oldValue)) {
                         continue;
                     }
                     logEntry = {
@@ -2590,7 +2590,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
                     };
                 }
                 else {
-                    if (areArraysEqual(newValue, oldValue)) {
+                    if (Array.isArray(newValue) && Array.isArray(oldValue) && areArraysEqual(newValue, oldValue)) {
                         continue;
                     }
                     logEntry = {

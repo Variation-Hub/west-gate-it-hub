@@ -1173,10 +1173,6 @@ export const getTaskGraphData = async (req: any, res: Response) => {
 
         const userIdArray = userIds ? userIds.split(',') : [];
 
-        // Create the base filter without status for custom status handling
-        // We want to include tasks that either:
-        // 1. Were created within the date range, OR
-        // 2. Have comments within the date range
         const filter: any = {
             $or: [
                 // Tasks created within the date range
@@ -1618,15 +1614,31 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
         };
     });
 
-    return {
-        byUser: Object.values(result.byUser).map((user: any) => ({
+    const processedByUser = Object.values(result.byUser).map((user: any) => {
+        const filteredTasks = user.tasks.map((task: any) => {
+            const filteredComments = task.comments.filter((comment: any) => {
+                const commentUserId = comment.user.toString();
+                return commentUserId === user.user.id.toString();
+            });
+
+            return {
+                ...task,
+                comments: filteredComments
+            };
+        });
+
+        return {
             user: user.user,
             completedTasks: user.completedTasks,
             pendingTasks: user.pendingTasks,
             pendingTasksWithAutoComments: user.pendingTasksWithAutoComments,
             totalHours: user.totalHours,
-            tasks: user.tasks // Keep tasks array at the user level for backward compatibility
-        })),
+            tasks: filteredTasks
+        };
+    });
+
+    return {
+        byUser: processedByUser,
         // Use our new date-based data that correctly groups comments by date
         byDate: byDateArray.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
         summary: result.summary,
