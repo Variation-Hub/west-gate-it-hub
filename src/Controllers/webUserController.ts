@@ -778,6 +778,28 @@ export const getAlldata = async (req: any, res: Response) => {
         }
 
         //const count = await masterList.countDocuments(queryObj);
+        if (!type) {
+            const groupedData = await masterList.aggregate([
+                { $match: queryObj },
+                { $sort: { createdAt: -1 } },
+                {
+                    $group: {
+                        _id: "$type",
+                        items: { $push: "$$ROOT" }
+                    }
+                }
+            ]);
+
+            const formattedData = groupedData.map(group => ({
+                [group._id]: group.items
+            }));
+
+            return res.status(200).json({
+                message: "Data successfully fetched and grouped by type",
+                status: true,
+                data: formattedData
+            });
+        }
 
         const data = await masterList.find(queryObj)
             .limit(req.pagination?.limit as number)
