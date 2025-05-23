@@ -790,14 +790,30 @@ export const getAlldata = async (req: any, res: Response) => {
                 }
             ]);
 
-            const formattedData = groupedData.map(group => ({
-                [group._id]: group.items
-            }));
+            const mergedMap: Record<string, any[]> = {};
+
+            for (const group of groupedData) {
+                const typeKey = group._id;
+                const items = group.items;
+
+                if (!mergedMap[typeKey]) mergedMap[typeKey] = [];
+
+                for (const item of items) {
+                    // If isSystem: false, try to push into <type>-other
+                    if (item.isSystem === false && !typeKey.endsWith("-other")) {
+                        const otherType = `${typeKey}-other`;
+                        if (!mergedMap[otherType]) mergedMap[otherType] = [];
+                        mergedMap[otherType].push(item);
+                    } else {
+                        mergedMap[typeKey].push(item);
+                    }
+                }
+            }
 
             return res.status(200).json({
-                message: "Data successfully fetched and grouped by type",
+                message: "Data successfully fetched",
                 status: true,
-                data: formattedData
+                data: Object.entries(mergedMap).map(([key, value]) => ({ [key]: value }))
             });
         }
 
