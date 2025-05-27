@@ -84,6 +84,7 @@ export const BidManagerStatus = {
     GoNoGoStage1: "Go-NoGoStage1",
     SupplierConfirmation: "SupplierConfirmation",
     GoNoGoStage2: "Go-NoGoStage2",
+    QueryRaised: "Query Raised"
 }
 
 export const projectStatus1 = {
