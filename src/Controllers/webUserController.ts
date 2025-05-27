@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
-import { fromMail, emailHelper, sendRegisterMailToSupplier, transporter } from "../Util/nodemailer"
+import { fromMail, emailHelper, sendRegisterMailToSupplier, transporter, sendMailForProfileUpdate } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { subExpertise, userRoles, generatePass } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
@@ -70,8 +70,11 @@ export const registerWebUser = async (req: Request, res: Response) => {
         req.body.name = companyName
         const newUser: any = await userModel.create(req.body)
 
-        await sendMail(req.body)
-        // await sendRegisterMailToSupplier(req.body?.email);
+        await sendMail(req.body);
+
+        if (req.body?.isSendMail || req.body?.isSendMail == 'true' || req.body?.isSendMail == 'True') {
+            await sendMailForProfileUpdate(req.body?.poc_email, newUser._id);
+        }
 
         const token = generateToken({
             id: newUser._id,
@@ -285,11 +288,6 @@ export const getWebUser = async (req: any, res: Response) => {
             message: "User detail fetch success",
             status: true,
             data: user
-        });
-
-        return res.status(200).json({
-            message: "mail send successfully",
-            status: true,
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -1174,3 +1172,31 @@ export const deleteMasterListExpertise = async (req: Request, res: Response) => 
         });
     }
 };
+
+export const getWebUserPublic = async (req: any, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const user = await userModel.findById(id).select({ password: 0 });;
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        return res.status(200).json({
+            message: "User detail fetch success",
+            status: true,
+            data: user
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}

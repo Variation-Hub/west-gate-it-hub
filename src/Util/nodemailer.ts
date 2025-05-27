@@ -292,21 +292,23 @@ export async function sendContactEmail(recipientEmail: string, formData: any) {
     }
 }
 
+// Mail Configuration
+export const transporterTest = nodemailer.createTransport({
+    host: "smtpout.secureserver.net",
+    port: 587,
+    secure: false, // use STARTTLS
+    auth: {
+        user: "no-reply@westgateithub.in",  // your email
+        pass: "Abhishek23*",        // app password or mailbox password
+    }
+});
+
 // Function to be used for the send mail to new register supplier for reset password 
 export async function sendRegisterMailToSupplier(receiverEmail: string) {
     try {
-        const transporterTest = nodemailer.createTransport({
-            host: "smtpout.secureserver.net",
-            port: 587,
-            secure: false, // use STARTTLS
-            auth: {
-                user: "no-reply@westgateithub.in",  // your email
-                pass: "Abhishek23*",        // app password or mailbox password
-            }
-        });
-
         const resetLink = `https://supplier.westgateithub.com/#/reset-password?email=${receiverEmail}`;
-        
+        // const resetLink = `http://localhost:3000/#/update-profile?email=${receiverEmail}`;
+
         const template = `
         <!DOCTYPE html>
         <html>
@@ -385,6 +387,90 @@ export async function sendRegisterMailToSupplier(receiverEmail: string) {
             text: `Your profile has been activated. Please set your password by visiting: ${resetLink}`,
             html: template,
         });
+    } catch (error) {
+        console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
+    }
+}
+
+// Function to be used for the send mail for update the profile for supplier
+export async function sendMailForProfileUpdate(receiverEmail: string, id: string) {
+    try {
+        const updateProfileLink = `https://supplier.westgateithub.com/#/update-profile?id=${id}`;
+        // const updateProfileLink = `http://localhost:3000/#/update-profile?id=${id}`;
+
+        const template = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                    }
+                    .container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    .header {
+                        text-align: center;
+                        padding: 20px 0;
+                    }
+                    .content {
+                        padding: 20px;
+                        background-color: #ffffff;
+                    }
+                    .button {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        background-color: #0078d4;
+                        color: #ffffff;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        margin: 20px 0;
+                    }
+                    .footer {
+                        text-align: center;
+                        padding: 20px;
+                        font-size: 14px;
+                        color: #666666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="content">
+                        <h2>Action Required – Please Update Your Profile</h2>
+                        
+                        <p>Dear User,</p>
+                        
+                        <p>This is an auto-generated email to notify you that your profile requires an update on our portal. To ensure we have accurate and up-to-date information, please take a moment to review and update your profile.</p>
+                        
+                        <h3>Update your profile:</h3>
+                        <p>Click the button below to update your profile. A new tab will open to guide you through the update process.</p>
+                        <a href="${updateProfileLink}" target="_blank" class="button" style="color: #ffffff;">Update Your Profile</a>
+                        
+                        <h3>Need help?</h3>
+                        <p>If you experience any issues or have questions about updating your profile, feel free to reach out to our support team.</p>
+                        
+                        <p>Thank you for keeping your information up to date. We appreciate your cooperation!</p>
+                        
+                        <p>Best regards,<br>
+                        WestGate IT Hub (P) Ltd</p>
+                    </div>
+                </div>
+            </body>
+            </html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Your Profile Requires an Update – Action Needed",
+            text: `Your profile requires an update. Please visit the following link to update your profile:: ${updateProfileLink}`,
+            html: template,
+        });
+        console.log("sendMailForProfileUpdate Mail Send Successfully for profile update")
     } catch (error) {
         console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
     }

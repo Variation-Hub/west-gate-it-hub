@@ -235,6 +235,86 @@ export const updateUser = async (req: any, res: Response) => {
     }
 };
 
+// Function to be used for update public details
+export const publicUpdateUser = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const updateData = req.body;
+
+        updateData['isPOCUserUpdate'] = true;
+
+        // Find user by ID
+        const user = await userModel.findById(id);
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            });
+        }
+
+        if (updateData.active === false) {
+            user.inactiveDate = new Date();
+
+            await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
+
+            const logEntry = {
+                log: updateData.activeStatus,
+                userId: req?.user?._id || 'POC user',
+                date: new Date()
+            };
+            
+            user.activeStatus.push(logEntry);
+            delete updateData.activeStatus;
+        }
+
+        if (updateData.active === true) {
+            if (user.subcontractingSupplier) {
+                let countCaseStudy = await caseStudy.find({ userId: id })
+
+                if (countCaseStudy.length === 0) {
+                    return res.status(400).json({
+                        message: "Supplier must have at least one Historical Data to be active.",
+                        status: false
+                    });
+                }
+            }
+
+            await sendRegisterMailToSupplier(user?.poc_email);
+            updateData.isInHold = false
+        }
+
+        if (updateData.inHoldComment && typeof updateData.inHoldComment === 'string' && updateData.inHoldComment.trim() !== '') {
+            user.inHoldComment.push({
+                comment: updateData.inHoldComment.trim(),
+                date: new Date()
+            });
+        }
+        delete updateData.inHoldComment;
+
+        // Update fields dynamically
+        Object.keys(updateData).forEach((key) => {
+            if (updateData[key] !== undefined) {
+                (user as any)[key] = updateData[key];
+            }
+        });
+
+        // Save updated user
+        const updatedUser = await user.save();
+
+        return res.status(200).json({
+            message: "User update success",
+            status: true,
+            data: updatedUser
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Internal server error",
+            status: false,
+            data: null
+        });
+    }
+};
 
 export const deleteUser = async (req: Request, res: Response) => {
     try {
@@ -478,7 +558,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             {
                 $facet: {
                     totalCount: [{ $count: "count" }],
-                    activeCount: [{ $match: { active: true, isDeleted: false  } }, { $count: "count" }],
+                    activeCount: [{ $match: { active: true, isDeleted: false } }, { $count: "count" }],
                     inActiveCount: [{ $match: { active: false, isDeleted: false, isInHold: false } }, { $count: "count" }],
                     resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
                     subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
@@ -494,7 +574,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
-        
+
         console.log("user", user)
 
         const userIds = user.map(u => u._id);

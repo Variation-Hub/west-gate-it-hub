@@ -14,4 +14,7 @@ roleRoute.get("/candidates-count", authorizeRoles(), getCount);
 roleRoute.get("/get-all", authorizeRoles(), roleList);
 roleRoute.get("/get-technologies", authorizeRoles(), getTechnologies);
 
+// Public available roles
+roleRoute.get("/public/get-technologies", getTechnologies);
+
 export default roleRoute;

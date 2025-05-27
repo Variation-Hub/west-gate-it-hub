@@ -19,7 +19,8 @@ import {
     getSupplierDetails,
     GetUserLogin,
     fetchSupplierWithProjectStatus,
-    resetPassword
+    resetPassword,
+    publicUpdateUser
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -54,4 +55,6 @@ userRoutes.get("/supplier/project/list", authorizeRoles(), paginationMiddleware,
 userRoutes.get("/admin/dashboard", authorizeRoles(), getAdminDashboardData)
 userRoutes.get("/admin/suppleir-statictics", authorizeRoles(), getAdminDashboardSuppliersStatistics)
 
+// public update API 
+userRoutes.patch("/public/update/:id", publicUpdateUser);
 export default userRoutes;

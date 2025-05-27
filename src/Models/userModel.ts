@@ -279,28 +279,28 @@ const userModel = new mongoose.Schema({
     },
     expertise: [
         {
-          itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
-          name: { type: String, default: "" },
-          type: { type: String, default: "" },
-          subExpertise: { type: [String], default: [] }
+            itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
+            name: { type: String, default: "" },
+            type: { type: String, default: "" },
+            subExpertise: { type: [String], default: [] }
         }
     ],
     expertiseICanDo: [
         {
-          itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
-          name: { type: String, default: "" },
-          type: { type: String, default: "" },
-          subExpertise: { type: [String], default: [] }
+            itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'masterList', default: null },
+            name: { type: String, default: "" },
+            type: { type: String, default: "" },
+            subExpertise: { type: [String], default: [] }
         }
     ],
     poc_name: { type: String, default: "" },
     poc_phone: { type: String, default: "" },
     poc_email: { type: String, default: "" },
     poc_role: { type: String, default: "" },
-    certifications: { 
+    certifications: {
         type: [String],
         default: [],
-     },
+    },
     logo: {
         type: mongoose.Schema.Types.Mixed,
         default: null,
@@ -355,6 +355,10 @@ const userModel = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    isPOCUserUpdate: {
+        type: Boolean,
+        default: false
     },
     updatedAt: {
         type: Date,

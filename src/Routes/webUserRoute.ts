@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword, getWebUserPublic } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -29,4 +29,11 @@ webUserRoutes.post("/add-sub-expertise", authorizeRoles(), addSubExpertiseToSupp
 webUserRoutes.delete("/expertise/:itemId", authorizeRoles(), deleteExpertise);
 webUserRoutes.delete("/expertise/:itemId/subexpertise", authorizeRoles(), deleteSubExpertise);
 webUserRoutes.get("/get-languages", authorizeRoles(), getlanguages);
+
+// Public available
+webUserRoutes.get("/public/drop-down-list", getAlldata);
+webUserRoutes.get("/public/sub-expertise/list", getAllSubExpertise);
+webUserRoutes.get("/public/drop-down", getAllExpertise2);   
+webUserRoutes.get("/public/get/:id", getWebUserPublic);
+
 export default webUserRoutes;
