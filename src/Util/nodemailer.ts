@@ -310,75 +310,94 @@ export async function sendRegisterMailToSupplier(receiverEmail: string) {
         // const resetLink = `http://localhost:3000/#/update-profile?email=${receiverEmail}`;
 
         const template = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    color: #333333;
-                }
-                .container {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding: 20px;
-                }
-                .header {
-                    text-align: center;
-                    padding: 20px 0;
-                }
-                .content {
-                    padding: 20px;
-                    background-color: #ffffff;
-                }
-                .button {
-                    display: inline-block;
-                    padding: 12px 24px;
-                    background-color: #0078d4;
-                    color: #ffffff;
-                    text-decoration: none;
-                    border-radius: 4px;
-                    margin: 20px 0;
-                }
-                .footer {
-                    text-align: center;
-                    padding: 20px;
-                    font-size: 14px;
-                    color: #666666;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="content">
-                    <h2>Your Profile is Activated – Please Set Your Password</h2>
-                    
-                    <p>Dear Supplier,</p>
-                    
-                    <p>This is an auto-generated email to inform you that your profile has been successfully activated on our supplier portal. To get started, please follow the steps below:</p>
-                    
-                    <h3>Set your password:</h3>
-                    <p>Click the button below to set your password and gain access to the portal.</p>
-                    <a href="${resetLink}" class="button" style="color: #ffffff;">Set Your Password</a>
-                    
-                    <h3>Login to the portal:</h3>
-                    <p>Once your password is set, you can log in here:<br>
-                    <a href="https://supplier.westgateithub.com/">https://supplier.westgateithub.com/</a></p>
-                    
-                    <h3>Track project progress:</h3>
-                    <p>After logging in, you'll be able to easily track the progress of your projects, view updates, and manage your tasks.</p>
-                    
-                    <p>If you have any questions or run into any issues, please don't hesitate to reach out to us. We're here to help!</p>
-                    
-                    <p>Looking forward to working together and supporting you throughout the project journey.</p>
-                    
-                    <p>Best regards,<br>
-                    WestGate IT Hub (P) Ltd</p>
+            <!DOCTYPE html>
+            <html>
+
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                    }
+
+                    .container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+
+                    .header {
+                        text-align: center;
+                        padding: 20px 0;
+                    }
+
+                    .content {
+                        padding: 20px;
+                        background-color: #ffffff;
+                    }
+
+                    .button {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        background-color: #0078d4;
+                        color: #ffffff;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        margin: 20px 0;
+                    }
+
+                    .footer {
+                        text-align: center;
+                        padding: 20px;
+                        font-size: 14px;
+                        color: #666666;
+                    }
+                </style>
+            </head>
+
+            <body>
+                <div class="container">
+                    <div class="content">
+                        <h2>Your Profile is Activated – Please Set Your Password</h2>
+
+                        <p>Dear Supplier,</p>
+
+                        <p>This is an auto-generated email to inform you that your profile has been successfully activated on the
+                            WestGate IT Hub supplier portal</p>
+
+                        <p>
+                            To begin using your account, please follow the steps below:
+                        </p>
+
+                        <h3> <b> 1. Set your password </b></h3>
+                        <p>Click the button below to set your password and gain access to the portal.</p>
+                        <a href="${resetLink}" class="button" style="color: #ffffff;">Set Your Password</a>
+
+                        <h3> <b> 2. Login to the portal </b> </h3>
+                        <p>Once your password is set, you can log in here:<br>
+                            <a href="https://supplier.westgateithub.com/">https://supplier.westgateithub.com/</a>
+                        </p>
+
+                        <h3> <b> 3. Manage Your Work: </b> </h3>
+                        <p>After logging in, you will be able to:</p>
+                        <ul>
+                            <li> Track project progress </li>
+                            <li> View updates and timelines </li>
+                            <li> Manage assigned tasks efficiently </li>
+                        </ul>
+
+                        <p>If you have any questions or experience any issues, please contact our support team. This email was
+                            generated automatically — please do not reply directly.</p>
+
+                        <p>We look forward to collaborating with you.</p>
+
+                        <p> <b> Best regards </b>, <br>
+                            <i> WestGate IT Hub (P) Ltd </i></p>
+                    </div>
                 </div>
-            </div>
-        </body>
-        </html>`;
+            </body>
+            </html>`;
 
         await transporterTest.sendMail({
             from: "no-reply@westgateithub.in",
@@ -471,6 +490,171 @@ export async function sendMailForProfileUpdate(receiverEmail: string, id: string
             html: template,
         });
         console.log("sendMailForProfileUpdate Mail Send Successfully for profile update")
+    } catch (error) {
+        console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
+    }
+}
+
+// Function to be used for the send mail to new register supplier for reset password 
+export async function sendMailForInactiveSupplier(receiverEmail: string) {
+    try {
+        const template = `<!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                    }
+
+                    .container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+
+                    .header {
+                        text-align: center;
+                        padding: 20px 0;
+                    }
+
+                    .content {
+                        padding: 20px;
+                        background-color: #ffffff;
+                    }
+
+                    .button {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        background-color: #0078d4;
+                        color: #ffffff;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        margin: 20px 0;
+                    }
+
+                    .footer {
+                        text-align: center;
+                        padding: 20px;
+                        font-size: 14px;
+                        color: #666666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="content">
+                        <h2>Notice: Your Profile Has Been Removed from Our Preferred Supplier List</h2>
+                        <p>Dear Supplier,</p>
+                        <p>This is an auto-generated email to inform you that your profile has been removed from the Preferred
+                            Supplier List on our portal.</p>
+
+                        <p>If you believe this action was taken in error, please contact our support team for assistance.</p>
+                        <p>
+                            <b> Note: </b> You will retain limited access to your account but may no longer be eligible for new
+                            opportunities unless reinstated
+                        </p>
+                        <p> <b> Best regards </b>, <br>
+                            <i> WestGate IT Hub (P) Ltd </i>
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Notice: Your Profile Has Been Removed from Our Preferred Supplier List",
+            text: `Notice: Your Profile Has Been Removed from Our Preferred Supplier List`,
+            html: template,
+        });
+    } catch (error) {
+        console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
+    }
+}resetSupplierPassword
+
+// Function to be used for the send mail to new register supplier for reset password 
+export async function resetSupplierPassword(receiverEmail: string) {
+    try {
+        const resetLink = `https://supplier.westgateithub.com/#/reset-password?email=${receiverEmail}`;
+        // const resetLink = `http://localhost:3000/#/update-profile?email=${receiverEmail}`;
+
+        const template = `
+           <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333333;
+                    }
+
+                    .container {
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+
+                    .header {
+                        text-align: center;
+                        padding: 20px 0;
+                    }
+
+                    .content {
+                        padding: 20px;
+                        background-color: #ffffff;
+                    }
+
+                    .button {
+                        display: inline-block;
+                        padding: 12px 24px;
+                        background-color: #0078d4;
+                        color: #ffffff;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        margin: 20px 0;
+                    }
+
+                    .footer {
+                        text-align: center;
+                        padding: 20px;
+                        font-size: 14px;
+                        color: #666666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="content">
+                        <h2>Password Reset Request – Action Required</h2>
+                        <p> <b> Dear Supplier, </b> </p>
+                        <p>This is an auto-generated email to inform you that a request to reset your password was received.</p>
+                        <p>
+                            To set a new password, please click the link below:
+                        </p>
+                        <a href="${resetLink}" class="button" style="color: #ffffff;">Reset Your Password</a>
+
+                        <p>If you did not request this change, please ignore this email or contact support immediately.</p>
+
+                        <p> <b> Best regards </b>, <br>
+                            <i> WestGate IT Hub (P) Ltd </i>
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Password Reset Request – Action Required",
+            text: `Password Reset Request – Action Required: ${resetLink}`,
+            html: template,
+        });
+        console.log("Reset mail send successfully");
     } catch (error) {
         console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
     }

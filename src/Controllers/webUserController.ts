@@ -2,7 +2,7 @@ import { Request, Response } from "express"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import webUserModel from "../Models/webUserModel"
-import { fromMail, emailHelper, sendRegisterMailToSupplier, transporter, sendMailForProfileUpdate } from "../Util/nodemailer"
+import { fromMail, emailHelper, sendRegisterMailToSupplier, transporter, sendMailForProfileUpdate, resetSupplierPassword } from "../Util/nodemailer"
 import userModel from "../Models/userModel"
 import { subExpertise, userRoles, generatePass } from "../Util/contant"
 import LoginModel from "../Models/LoginModel"
@@ -181,7 +181,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
         
         if (!user?.active) {
             return res.status(404).json({
-                message: "Suppllier is in active.",
+                message: "Suppllier is in-active.",
                 status: false,
                 data: null
             })
@@ -201,7 +201,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
         // await user.save();
 
         // emailHelper(email, newPassword).then(data => console.log(data)).catch(err => console.log(err));
-        await sendRegisterMailToSupplier(email);
+        await resetSupplierPassword(email);
 
         return res.status(200).json({
             message: "Email sent successfully",
