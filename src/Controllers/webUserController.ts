@@ -842,7 +842,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType } = req.body;
+        const { itemId, promoteToType, name } = req.body;
 
         if (!itemId || !promoteToType) {
             return res.status(400).json({ message: "Missing data", status: false });
@@ -855,7 +855,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
 
         const updated = await masterList.findByIdAndUpdate(
             itemId,
-            { type: promoteToType },
+            { type: promoteToType , name },
             { new: true }
         );
 
