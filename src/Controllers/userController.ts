@@ -854,13 +854,13 @@ export const getSupplierDetails = async (req: any, res: Response) => {
 
 export const getUserList = async (req: any, res: Response) => {
     try {
-
         const projectCount = (req.query.projectCount);
         const projectId = req.query.projectId;
         const taskCount = req.query.taskCount;
         const taskPage = req.query.taskPage;
         const type = req.query.type;
         const pickACategory = req.query.pickACategory;
+        const search = req.query.search;
 
         if (projectId) {
             const project = await projectModel.findById(projectId);
@@ -878,11 +878,29 @@ export const getUserList = async (req: any, res: Response) => {
             });
         }
 
-        let filter = {};
+        let filter: any = {};
 
         if (req.query.userRoles) {
             const userRoles = (req.query.userRoles).split(",");
-            filter = { role: { $in: userRoles } }
+            filter.role = { $in: userRoles };
+        }
+
+        // Add search functionality
+        if (search) {
+            filter.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { mobileNumber: { $regex: search, $options: 'i' } },
+                { companyName: { $regex: search, $options: 'i' } },
+                { designation: { $regex: search, $options: 'i' } },
+                { userName: { $regex: search, $options: 'i' } },
+                { domain: { $regex: search, $options: 'i' } },
+                { department: { $regex: search, $options: 'i' } },
+                { registerCompany: { $regex: search, $options: 'i' } },
+                { poc_name: { $regex: search, $options: 'i' } },
+                { poc_phone: { $regex: search, $options: 'i' } },
+                { poc_email: { $regex: search, $options: 'i' } }
+            ];
         }
 
         let users: any = await userModel.find(filter).select({ password: 0 }).sort({ createdAt: -1 }).lean();
