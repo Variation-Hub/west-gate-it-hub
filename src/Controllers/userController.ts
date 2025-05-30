@@ -896,7 +896,6 @@ export const getUserList = async (req: any, res: Response) => {
                 { userName: { $regex: search, $options: 'i' } },
                 { domain: { $regex: search, $options: 'i' } },
                 { department: { $regex: search, $options: 'i' } },
-                { registerCompany: { $regex: search, $options: 'i' } },
                 { poc_name: { $regex: search, $options: 'i' } },
                 { poc_phone: { $regex: search, $options: 'i' } },
                 { poc_email: { $regex: search, $options: 'i' } }
