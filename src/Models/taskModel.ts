@@ -123,4 +123,12 @@ TaskModel.pre('save', async function (next) {
     next();
 });
 
+// Add indexes for better query performance
+TaskModel.index({ "assignTo.userId": 1, "createdAt": -1 });
+TaskModel.index({ "comments.date": 1 });
+TaskModel.index({ "assignTo.userId": 1, "comments.date": 1 });
+TaskModel.index({ "createdAt": -1 });
+TaskModel.index({ "status": 1, "assignTo.userId": 1 });
+TaskModel.index({ "project": 1, "assignTo.userId": 1 });
+
 export default mongoose.model('Task', TaskModel);

@@ -3290,6 +3290,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "NotAwarded": 0,
                             "Dropped after feasibility": 0,
                             "Nosuppliermatched": 0,
+                            "Query Raised": 0
                         },
                         BidStatusValue: {
                             "Shortlisted": 0,
@@ -3303,6 +3304,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "NotAwarded": 0,
                             "Dropped after feasibility": 0,
                             "Nosuppliermatched": 0,
+                            "Query Raised": 0
                         }
                     }
                 });
@@ -3341,6 +3343,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "NotAwarded": 0,
                 "Dropped after feasibility": 0,
                 "Nosuppliermatched": 0,
+                "Query Raised": 0
             },
             BidStatusValue: {
                 "Shortlisted": 0,
@@ -3354,6 +3357,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "NotAwarded": 0,
                 "Dropped after feasibility": 0,
                 "Nosuppliermatched": 0,
+                "Query Raised": 0
             },
         };
 

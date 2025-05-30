@@ -842,7 +842,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType, name } = req.body;
+        const { itemId, promoteToType, name, tags } = req.body;
 
         if (!itemId || !promoteToType) {
             return res.status(400).json({ message: "Missing data", status: false });
@@ -853,9 +853,15 @@ export const promoteOtherItem = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid type", status: false });
         }
 
+        const updateData: any = { type: promoteToType, name };
+
+        if (tags && Array.isArray(tags)) {
+            updateData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+        }
+
         const updated = await masterList.findByIdAndUpdate(
             itemId,
-            { type: promoteToType , name },
+            updateData,
             { new: true }
         );
 
@@ -879,7 +885,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
 
 export const addCustomItem = async (req: any, res: Response) => {
     try {
-        const { name, type } = req.body;
+        const { name, type, tags } = req.body;
 
         if (!name || !type) {
             return res.status(400).json({ message: "Name and type required", status: false });
@@ -896,11 +902,17 @@ export const addCustomItem = async (req: any, res: Response) => {
             return res.status(409).json({ message: "Item already exists", status: false });
         }
 
-        const newItem = await masterList.create({
+        const itemData: any = {
             name: name.trim(),
             type,
             isSystem: false,
-        });
+        };
+
+        if (tags && Array.isArray(tags)) {
+            itemData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
+        }
+
+        const newItem = await masterList.create(itemData);
 
         return res.status(201).json({
             message: "Item added successfully",
@@ -1200,3 +1212,66 @@ export const getWebUserPublic = async (req: any, res: Response) => {
         });
     }
 }
+
+export const syncMasterListItemTags = async (req: any, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { tags } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid item ID format",
+                status: false
+            });
+        }
+
+        if (!Array.isArray(tags)) {
+            return res.status(400).json({
+                message: "Tags must be an array",
+                status: false
+            });
+        }
+
+        const item = await masterList.findById(id);
+        if (!item) {
+            return res.status(404).json({
+                message: "Master list item not found",
+                status: false
+            });
+        }
+
+        const processedTags = tags
+            .map((tag: any) => {
+                if (typeof tag !== 'string') {
+                    return String(tag).trim();
+                }
+                return tag.trim();
+            })
+            .filter((tag: string) => tag.length > 0)
+            .filter((tag: string, index: number, array: string[]) =>
+                array.indexOf(tag) === index // Remove duplicates
+            );
+
+        const updatedItem = await masterList.findByIdAndUpdate(
+            id,
+            { tags: processedTags },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Tags updated successfully",
+            status: true,
+            data: updatedItem,
+            meta: {
+                tagsCount: processedTags.length,
+                previousTagsCount: item.tags ? item.tags.length : 0
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to sync tags",
+            status: false
+        });
+    }
+};
+
