@@ -1187,9 +1187,22 @@ export const getTaskGraphData = async (req: any, res: Response) => {
                 { createdAt: { $gte: parsedStartDate, $lte: parsedEndDate } },
                 // Tasks with comments within the date range
                 { "comments.date": { $gte: parsedStartDate, $lte: parsedEndDate } }
-            ],
-            ...(userIdArray.length && { "assignTo.userId": { $in: userIdArray } })
+            ]
         };
+
+        // If userIds are provided, include tasks that are either assigned to those users OR have comments from those users
+        if (userIdArray.length) {
+            filter.$and = [
+                {
+                    $or: [
+                        // Tasks assigned to selected users
+                        { "assignTo.userId": { $in: userIdArray } },
+                        // Tasks with comments from selected users
+                        { "comments.userId": { $in: userIdArray } }
+                    ]
+                }
+            ];
+        }
 
         // Only add the standard status filter if it's not one of our custom statuses
         if (status && status !== 'complete' && status !== 'pending') {
@@ -1256,15 +1269,18 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
         filteredTasks = [];
 
         for (const task of tasks) {
-            // Check if task is assigned to selected users (if userIds are specified)
+            // Check if task is assigned to selected users OR has comments from selected users (if userIds are specified)
             const isAssignedToSelectedUser = !selectedUserIds || selectedUserIds.length === 0 ||
                 task.assignTo.some((assignee: any) => {
                     const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
                     return selectedUserIds.includes(userId);
                 });
 
-            // Skip tasks not assigned to selected users when userIds are specified
-            if (selectedUserIds && selectedUserIds.length > 0 && !isAssignedToSelectedUser) {
+            const hasCommentsFromSelectedUser = !selectedUserIds || selectedUserIds.length === 0 ||
+                (task.comments || []).some((comment: any) => selectedUserIds.includes(comment.userId));
+
+            // Skip tasks that are neither assigned to selected users nor have comments from selected users
+            if (selectedUserIds && selectedUserIds.length > 0 && !isAssignedToSelectedUser && !hasCommentsFromSelectedUser) {
                 continue;
             }
 
@@ -1377,10 +1393,31 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
         // Use date string for the date key
         const dateKey = getDateString(new Date(task.createdAt));
 
+        // Collect all users who should have this task in their data
+        // This includes both assigned users and users who have commented on the task
+        const relevantUserIds = new Set<string>();
+
+        // Add assigned users
         for (const assignee of task.assignTo) {
             const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
-            if (!userId) continue;
+            if (userId) {
+                relevantUserIds.add(userId);
+            }
+        }
 
+        // Add users who have commented on this task (within the date range and selected users filter)
+        for (const comment of filteredComments) {
+            const commentUserId = comment.userId;
+            if (commentUserId) {
+                // Only add if user is in selected users filter (if filter is applied)
+                if (!selectedUserIds || selectedUserIds.length === 0 || selectedUserIds.includes(commentUserId)) {
+                    relevantUserIds.add(commentUserId);
+                }
+            }
+        }
+
+        // Process the task for all relevant users
+        for (const userId of relevantUserIds) {
             // Group by user
             result.byUser[userId] = result.byUser[userId] || {
                 user: getUserInfo(userId),
@@ -1417,21 +1454,26 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 users: {},
                 userTotalHours: {} // Add a map to track total hours per user for each date
             };
-            result.byDate[dateKey].tasks.push(taskObj);
 
-            if (isCompleted) {
-                result.byDate[dateKey].completedTasks++;
-            } else {
-                result.byDate[dateKey].pendingTasks++;
-                if (isPending) {
-                    result.byDate[dateKey].pendingTasksWithAutoComments++;
+            // Only add the task once to the date's tasks array (avoid duplicates)
+            const taskAlreadyInDate = result.byDate[dateKey].tasks.some((t: any) => t.id.toString() === task._id.toString());
+            if (!taskAlreadyInDate) {
+                result.byDate[dateKey].tasks.push(taskObj);
+
+                if (isCompleted) {
+                    result.byDate[dateKey].completedTasks++;
+                } else {
+                    result.byDate[dateKey].pendingTasks++;
+                    if (isPending) {
+                        result.byDate[dateKey].pendingTasksWithAutoComments++;
+                    }
                 }
-            }
 
-            // Update date's total hours
-            result.byDate[dateKey].totalHours += taskTotalHours;
-            result.byDate[dateKey].totalMinutes += taskTotalMinutes;
-            result.byDate[dateKey].totalHoursFormatted = formatMinutesToHoursAndMinutes(result.byDate[dateKey].totalMinutes);
+                // Update date's total hours
+                result.byDate[dateKey].totalHours += taskTotalHours;
+                result.byDate[dateKey].totalMinutes += taskTotalMinutes;
+                result.byDate[dateKey].totalHoursFormatted = formatMinutesToHoursAndMinutes(result.byDate[dateKey].totalMinutes);
+            }
 
             // Track total hours per user for each date
             result.byDate[dateKey].userTotalHours[userId] = result.byDate[dateKey].userTotalHours[userId] || {
@@ -1555,11 +1597,23 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                 byDateWithComments[commentDateStr].completedTasks++;
             }
 
-            // Update user data
+            // Update user data for all relevant users (assigned users + commenting user)
+            const relevantUserIds = new Set<string>();
+
+            // Add assigned users
             for (const assignee of task.assignTo) {
                 const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
-                if (!userId) continue;
+                if (userId) {
+                    relevantUserIds.add(userId);
+                }
+            }
 
+            // Add the commenting user
+            if (comment.userId) {
+                relevantUserIds.add(comment.userId);
+            }
+
+            for (const userId of relevantUserIds) {
                 // Initialize user entry if it doesn't exist
                 byDateWithComments[commentDateStr].users[userId] = byDateWithComments[commentDateStr].users[userId] || {
                     user: getUserInfo(userId),
@@ -1577,24 +1631,27 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
                     ...byDateWithComments[commentDateStr].tasks[taskId]
                 };
 
-                // Update user's total hours
-                byDateWithComments[commentDateStr].users[userId].totalMinutes += minutes;
-                byDateWithComments[commentDateStr].users[userId].totalHours = +(byDateWithComments[commentDateStr].users[userId].totalMinutes / 60).toFixed(2);
-                byDateWithComments[commentDateStr].users[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].users[userId].totalMinutes);
+                // Only add minutes for the actual commenting user
+                if (userId === comment.userId) {
+                    // Update user's total hours
+                    byDateWithComments[commentDateStr].users[userId].totalMinutes += minutes;
+                    byDateWithComments[commentDateStr].users[userId].totalHours = +(byDateWithComments[commentDateStr].users[userId].totalMinutes / 60).toFixed(2);
+                    byDateWithComments[commentDateStr].users[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].users[userId].totalMinutes);
 
-                // Update user total hours for the date
-                byDateWithComments[commentDateStr].userTotalHours[userId] = byDateWithComments[commentDateStr].userTotalHours[userId] || {
-                    totalHours: 0,
-                    totalMinutes: 0,
-                    totalHoursFormatted: ''
-                };
-                byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes += minutes;
-                byDateWithComments[commentDateStr].userTotalHours[userId].totalHours = +(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes / 60).toFixed(2);
-                byDateWithComments[commentDateStr].userTotalHours[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes);
+                    // Update user total hours for the date
+                    byDateWithComments[commentDateStr].userTotalHours[userId] = byDateWithComments[commentDateStr].userTotalHours[userId] || {
+                        totalHours: 0,
+                        totalMinutes: 0,
+                        totalHoursFormatted: ''
+                    };
+                    byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes += minutes;
+                    byDateWithComments[commentDateStr].userTotalHours[userId].totalHours = +(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes / 60).toFixed(2);
+                    byDateWithComments[commentDateStr].userTotalHours[userId].totalHoursFormatted = formatMinutesToHoursAndMinutes(byDateWithComments[commentDateStr].userTotalHours[userId].totalMinutes);
 
-                // Mark user's task as completed if it has at least one non-auto comment
-                if (!comment.auto) {
-                    byDateWithComments[commentDateStr].users[userId].completedTasks++;
+                    // Mark user's task as completed if it has at least one non-auto comment
+                    if (!comment.auto) {
+                        byDateWithComments[commentDateStr].users[userId].completedTasks++;
+                    }
                 }
             }
         }
