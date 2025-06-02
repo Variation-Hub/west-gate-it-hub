@@ -183,7 +183,9 @@ export const updateUser = async (req: any, res: Response) => {
                 date: new Date()
             };
 
-            await sendMailForInactiveSupplier(user?.poc_email);
+            if(updateData?.isSendMail) {
+                await sendMailForInactiveSupplier(user?.poc_email);
+            }
             user.activeStatus.push(logEntry);
             delete updateData.activeStatus;
         }
