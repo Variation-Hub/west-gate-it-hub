@@ -200,7 +200,9 @@ export const updateUser = async (req: any, res: Response) => {
                 }
             }
 
-            await sendRegisterMailToSupplier(user?.poc_email);
+            if(updateData?.isSendMail) {
+                await sendRegisterMailToSupplier(user?.poc_email);
+            }
             updateData.isInHold = false
         }
 
