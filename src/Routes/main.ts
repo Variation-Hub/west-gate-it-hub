@@ -19,6 +19,7 @@ import candidateCvRoute from './candidateCv';
 import roleRoute from './roleRoute';
 import techLanguageRoute from './techLanguageRoute';
 import subExpertiseRoute from './subExpertiseRoute';
+import formDataRoute from './formDataRoutes';
 
 const Routes = express.Router();
 
@@ -42,5 +43,6 @@ Routes.use("/candidate", candidateCvRoute);
 Routes.use("/roles", roleRoute);
 Routes.use("/tech-language", techLanguageRoute);
 Routes.use("/sub-expertise", subExpertiseRoute);
+Routes.use("/search-ui/formdata", formDataRoute);
 
 export default Routes;
