@@ -3281,6 +3281,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                         BidStatusCount: {
                             "Shortlisted": 0,
                             "Awaiting": 0,
+                            "Query Raised": 0,
                             "Go-NoGoStage1": 0,
                             "SupplierConfirmation": 0,
                             "Go-NoGoStage2": 0,
@@ -3290,11 +3291,11 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "NotAwarded": 0,
                             "Dropped after feasibility": 0,
                             "Nosuppliermatched": 0,
-                            "Query Raised": 0
                         },
                         BidStatusValue: {
                             "Shortlisted": 0,
                             "Awaiting": 0,
+                            "Query Raised": 0,
                             "Go-NoGoStage1": 0,
                             "SupplierConfirmation": 0,
                             "Go-NoGoStage2": 0,
@@ -3304,7 +3305,6 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "NotAwarded": 0,
                             "Dropped after feasibility": 0,
                             "Nosuppliermatched": 0,
-                            "Query Raised": 0
                         }
                     }
                 });
@@ -3334,6 +3334,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
             BidStatusCount: {
                 "Shortlisted": 0,
                 "Awaiting": 0,
+                "Query Raised": 0,
                 "Go-NoGoStage1": 0,
                 "SupplierConfirmation": 0,
                 "Go-NoGoStage2": 0,
@@ -3343,11 +3344,11 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "NotAwarded": 0,
                 "Dropped after feasibility": 0,
                 "Nosuppliermatched": 0,
-                "Query Raised": 0
             },
             BidStatusValue: {
                 "Shortlisted": 0,
                 "Awaiting": 0,
+                "Query Raised": 0,
                 "Go-NoGoStage1": 0,
                 "SupplierConfirmation": 0,
                 "Go-NoGoStage2": 0,
@@ -3357,7 +3358,6 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "NotAwarded": 0,
                 "Dropped after feasibility": 0,
                 "Nosuppliermatched": 0,
-                "Query Raised": 0
             },
         };
 
