@@ -32,6 +32,7 @@ projectRoutes.patch("/select-from-sortlist", authorizeRoles(), selectUserForProj
 
 // File upload routes
 projectRoutes.post("/upload", authorizeRoles(), multipleFileUpload('files', 5), uploadFile);
+projectRoutes.post("/upload-public", multipleFileUpload('files', 5), uploadFile);
 projectRoutes.delete("/upload/delete", authorizeRoles(), deleteFiles);
 
 // SupplierAdmin routes
