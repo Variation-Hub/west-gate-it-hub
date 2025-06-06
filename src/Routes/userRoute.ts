@@ -57,4 +57,5 @@ userRoutes.get("/admin/suppleir-statictics", authorizeRoles(), getAdminDashboard
 
 // public update API 
 userRoutes.patch("/public/update/:id", publicUpdateUser);
+userRoutes.get("/public/suplier/list", paginationMiddleware, fetchSuplierAdmin);
 export default userRoutes;

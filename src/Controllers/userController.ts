@@ -183,7 +183,9 @@ export const updateUser = async (req: any, res: Response) => {
                 date: new Date()
             };
 
-            await sendMailForInactiveSupplier(user?.poc_email);
+            if(updateData?.isSendMail) {
+                await sendMailForInactiveSupplier(user?.poc_email);
+            }
             user.activeStatus.push(logEntry);
             delete updateData.activeStatus;
         }
@@ -200,7 +202,9 @@ export const updateUser = async (req: any, res: Response) => {
                 }
             }
 
-            await sendRegisterMailToSupplier(user?.poc_email);
+            if(updateData?.isSendMail) {
+                await sendRegisterMailToSupplier(user?.poc_email);
+            }
             updateData.isInHold = false
         }
 

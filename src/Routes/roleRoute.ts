@@ -16,5 +16,6 @@ roleRoute.get("/get-technologies", authorizeRoles(), getTechnologies);
 
 // Public available roles
 roleRoute.get("/public/get-technologies", getTechnologies);
+roleRoute.get("/public/get-list", getAllRoles);  
 
 export default roleRoute;
