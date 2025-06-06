@@ -754,7 +754,7 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
-        const { type, search } = req.query;
+        const { type, search, mandatory } = req.query;
 
         const queryObj: any = {};
 
@@ -773,6 +773,10 @@ export const getAlldata = async (req: any, res: Response) => {
         if (search) {
             const searchRegex = new RegExp(search, "i");
             queryObj["name"] = { $regex: searchRegex };
+        }
+
+        if (mandatory) {
+            queryObj["isSystem"] = true;
         }
 
         //const count = await masterList.countDocuments(queryObj);
