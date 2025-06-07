@@ -889,7 +889,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
 
 export const addCustomItem = async (req: any, res: Response) => {
     try {
-        const { name, type, tags } = req.body;
+        const { name, type, tags, isMandatory } = req.body;
 
         if (!name || !type) {
             return res.status(400).json({ message: "Name and type required", status: false });
@@ -910,6 +910,7 @@ export const addCustomItem = async (req: any, res: Response) => {
             name: name.trim(),
             type,
             isSystem: false,
+            isMandatory: isMandatory ? isMandatory : false
         };
 
         if (tags && Array.isArray(tags)) {
