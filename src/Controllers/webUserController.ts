@@ -178,7 +178,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
                 data: null
             })
         }
-        
+
         if (!user?.active) {
             return res.status(404).json({
                 message: "Suppllier is in-active.",
@@ -846,7 +846,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType, name, tags } = req.body;
+        const { itemId, promoteToType, name, tags, isMandatory } = req.body;
 
         if (!itemId || !promoteToType) {
             return res.status(400).json({ message: "Missing data", status: false });
@@ -857,11 +857,13 @@ export const promoteOtherItem = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid type", status: false });
         }
 
-        const updateData: any = { type: promoteToType, name };
+        const updateData: any = { type: promoteToType, name, isMandatory: isMandatory ? isMandatory : false };
 
         if (tags && Array.isArray(tags)) {
             updateData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
         }
+
+
 
         const updated = await masterList.findByIdAndUpdate(
             itemId,
