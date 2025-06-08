@@ -3,7 +3,7 @@ import userModel from "../Models/userModel"
 import { generateToken } from "../Util/JwtAuth"
 import { comparepassword } from "../Util/bcrypt"
 import { BidManagerStatus, generatePass, projectStatus, userRoles } from "../Util/contant"
-import { emailHelper, sendRegisterMailToSupplier, sendMailForInactiveSupplier } from "../Util/nodemailer"
+import { emailHelper, sendRegisterMailToSupplier, sendMailForInactiveSupplier, sendMailForProfileUpdate } from "../Util/nodemailer"
 import { deleteFromBackblazeB2, uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
@@ -183,7 +183,7 @@ export const updateUser = async (req: any, res: Response) => {
                 date: new Date()
             };
 
-            if(updateData?.isSendMail) {
+            if (updateData?.isSendMail) {
                 await sendMailForInactiveSupplier(user?.poc_email);
             }
             user.activeStatus.push(logEntry);
@@ -202,7 +202,7 @@ export const updateUser = async (req: any, res: Response) => {
                 }
             }
 
-            if(updateData?.isSendMail) {
+            if (updateData?.isSendMail) {
                 await sendRegisterMailToSupplier(user?.poc_email);
             }
             updateData.isInHold = false
@@ -225,6 +225,10 @@ export const updateUser = async (req: any, res: Response) => {
 
         // Save updated user
         const updatedUser = await user.save();
+
+        if (req.body?.isSendMail || req.body?.isSendMail == 'true' || req.body?.isSendMail == 'True') {
+            await sendMailForProfileUpdate(req.body?.poc_email, id);
+        }
 
         return res.status(200).json({
             message: "User update success",
@@ -268,7 +272,7 @@ export const publicUpdateUser = async (req: any, res: Response) => {
                 userId: req?.user?._id || 'POC user',
                 date: new Date()
             };
-            
+
             user.activeStatus.push(logEntry);
             delete updateData.activeStatus;
         }

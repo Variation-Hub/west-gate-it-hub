@@ -178,7 +178,7 @@ export const userForgotPassword = async (req: Request, res: Response) => {
                 data: null
             })
         }
-        
+
         if (!user?.active) {
             return res.status(404).json({
                 message: "Suppllier is in-active.",
@@ -499,12 +499,10 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
         if (type) {
             const mainType = type as string;
             expertiseQuery["$or"] = [
-                // Always include main type (domain, product, technologies)
                 { type: new RegExp(`^${mainType}$`, "i") },
-                // Include other type only if it's mandatory
                 {
                     type: new RegExp(`^${mainType}-other$`, "i"),
-                    mandatory: true
+                    isMandatory: true
                 }
             ];
         }
@@ -514,10 +512,9 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             expertiseQuery["name"] = { $regex: regex };
         }
 
-        // Add mandatory filter - only return mandatory items when mandatory=true
         if (mandatory !== undefined) {
             const isMandatory = mandatory === 'true';
-            expertiseQuery["mandatory"] = isMandatory;
+            expertiseQuery["isMandatory"] = isMandatory;
         }
 
         const expertiseList = await masterList.find(expertiseQuery).lean();
@@ -764,7 +761,7 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
-        const { type, search, mandatory } = req.query;
+        const { type, search } = req.query;
 
         const queryObj: any = {};
 
@@ -783,11 +780,6 @@ export const getAlldata = async (req: any, res: Response) => {
         if (search) {
             const searchRegex = new RegExp(search, "i");
             queryObj["name"] = { $regex: searchRegex };
-        }
-
-        if (mandatory !== undefined) {
-            const isMandatory = mandatory === 'true';
-            queryObj["mandatory"] = isMandatory;
         }
 
         //const count = await masterList.countDocuments(queryObj);
@@ -857,7 +849,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType, name, tags, mandatory } = req.body;
+        const { itemId, promoteToType, name, tags, isMandatory } = req.body;
 
         if (!itemId || !promoteToType) {
             return res.status(400).json({ message: "Missing data", status: false });
@@ -868,15 +860,13 @@ export const promoteOtherItem = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid type", status: false });
         }
 
-        const updateData: any = { type: promoteToType, name };
-
-        if (mandatory !== undefined) {
-            updateData.mandatory = Boolean(mandatory);
-        }
+        const updateData: any = { type: promoteToType, name, isMandatory: isMandatory ? isMandatory : false };
 
         if (tags && Array.isArray(tags)) {
             updateData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
         }
+
+
 
         const updated = await masterList.findByIdAndUpdate(
             itemId,
@@ -904,7 +894,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
 
 export const addCustomItem = async (req: any, res: Response) => {
     try {
-        const { name, type, tags, mandatory } = req.body;
+        const { name, type, tags, isMandatory } = req.body;
 
         if (!name || !type) {
             return res.status(400).json({ message: "Name and type required", status: false });
@@ -925,11 +915,8 @@ export const addCustomItem = async (req: any, res: Response) => {
             name: name.trim(),
             type,
             isSystem: false,
+            isMandatory: isMandatory ? isMandatory : false
         };
-
-        if (mandatory !== undefined) {
-            itemData.mandatory = Boolean(mandatory);
-        }
 
         if (tags && Array.isArray(tags)) {
             itemData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
@@ -1301,9 +1288,8 @@ export const syncMasterListItemTags = async (req: any, res: Response) => {
 export const updateMasterListItemMandatory = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
-        const { mandatory } = req.body;
+        const { isMandatory } = req.body;
 
-        // Validate item ID
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(400).json({
                 message: "Invalid item ID format",
@@ -1311,15 +1297,13 @@ export const updateMasterListItemMandatory = async (req: any, res: Response) => 
             });
         }
 
-        // Validate mandatory field
-        if (mandatory === undefined) {
+        if (isMandatory === undefined) {
             return res.status(400).json({
                 message: "Mandatory field is required",
                 status: false
             });
         }
 
-        // Check if item exists
         const item = await masterList.findById(id);
         if (!item) {
             return res.status(404).json({
@@ -1328,10 +1312,9 @@ export const updateMasterListItemMandatory = async (req: any, res: Response) => 
             });
         }
 
-        // Update the item with the new mandatory status
         const updatedItem = await masterList.findByIdAndUpdate(
             id,
-            { mandatory: Boolean(mandatory) },
+            { isMandatory: Boolean(isMandatory) },
             { new: true }
         );
 
@@ -1340,8 +1323,8 @@ export const updateMasterListItemMandatory = async (req: any, res: Response) => 
             status: true,
             data: updatedItem,
             meta: {
-                previousMandatory: item.mandatory,
-                newMandatory: Boolean(mandatory)
+                previousMandatory: item.isMandatory,
+                newMandatory: Boolean(isMandatory)
             }
         });
     } catch (err: any) {

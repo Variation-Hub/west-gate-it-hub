@@ -25,6 +25,10 @@ const masterListSchema = new mongoose.Schema({
     default: [],
     trim: true
   },
+  isMandatory: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now
