@@ -489,25 +489,35 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
-        const { type, search, supplierId, startDate, endDate } = req.query;
+        const { type, search, supplierId, startDate, endDate, mandatory } = req.query;
 
         const expertiseQuery: any = {};
         if (supplierId && typeof supplierId === 'string') {
             expertiseQuery._id = new mongoose.Types.ObjectId(supplierId);
         }
 
-
         if (type) {
             const mainType = type as string;
             expertiseQuery["$or"] = [
+                // Always include main type (domain, product, technologies)
                 { type: new RegExp(`^${mainType}$`, "i") },
-                { type: new RegExp(`^${mainType}-other$`, "i") }
+                // Include other type only if it's mandatory
+                {
+                    type: new RegExp(`^${mainType}-other$`, "i"),
+                    mandatory: true
+                }
             ];
         }
 
         if (search) {
             const regex = new RegExp(search as string, "i");
             expertiseQuery["name"] = { $regex: regex };
+        }
+
+        // Add mandatory filter - only return mandatory items when mandatory=true
+        if (mandatory !== undefined) {
+            const isMandatory = mandatory === 'true';
+            expertiseQuery["mandatory"] = isMandatory;
         }
 
         const expertiseList = await masterList.find(expertiseQuery).lean();
@@ -775,8 +785,9 @@ export const getAlldata = async (req: any, res: Response) => {
             queryObj["name"] = { $regex: searchRegex };
         }
 
-        if (mandatory) {
-            queryObj["isSystem"] = true;
+        if (mandatory !== undefined) {
+            const isMandatory = mandatory === 'true';
+            queryObj["mandatory"] = isMandatory;
         }
 
         //const count = await masterList.countDocuments(queryObj);
@@ -846,7 +857,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType, name, tags } = req.body;
+        const { itemId, promoteToType, name, tags, mandatory } = req.body;
 
         if (!itemId || !promoteToType) {
             return res.status(400).json({ message: "Missing data", status: false });
@@ -858,6 +869,10 @@ export const promoteOtherItem = async (req: any, res: Response) => {
         }
 
         const updateData: any = { type: promoteToType, name };
+
+        if (mandatory !== undefined) {
+            updateData.mandatory = Boolean(mandatory);
+        }
 
         if (tags && Array.isArray(tags)) {
             updateData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
@@ -889,7 +904,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
 
 export const addCustomItem = async (req: any, res: Response) => {
     try {
-        const { name, type, tags } = req.body;
+        const { name, type, tags, mandatory } = req.body;
 
         if (!name || !type) {
             return res.status(400).json({ message: "Name and type required", status: false });
@@ -911,6 +926,10 @@ export const addCustomItem = async (req: any, res: Response) => {
             type,
             isSystem: false,
         };
+
+        if (mandatory !== undefined) {
+            itemData.mandatory = Boolean(mandatory);
+        }
 
         if (tags && Array.isArray(tags)) {
             itemData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
@@ -1274,6 +1293,60 @@ export const syncMasterListItemTags = async (req: any, res: Response) => {
     } catch (err: any) {
         return res.status(500).json({
             message: err.message || "Failed to sync tags",
+            status: false
+        });
+    }
+};
+
+export const updateMasterListItemMandatory = async (req: any, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { mandatory } = req.body;
+
+        // Validate item ID
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid item ID format",
+                status: false
+            });
+        }
+
+        // Validate mandatory field
+        if (mandatory === undefined) {
+            return res.status(400).json({
+                message: "Mandatory field is required",
+                status: false
+            });
+        }
+
+        // Check if item exists
+        const item = await masterList.findById(id);
+        if (!item) {
+            return res.status(404).json({
+                message: "Master list item not found",
+                status: false
+            });
+        }
+
+        // Update the item with the new mandatory status
+        const updatedItem = await masterList.findByIdAndUpdate(
+            id,
+            { mandatory: Boolean(mandatory) },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Mandatory status updated successfully",
+            status: true,
+            data: updatedItem,
+            meta: {
+                previousMandatory: item.mandatory,
+                newMandatory: Boolean(mandatory)
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to update mandatory status",
             status: false
         });
     }
