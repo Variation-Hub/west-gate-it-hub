@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword, getWebUserPublic, syncMasterListItemTags, updateMasterListItemMandatory } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword, getWebUserPublic, syncMasterListItemTags } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -25,7 +25,6 @@ webUserRoutes.get("/drop-down-list", authorizeRoles(), getAlldata);
 webUserRoutes.post("/masterlist/promote", authorizeRoles(), promoteOtherItem);
 webUserRoutes.post("/masterlist/custom", authorizeRoles(), addCustomItem);
 webUserRoutes.put("/masterlist/:id/tags", authorizeRoles(), syncMasterListItemTags);
-webUserRoutes.put("/masterlist/:id/mandatory", authorizeRoles(), updateMasterListItemMandatory);
 webUserRoutes.get("/sub-expertise/list", authorizeRoles(), getAllSubExpertise);
 webUserRoutes.post("/add-sub-expertise", authorizeRoles(), addSubExpertiseToSupplier);
 webUserRoutes.delete("/expertise/:itemId", authorizeRoles(), deleteExpertise);
