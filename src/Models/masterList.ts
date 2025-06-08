@@ -15,10 +15,6 @@ const masterListSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
-  mandatory: {
-    type: Boolean,
-    default: false
-  },
   subExpertise: [{ type: String }],
   tags: {
     type: [String],

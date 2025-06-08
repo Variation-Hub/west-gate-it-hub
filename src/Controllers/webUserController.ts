@@ -489,32 +489,25 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
-        const { type, search, supplierId, startDate, endDate, mandatory } = req.query;
+        const { type, search, supplierId, startDate, endDate } = req.query;
 
         const expertiseQuery: any = {};
         if (supplierId && typeof supplierId === 'string') {
             expertiseQuery._id = new mongoose.Types.ObjectId(supplierId);
         }
 
+
         if (type) {
             const mainType = type as string;
             expertiseQuery["$or"] = [
                 { type: new RegExp(`^${mainType}$`, "i") },
-                {
-                    type: new RegExp(`^${mainType}-other$`, "i"),
-                    isMandatory: true
-                }
+                { type: new RegExp(`^${mainType}-other$`, "i") }
             ];
         }
 
         if (search) {
             const regex = new RegExp(search as string, "i");
             expertiseQuery["name"] = { $regex: regex };
-        }
-
-        if (mandatory !== undefined) {
-            const isMandatory = mandatory === 'true';
-            expertiseQuery["isMandatory"] = isMandatory;
         }
 
         const expertiseList = await masterList.find(expertiseQuery).lean();
@@ -761,7 +754,7 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
-        const { type, search } = req.query;
+        const { type, search, mandatory } = req.query;
 
         const queryObj: any = {};
 
@@ -780,6 +773,10 @@ export const getAlldata = async (req: any, res: Response) => {
         if (search) {
             const searchRegex = new RegExp(search, "i");
             queryObj["name"] = { $regex: searchRegex };
+        }
+
+        if (mandatory) {
+            queryObj["isSystem"] = true;
         }
 
         //const count = await masterList.countDocuments(queryObj);
@@ -1280,56 +1277,6 @@ export const syncMasterListItemTags = async (req: any, res: Response) => {
     } catch (err: any) {
         return res.status(500).json({
             message: err.message || "Failed to sync tags",
-            status: false
-        });
-    }
-};
-
-export const updateMasterListItemMandatory = async (req: any, res: Response) => {
-    try {
-        const { id } = req.params;
-        const { isMandatory } = req.body;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                message: "Invalid item ID format",
-                status: false
-            });
-        }
-
-        if (isMandatory === undefined) {
-            return res.status(400).json({
-                message: "Mandatory field is required",
-                status: false
-            });
-        }
-
-        const item = await masterList.findById(id);
-        if (!item) {
-            return res.status(404).json({
-                message: "Master list item not found",
-                status: false
-            });
-        }
-
-        const updatedItem = await masterList.findByIdAndUpdate(
-            id,
-            { isMandatory: Boolean(isMandatory) },
-            { new: true }
-        );
-
-        return res.status(200).json({
-            message: "Mandatory status updated successfully",
-            status: true,
-            data: updatedItem,
-            meta: {
-                previousMandatory: item.isMandatory,
-                newMandatory: Boolean(isMandatory)
-            }
-        });
-    } catch (err: any) {
-        return res.status(500).json({
-            message: err.message || "Failed to update mandatory status",
             status: false
         });
     }
