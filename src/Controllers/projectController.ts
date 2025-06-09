@@ -859,7 +859,7 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (sortlist) {
-            if (req.user.role === userRoles.ProjectManager || req.user.role === userRoles.Admin || req.user.role === userRoles.ProcessManagerAdmin) {
+            if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.Admin || req.user?.role === userRoles.ProcessManagerAdmin) {
                 filter.sortListUserId = { $ne: [] }
                 filter.myList = { $ne: req.user.id }
             } else {
@@ -1038,7 +1038,7 @@ export const getProjects = async (req: any, res: Response) => {
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
         }
 
-        if (req.user.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
+        if (req.user?.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
             delete filter.dueDate;
             const date = new Date();
             filter.$and = [
@@ -1053,7 +1053,7 @@ export const getProjects = async (req: any, res: Response) => {
             // statusNotInclude.push(projectStatus.DocumentsNotFound)
         }
 
-        if (req.user.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
+        if (req.user?.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
             status.push(projectStatus.DocumentsNotFound)
         }
 
@@ -1196,9 +1196,9 @@ export const getProjects = async (req: any, res: Response) => {
             ];
 
             if (
-                req.user.role === userRoles.FeasibilityAdmin ||
-                req.user.role === userRoles.FeasibilityUser ||
-                req.user.role === userRoles.ProjectManager
+                req.user?.role === userRoles.FeasibilityAdmin ||
+                req.user?.role === userRoles.FeasibilityUser ||
+                req.user?.role === userRoles.ProjectManager
             ) {
                 pipeline.push({
                     $match: {
@@ -2480,7 +2480,7 @@ export const updateProjectForFeasibility = async (req: any, res: Response) => {
         }
 
         if (project.status !== status && status !== null && status !== undefined) {
-            if (req.user.role === userRoles.FeasibilityUser) {
+            if (req.user?.role === userRoles.FeasibilityUser) {
                 project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
             }
             if (status === projectStatus.Fail || status === projectStatus.NotReleted) {
@@ -3560,14 +3560,14 @@ export const getProjectLogs = async (req: any, res: Response) => {
         }
 
         let logs: any = [];
-        if (req.user.role === userRoles.Admin || req.user.role === userRoles.ProcessManagerAdmin || req.user.role === userRoles.FeasibilityAdmin) {
+        if (req.user?.role === userRoles.Admin || req.user?.role === userRoles.ProcessManagerAdmin || req.user?.role === userRoles.FeasibilityAdmin) {
             logs = project.logs;
-        } else if (req.user.role === userRoles.FeasibilityUser) {
+        } else if (req.user?.role === userRoles.FeasibilityUser) {
             const isUserAppointed = project.appointedUserId.some((userId: any) => userId.equals(req.user._id));
             if (isUserAppointed) {
                 logs = project.logs;
             }
-        } else if (req.user.role === userRoles.ProjectManager) {
+        } else if (req.user?.role === userRoles.ProjectManager) {
             const isUserAppointed = project.appointedBidManager.some((userId: any) => userId.equals(req.user._id));
 
             if (isUserAppointed) {

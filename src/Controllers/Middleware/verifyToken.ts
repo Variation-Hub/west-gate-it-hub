@@ -62,14 +62,32 @@ export const authorizeRolesWithoutError = (...roles: string[]) => {
             const token = BearerToken.slice(7);
             jwt.verify(token, secret, (err: any, decoded: any) => {
                 if (err) {
+                    // Invalid token
+                    req.user = null;
+                    return next();
+                }
+
+                const currentUnixTime = Math.floor(Date.now() / 1000);
+                const exp = decoded?.exp;
+
+                if (!exp || currentUnixTime > exp) {
+                    req.user = null;
+                    return next();
+                }
+
+                const userRole: string | null = decoded.role;
+                if (roles.length > 0 && (!userRole || !roles.includes(userRole))) {
+                    // Role not authorized
+                    req.user = null;
                     return next();
                 }
 
                 req.user = decoded;
-
                 next();
             });
         } else {
+            // No token provided or invalid token
+            req.user = null;
             next();
         }
     };
