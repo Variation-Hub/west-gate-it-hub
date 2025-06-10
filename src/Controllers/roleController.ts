@@ -82,7 +82,12 @@ export const getAllRoles = async (req: Request, res: Response) => {
                   $filter: {
                     input: "$cvs",
                     as: "cv",
-                    cond: { $eq: ["$$cv.supplierId", new mongoose.Types.ObjectId(supplierId as string)] }
+                    cond: {
+                      $and: [
+                        { $eq: ["$$cv.supplierId", new mongoose.Types.ObjectId(supplierId as string)] },
+                        { $eq: ["$$cv.currentRole", "$_id"] }
+                      ]
+                    }
                   }
                 } : "$cvs"
               }
@@ -289,6 +294,7 @@ export const getlistByRole = async (req: Request, res: Response) => {
         const candidates = await CandidateCvModel.find(matchStage)
             .populate("roleId", ["name", "otherRole"])
             .populate("supplierId", "name")
+            .populate("currentRole", "name")
             .sort({ active: -1, createdAt: -1 });
 
         res.status(200).json({
