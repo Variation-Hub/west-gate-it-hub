@@ -42,7 +42,7 @@ const CandidateCVSchema = new mongoose.Schema({
         default: 0,
     },
     executive: { type: Boolean, default: false },
-    currentRole: { type: String },
+    currentRole: { type: mongoose.Schema.Types.ObjectId, ref: "Role" },
     projectsExecuted: { type: Number, default: 0 },
     certifications: [{ type: String }],
     projectsWorkedOn: [{

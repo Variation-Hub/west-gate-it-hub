@@ -90,6 +90,7 @@ export const getAllCandidates = async (req: any, res: Response) => {
 
         const candidates = await CandidateCvModel.find(queryObj)
             .populate("roleId",  ["name", "otherRole"])
+            .populate("currentRole", "name")
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -131,7 +132,7 @@ export const getCandidateById = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
-        const candidate = await CandidateCvModel.findById(id).populate("roleId",  ["name", "otherRole"]);
+        const candidate = await CandidateCvModel.findById(id).populate("roleId",  ["name", "otherRole"]).populate("currentRole", "name");
         if (!candidate) {
             return res.status(404).json({ message: "Candidate not found", status: false });
         }
@@ -273,6 +274,14 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
                     localField: "roleId",
                     foreignField: "_id",
                     as: "roleId",
+                },
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "currentRole",
+                    foreignField: "_id",
+                    as: "currentRoleData",
                 },
             },
         ];
