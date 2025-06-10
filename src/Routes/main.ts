@@ -20,6 +20,7 @@ import roleRoute from './roleRoute';
 import techLanguageRoute from './techLanguageRoute';
 import subExpertiseRoute from './subExpertiseRoute';
 import formDataRoute from './formDataRoutes';
+import poundRateRoute from './poundRateRoute';
 
 const Routes = express.Router();
 
@@ -44,5 +45,6 @@ Routes.use("/roles", roleRoute);
 Routes.use("/tech-language", techLanguageRoute);
 Routes.use("/sub-expertise", subExpertiseRoute);
 Routes.use("/search-ui/formdata", formDataRoute);
+Routes.use("/pound-rate", poundRateRoute);
 
 export default Routes;
