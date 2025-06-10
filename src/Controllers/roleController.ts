@@ -47,7 +47,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
-        const { search, startDate, endDate } = req.query;
+        const { search, startDate, endDate, supplierId } = req.query;
         // const limit = Number(req.pagination?.limit) || 10;
         // const skip = Number(req.pagination?.skip) || 0;
 
@@ -75,6 +75,17 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 foreignField: "roleId",
                 as: "cvs",
               },
+            },
+            {
+              $addFields: {
+                cvs: supplierId ? {
+                  $filter: {
+                    input: "$cvs",
+                    as: "cv",
+                    cond: { $eq: ["$$cv.supplierId", new mongoose.Types.ObjectId(supplierId as string)] }
+                  }
+                } : "$cvs"
+              }
             },
             {
               $lookup: {
