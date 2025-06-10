@@ -226,7 +226,7 @@ export const updateUser = async (req: any, res: Response) => {
         // Save updated user
         const updatedUser = await user.save();
 
-        if (req.body?.isSendMail || req.body?.isSendMail == 'true' || req.body?.isSendMail == 'True') {
+        if (req.body?.isUpdateSendMail || req.body?.isUpdateSendMail == 'true' || req.body?.isUpdateSendMail == 'True') {
             await sendMailForProfileUpdate(req.body?.poc_email, id);
         }
 
