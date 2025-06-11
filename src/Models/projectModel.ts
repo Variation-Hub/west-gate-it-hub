@@ -164,7 +164,8 @@ const projectModel = new mongoose.Schema({
           isSelected: {
             type: Boolean,
             default: false,
-          }
+          },
+          registerInterest: { type: Boolean, default: false }
         }
     ],      
     applyUserId: {
@@ -347,6 +348,15 @@ const projectModel = new mongoose.Schema({
     chatGptLink: {
         type: String,
         default: ""
+    },
+    register_interest: {
+        type: Boolean,
+        default: false
+    },
+    interestedSuppliers: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: 'User',
+        default: []
     },
     createdAt: {
         type: Date,

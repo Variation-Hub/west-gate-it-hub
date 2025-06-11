@@ -648,10 +648,21 @@ export const getProject = async (req: any, res: Response) => {
             });
         }
 
+        let isInterested = false;
+        if (req.user && req.user.role === 'SupplierAdmin') {
+            isInterested = project.interestedSuppliers?.includes(req.user._id) || false;
+        }
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
-            data: { ...project, matchedCaseStudy: project.casestudy?.length || 0, assignBidmanager, assignFeasibilityUser }
+            data: {
+                ...project,
+                matchedCaseStudy: project.casestudy?.length || 0,
+                assignBidmanager,
+                assignFeasibilityUser,
+                isInterested
+            }
         });
     } catch (err: any) {
         return res.status(500).json({
@@ -4598,6 +4609,115 @@ export const selectUserForProject = async (req: any, res: Response) => {
             message: err.message,
             status: false,
             data: null
+        });
+    }
+};
+
+
+// Combined Register/Unregister Interest API for Suppliers
+export const registerInterest = async (req: any, res: Response) => {
+    try {
+        const { id } = req.params; // project id
+        const { interested } = req.body; // true / false
+        const userId = req.user._id;
+        const userRole = req.user.role;
+
+        if (typeof interested !== 'boolean') {
+            return res.status(400).json({
+                message: "Please provide 'interested' as true or false",
+                status: false
+            });
+        }
+
+        if (userRole !== 'SupplierAdmin') {
+            return res.status(403).json({
+                message: "Only suppliers can register interest in projects",
+                status: false
+            });
+        }
+
+        const project = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false
+            });
+        }
+
+        const alreadyInterested = project.interestedSuppliers?.includes(userId) || false;
+        const user = await userModel.findById(userId);
+
+        if (interested) {
+            // Register interest
+            if (alreadyInterested) {
+                return res.status(400).json({
+                    message: "You have already registered interest in this project",
+                    status: false
+                });
+            }
+
+            // Add interest
+            if (!project.interestedSuppliers) {
+                project.interestedSuppliers = [];
+            }
+            project.interestedSuppliers.push(userId);
+            project.register_interest = true;
+
+            // // Add log entry
+            // const logEntry = {
+            //     log: `<strong>${user?.name}</strong> registered interest in the project: ${project.projectName}.`,
+            //     userId: userId,
+            //     date: new Date(),
+            //     type: "timeBased"
+            // };
+            // project.logs = [logEntry, ...(project.logs || [])];
+
+            await project.save();
+
+            return res.status(200).json({
+                message: "Interest registered successfully",
+                status: true,
+                data: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest,
+                    isInterested: true
+                }
+            });
+        } else {
+            // Unregister interest
+            if (!alreadyInterested) {
+                return res.status(400).json({
+                    message: "You have not registered interest in this project",
+                    status: false
+                });
+            }
+
+            // Remove interest
+            project.interestedSuppliers = project.interestedSuppliers.filter(
+                (supplierId: any) => supplierId.toString() !== userId.toString()
+            );
+
+            // Update register_interest flag
+            project.register_interest = project.interestedSuppliers.length > 0;
+
+            await project.save();
+
+            return res.status(200).json({
+                message: "Interest removed successfully",
+                status: true,
+                data: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest,
+                    isInterested: false
+                }
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
         });
     }
 };
