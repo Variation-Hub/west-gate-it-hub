@@ -353,11 +353,12 @@ const projectModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
-    interestedSuppliers: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',
-        default: []
-    },
+    interestedSuppliers: [
+        {
+            supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
+            attendee: { type: Boolean, default: false }
+        }
+    ],
     createdAt: {
         type: Date,
         default: getCurrentISTTime

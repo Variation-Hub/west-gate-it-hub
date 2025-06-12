@@ -648,9 +648,12 @@ export const getProject = async (req: any, res: Response) => {
             });
         }
 
+        // Check if current user has registered interest
         let isInterested = false;
         if (req.user && req.user.role === 'SupplierAdmin') {
-            isInterested = project.interestedSuppliers?.includes(req.user._id) || false;
+            isInterested = project.interestedSuppliers?.some(
+                (supplier: any) => supplier.supplierId?.toString() === req.user._id.toString()
+            ) || false;
         }
 
         return res.status(200).json({
@@ -1331,6 +1334,10 @@ export const getProjects = async (req: any, res: Response) => {
             .populate('sortListUserId')
             .populate({
                 path: 'selectedUserIds.userId',
+                select: '_id name'
+            })
+            .populate({
+                path: 'interestedSuppliers',
                 select: '_id name'
             });
         // .lean();
@@ -4644,8 +4651,21 @@ export const registerInterest = async (req: any, res: Response) => {
             });
         }
 
-        const alreadyInterested = project.interestedSuppliers?.includes(userId) || false;
+        // Check if supplier already registered interest
+        const alreadyInterested = project.interestedSuppliers?.some(
+            (supplier: any) => supplier.supplierId?.toString() === userId.toString()
+        ) || false;
         const user = await userModel.findById(userId);
+
+        const determineRegisterInterest = (suppliers: typeof project.interestedSuppliers): boolean => {
+            if (suppliers.length === 0) {
+                return false;
+            }
+            if (suppliers.length === 1 && suppliers[0]?.attendee === true) {
+                return false;
+            }
+            return true;
+        };
 
         if (interested) {
             // Register interest
@@ -4657,11 +4677,12 @@ export const registerInterest = async (req: any, res: Response) => {
             }
 
             // Add interest
-            if (!project.interestedSuppliers) {
-                project.interestedSuppliers = [];
-            }
-            project.interestedSuppliers.push(userId);
-            project.register_interest = true;
+            project.interestedSuppliers.push({
+                supplierId: userId,
+                attendee: false
+            });
+            project.register_interest = determineRegisterInterest(project.interestedSuppliers);
+
 
             // // Add log entry
             // const logEntry = {
@@ -4694,12 +4715,14 @@ export const registerInterest = async (req: any, res: Response) => {
             }
 
             // Remove interest
-            project.interestedSuppliers = project.interestedSuppliers.filter(
-                (supplierId: any) => supplierId.toString() !== userId.toString()
-            );
+            for (let i = project.interestedSuppliers.length - 1; i >= 0; i--) {
+                if (project.interestedSuppliers[i]?.supplierId?.toString() === userId.toString()) {
+                    project.interestedSuppliers.splice(i, 1);
+                }
+            }
 
             // Update register_interest flag
-            project.register_interest = project.interestedSuppliers.length > 0;
+            project.register_interest = determineRegisterInterest(project.interestedSuppliers);
 
             await project.save();
 
@@ -4719,5 +4742,47 @@ export const registerInterest = async (req: any, res: Response) => {
             message: err.message,
             status: false
         });
+    }
+};
+
+export const updateAttendeeStatus = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId, attendee } = req.body;
+
+        if (typeof attendee !== 'boolean') {
+            return res.status(400).json({ message: "'attendee' must be true or false", status: false });
+        }
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierEntry = project.interestedSuppliers.find(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (!supplierEntry) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        supplierEntry.attendee = attendee;
+
+        // Check if any supplier has attendee == false
+        const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
+        project.register_interest = stillPending;
+
+        await project.save();
+
+        return res.status(200).json({
+            message: `Attendee flag updated`,
+            status: true,
+            data: {
+                projectId: project._id,
+                register_interest: project.register_interest,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
     }
 };
