@@ -1332,6 +1332,10 @@ export const getProjects = async (req: any, res: Response) => {
             .populate({
                 path: 'selectedUserIds.userId',
                 select: '_id name'
+            })
+            .populate({
+                path: 'interestedSuppliers',
+                select: '_id name'
             });
         // .lean();
 
