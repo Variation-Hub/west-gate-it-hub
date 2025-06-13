@@ -326,7 +326,8 @@ export const getProject = async (req: any, res: Response) => {
         if (project?.interestedSuppliers?.length) {
             project.interestedSuppliers = project.interestedSuppliers.map((u: any) => ({
                 _id: u._id,
-                name: u.name
+                name: u.name,
+                attendee: u.attendee
             }));
         }
         
@@ -1353,7 +1354,7 @@ export const getProjects = async (req: any, res: Response) => {
             })
             .populate({
                 path: 'interestedSuppliers',
-                select: '_id name'
+                select: '_id name attendee'
             });
         // .lean();
 
