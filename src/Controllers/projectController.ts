@@ -302,7 +302,36 @@ export const getProject = async (req: any, res: Response) => {
                     from: 'users',
                     localField: 'interestedSuppliers.supplierId',
                     foreignField: '_id',
-                    as: 'interestedSuppliers'
+                    as: 'interestedSuppliersUsers'
+                }
+            },
+            {
+                $addFields: {
+                    interestedSuppliers: {
+                        $map: {
+                            input: "$interestedSuppliers",
+                            as: "supplier",
+                            in: {
+                                $mergeObjects: [
+                                    "$$supplier",
+                                    {
+                                        supplierDetails: {
+                                            $arrayElemAt: [
+                                                {
+                                                    $filter: {
+                                                        input: "$interestedSuppliersUsers",
+                                                        as: "user",
+                                                        cond: { $eq: ["$$user._id", "$$supplier.supplierId"] }
+                                                    }
+                                                },
+                                                0
+                                            ]
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
                 }
             },
             {
@@ -324,10 +353,11 @@ export const getProject = async (req: any, res: Response) => {
         project = project[0];
 
         if (project?.interestedSuppliers?.length) {
-            project.interestedSuppliers = project.interestedSuppliers.map((u: any) => ({
-                _id: u._id,
-                name: u.name,
-                attendee: u.attendee
+            project.interestedSuppliers = project.interestedSuppliers.map((supplier: any) => ({
+                _id: supplier.supplierDetails?._id,
+                name: supplier.supplierDetails?.name,
+                attendee: supplier.attendee,
+                supplierId: supplier.supplierId
             }));
         }
         
