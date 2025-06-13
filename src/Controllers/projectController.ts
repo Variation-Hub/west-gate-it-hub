@@ -298,6 +298,14 @@ export const getProject = async (req: any, res: Response) => {
                 }
             },
             {
+                $lookup: {
+                    from: 'users',
+                    localField: 'interestedSuppliers.supplierId',
+                    foreignField: '_id',
+                    as: 'interestedSuppliers'
+                }
+            },
+            {
                 $project: {
                     'applyUserId': 0,
                     'summaryQuestion.projectId': 0,
@@ -315,6 +323,13 @@ export const getProject = async (req: any, res: Response) => {
         }
         project = project[0];
 
+        if (project?.interestedSuppliers?.length) {
+            project.interestedSuppliers = project.interestedSuppliers.map((u: any) => ({
+                _id: u._id,
+                name: u.name
+            }));
+        }
+        
         if (project?.category?.length) {
             project.casestudy = await caseStudy.find({
                 verify: true,
