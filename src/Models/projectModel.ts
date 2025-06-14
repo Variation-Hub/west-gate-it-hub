@@ -359,6 +359,10 @@ const projectModel = new mongoose.Schema({
             attendee: { type: Boolean, default: false }
         }
     ],
+    resultExpected: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: getCurrentISTTime

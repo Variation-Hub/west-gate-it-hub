@@ -1911,7 +1911,7 @@ const formatDateIfNeeded = (value: any): string => {
 export const updateProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason, chatGptLink } = req.body
+        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason, chatGptLink, resultExpected } = req.body
 
         const project: any = await projectModel.findById(id);
 
@@ -1955,7 +1955,7 @@ export const updateProject = async (req: any, res: Response) => {
             periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
             website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
             minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, bidManagerStatus,
-            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink
+            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, resultExpected
         };
 
         for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
@@ -2061,6 +2061,7 @@ export const updateProject = async (req: any, res: Response) => {
         project.linkToPortal = linkToPortal || project.linkToPortal;
         project.documentsLink = documentsLink || project.documentsLink;
         project.chatGptLink = chatGptLink || project.chatGptLink;
+        project.resultExpected = resultExpected || project.resultExpected;
 
         // project.projectName = projectName;
         // project.category = category;
