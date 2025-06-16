@@ -12,4 +12,6 @@ candidateCvRoute.patch("/update/:id", authorizeRoles(),updateCandidate);
 candidateCvRoute.delete("/delete/:id", authorizeRoles(), deleteCandidate);
 candidateCvRoute.get("/list/:supplierId", authorizeRoles(), paginationMiddleware, getCandidatesBySupplierId);
 
+//Public route
+candidateCvRoute.get("/public/get-list", getAllCandidates); 
 export default candidateCvRoute;
