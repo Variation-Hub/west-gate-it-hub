@@ -683,7 +683,10 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 export const publicSuplierAdmin = async (req: any, res: Response) => {
     try {
         const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold, projectName, expertise, tags } = req.query;
-        const query: any = { role: userRoles.SupplierAdmin }
+        const query: any = {
+            role: userRoles.SupplierAdmin,
+            active: true  // Only return active suppliers
+        }
 
         if (startDate && endDate) {
             const start = new Date(startDate);
@@ -719,11 +722,6 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             query.isInHold = false;
         }
 
-        if (status === "true") {
-            query.active = true;
-        } else if (status === "false") {
-            query.active = false;
-        }
 
         if (typeof isDeleted === "undefined") {
             query.isDeleted = false;
@@ -733,9 +731,9 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             query.isDeleted = false;
         }
 
-        // Build aggregation pipeline for complex filters
+        // Build aggregation pipeline for filters
         let aggregationPipeline: any[] = [
-            { $match: query }
+            { $match: query }  // This already includes active: true
         ];
 
         // Add projectName filter
@@ -842,19 +840,15 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
         }
 
         const counts = await userModel.aggregate([
-            { $match: { role: userRoles.SupplierAdmin } },
+            { $match: { role: userRoles.SupplierAdmin, active: true } }, // Only count active suppliers
             {
                 $facet: {
                     totalCount: [{ $count: "count" }],
-                    activeCount: [{ $match: { active: true, isDeleted: false } }, { $count: "count" }],
-                    inActiveCount: [{ $match: { active: false, isDeleted: false, isInHold: false } }, { $count: "count" }],
-                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
-                    subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
-                    inHoldCount: [{ $match: { isInHold: true, isDeleted: false } }, { $count: "count" }]
+                    activeCount: [{ $match: { active: true, isDeleted: false } }, { $count: "count" }] 
                 }
             }
         ]);
-        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin, isDeleted: true });
+        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin, isDeleted: true, active: true }); // Only active deleted suppliers
 
         const extractCount = (arr: any[]) => (arr[0]?.count || 0);
 
@@ -912,14 +906,6 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
         }).select("projectName bidManagerStatus selectedUserIds");
 
         const userWithProjects = user.map(u => {
-            const sortedInHoldComments = u.inHoldComment?.sort(
-                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
-            const sortedActiveStatus = u.activeStatus?.sort(
-                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
             const assignedProjects = projects.filter(project =>
                 project.selectedUserIds.some(sel =>
                     sel.userId?.toString() === u._id.toString() && sel.isSelected === true
@@ -930,8 +916,6 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
 
             return {
                 ...(u.toObject ? u.toObject() : u),
-                inHoldComment: sortedInHoldComments,
-                activeStatus: sortedActiveStatus,
                 assignedProjects,
                 assignedProjectCount: assignedProjects?.length,
                 totalCandidates
@@ -945,11 +929,6 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
                 count: {
                     total: extractCount(counts[0].totalCount),
                     active: extractCount(counts[0].activeCount),
-                    inActive: extractCount(counts[0].inActiveCount),
-                    resourceSharingCount: extractCount(counts[0].resourceSharingCount),
-                    subcontractingCount: extractCount(counts[0].subcontractingCount),
-                    inHoldCount: extractCount(counts[0].inHoldCount),
-                    isDeletedCount,
                     totalSupplierEmployeeCount
                 },
                 meta_data: {
@@ -1844,3 +1823,9 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
         });
     }
 };
+
+
+
+
+
+
