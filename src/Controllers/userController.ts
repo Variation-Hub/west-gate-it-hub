@@ -682,7 +682,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
 export const publicSuplierAdmin = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold, projectName, expertise } = req.query;
+        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold, projectName, expertise, tags } = req.query;
         const query: any = { role: userRoles.SupplierAdmin }
 
         if (startDate && endDate) {
@@ -800,9 +800,40 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             });
         }
 
+        if (tags) {
+            if (!expertise) {
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertise.itemId",
+                        foreignField: "_id",
+                        as: "expertiseWithTags"
+                    }
+                });
+
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertiseICanDo.itemId",
+                        foreignField: "_id",
+                        as: "expertiseICanDoWithTags"
+                    }
+                });
+            }
+
+            aggregationPipeline.push({
+                $match: {
+                    $or: [
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } }
+                    ]
+                }
+            });
+        }
+
         // Get count using aggregation if complex filters are applied
         let count: number;
-        if (projectName || expertise) {
+        if (projectName || expertise || tags) {
             const countPipeline = [...aggregationPipeline, { $count: "total" }];
             const countResult = await userModel.aggregate(countPipeline);
             count = countResult.length > 0 ? countResult[0].total : 0;
@@ -829,7 +860,7 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
 
         // Get users using aggregation if complex filters are applied
         let user: any[];
-        if (projectName || expertise) {
+        if (projectName || expertise || tags) {
             // Add pagination and sorting to aggregation pipeline
             aggregationPipeline.push(
                 { $sort: { active: -1, createdAt: -1 } },
