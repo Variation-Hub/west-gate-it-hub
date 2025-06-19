@@ -680,6 +680,295 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
     }
 }
 
+export const publicSuplierAdmin = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold, projectName, expertise, tags } = req.query;
+        const query: any = { role: userRoles.SupplierAdmin }
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            query.doj = { $gte: start, $lte: end };
+        }
+
+        if (search) {
+            query.name = { $regex: search, $options: "i" };
+        }
+
+        if (resourceSharing === "true") {
+            query.resourceSharingSupplier = true;
+            query.active = true;
+        } else if (resourceSharing === "false") {
+            query.resourceSharingSupplier = false;
+            query.active = true;
+        }
+
+        // Subcontracting Filter
+        if (subContracting === "true") {
+            query.subcontractingSupplier = true;
+            query.active = true;
+        } else if (subContracting === "false") {
+            query.subcontractingSupplier = false;
+            query.active = true;
+        }
+
+        if (inHold === "true") {
+            query.isInHold = true;
+        } else if (inHold === "false") {
+            query.isInHold = false;
+        }
+
+        if (status === "true") {
+            query.active = true;
+        } else if (status === "false") {
+            query.active = false;
+        }
+
+        if (typeof isDeleted === "undefined") {
+            query.isDeleted = false;
+        } else if (isDeleted === "true") {
+            query.isDeleted = true;
+        } else if (isDeleted === "false") {
+            query.isDeleted = false;
+        }
+
+        // Build aggregation pipeline for complex filters
+        let aggregationPipeline: any[] = [
+            { $match: query }
+        ];
+
+        // Add projectName filter
+        if (projectName) {
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "projects",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $in: ["$$userId", "$selectedUserIds.userId"] },
+                                        { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "matchedProjects"
+                }
+            });
+            aggregationPipeline.push({
+                $match: {
+                    "matchedProjects.0": { $exists: true }
+                }
+            });
+        }
+
+        // Add expertise filter (searches in both names and tags)
+        if (expertise) {
+            // Add lookup to get tags from masterList for both expertise fields
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "masterlists",
+                    localField: "expertise.itemId",
+                    foreignField: "_id",
+                    as: "expertiseWithTags"
+                }
+            });
+
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "masterlists",
+                    localField: "expertiseICanDo.itemId",
+                    foreignField: "_id",
+                    as: "expertiseICanDoWithTags"
+                }
+            });
+
+            // Match in expertise name, expertiseICanDo name, OR their tags arrays
+            aggregationPipeline.push({
+                $match: {
+                    $or: [
+                        { "expertise.name": { $regex: expertise, $options: "i" } },
+                        { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
+                    ]
+                }
+            });
+        }
+
+        if (tags) {
+            if (!expertise) {
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertise.itemId",
+                        foreignField: "_id",
+                        as: "expertiseWithTags"
+                    }
+                });
+
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertiseICanDo.itemId",
+                        foreignField: "_id",
+                        as: "expertiseICanDoWithTags"
+                    }
+                });
+            }
+
+            aggregationPipeline.push({
+                $match: {
+                    $or: [
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } }
+                    ]
+                }
+            });
+        }
+
+        // Get count using aggregation if complex filters are applied
+        let count: number;
+        if (projectName || expertise || tags) {
+            const countPipeline = [...aggregationPipeline, { $count: "total" }];
+            const countResult = await userModel.aggregate(countPipeline);
+            count = countResult.length > 0 ? countResult[0].total : 0;
+        } else {
+            count = await userModel.countDocuments(query);
+        }
+
+        const counts = await userModel.aggregate([
+            { $match: { role: userRoles.SupplierAdmin } },
+            {
+                $facet: {
+                    totalCount: [{ $count: "count" }],
+                    activeCount: [{ $match: { active: true, isDeleted: false } }, { $count: "count" }],
+                    inActiveCount: [{ $match: { active: false, isDeleted: false, isInHold: false } }, { $count: "count" }],
+                    resourceSharingCount: [{ $match: { resourceSharingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
+                    subcontractingCount: [{ $match: { subcontractingSupplier: true, active: true, isDeleted: false } }, { $count: "count" }],
+                    inHoldCount: [{ $match: { isInHold: true, isDeleted: false } }, { $count: "count" }]
+                }
+            }
+        ]);
+        const isDeletedCount = await userModel.countDocuments({ role: userRoles.SupplierAdmin, isDeleted: true });
+
+        const extractCount = (arr: any[]) => (arr[0]?.count || 0);
+
+        // Get users using aggregation if complex filters are applied
+        let user: any[];
+        if (projectName || expertise || tags) {
+            // Add pagination and sorting to aggregation pipeline
+            aggregationPipeline.push(
+                { $sort: { active: -1, createdAt: -1 } },
+                { $skip: req.pagination?.skip || 0 },
+                { $limit: req.pagination?.limit || 10 }
+            );
+            user = await userModel.aggregate(aggregationPipeline);
+        } else {
+            user = await userModel.find(query)
+                .limit(req.pagination?.limit as number)
+                .skip(req.pagination?.skip as number)
+                .sort({ active: -1, createdAt: -1 });
+        }
+
+        const userIds = user.map(u => u._id);
+
+        let userList = await userModel.find({ active: true });
+
+        let totalSupplierEmployeeCount = 0;
+        userList?.map((element) => {
+            if (element?.employeeCount) {
+                totalSupplierEmployeeCount = Number(totalSupplierEmployeeCount) + Number(element?.employeeCount)
+            }
+        })
+
+        const candidateCounts = await CandidateCvModel.aggregate([
+            {
+                $match: {
+                    supplierId: { $in: userIds }
+                }
+            },
+            {
+                $group: {
+                    _id: "$supplierId",
+                    totalCandidates: { $sum: 1 }
+                }
+            }
+        ]);
+
+        const candidateMap = new Map(candidateCounts.map(item => [item._id.toString(), item.totalCandidates]));
+        const projects = await projectModel.find({
+            bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
+            selectedUserIds: {
+                $elemMatch: {
+                    userId: { $in: userIds },
+                    isSelected: true
+                }
+            }
+        }).select("projectName bidManagerStatus selectedUserIds");
+
+        const userWithProjects = user.map(u => {
+            const sortedInHoldComments = u.inHoldComment?.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+            const sortedActiveStatus = u.activeStatus?.sort(
+                (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+
+            const assignedProjects = projects.filter(project =>
+                project.selectedUserIds.some(sel =>
+                    sel.userId?.toString() === u._id.toString() && sel.isSelected === true
+                )
+            );
+
+            const totalCandidates = candidateMap.get(u._id.toString()) || 0;
+
+            return {
+                ...(u.toObject ? u.toObject() : u),
+                inHoldComment: sortedInHoldComments,
+                activeStatus: sortedActiveStatus,
+                assignedProjects,
+                assignedProjectCount: assignedProjects?.length,
+                totalCandidates
+            };
+        });
+        return res.status(200).json({
+            message: "User fetch success",
+            status: true,
+            data: {
+                data: userWithProjects,
+                count: {
+                    total: extractCount(counts[0].totalCount),
+                    active: extractCount(counts[0].activeCount),
+                    inActive: extractCount(counts[0].inActiveCount),
+                    resourceSharingCount: extractCount(counts[0].resourceSharingCount),
+                    subcontractingCount: extractCount(counts[0].subcontractingCount),
+                    inHoldCount: extractCount(counts[0].inHoldCount),
+                    isDeletedCount,
+                    totalSupplierEmployeeCount
+                },
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                }
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
 export const updateAvatar = async (req: any, res: Response) => {
     try {
 

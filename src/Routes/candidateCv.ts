@@ -16,11 +16,17 @@ candidateCvRoute.get("/list/:supplierId", authorizeRoles(), paginationMiddleware
 candidateCvRoute.get("/filters", authorizeRoles(), getCandidateFilters);
 candidateCvRoute.get("/filtered", authorizeRoles(), paginationMiddleware, getCandidatesByFilters);
 
-// Saved filter routes
-candidateCvRoute.post("/save-filter", authorizeRoles(), saveCandidateFilter);
-candidateCvRoute.get("/filter-list", authorizeRoles(), getRoleList);
-candidateCvRoute.get("/filter/:filterId/candidates", authorizeRoles(), paginationMiddleware, getCandidatesByFilterId);
-candidateCvRoute.delete("/filter/:filterId", authorizeRoles(), deleteCandidateFilter);
+// filter routes
+candidateCvRoute.post("/save-filter", saveCandidateFilter);
+candidateCvRoute.get("/filter-list", getRoleList);
+candidateCvRoute.get("/filter/:filterId/candidates", paginationMiddleware, getCandidatesByFilterId);
+candidateCvRoute.delete("/filter/:filterId", deleteCandidateFilter);
+
+// Public filter routes
+candidateCvRoute.post("/public/save-filter", saveCandidateFilter);
+candidateCvRoute.get("/public/filter-list", getRoleList);
+candidateCvRoute.get("/public/filter/:filterId/candidates", paginationMiddleware, getCandidatesByFilterId);
+candidateCvRoute.delete("/public/filter/:filterId", deleteCandidateFilter);
 
 //Public route
 candidateCvRoute.get("/public/get-list", paginationMiddleware, getCandidates);

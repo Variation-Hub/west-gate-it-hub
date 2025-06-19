@@ -20,7 +20,8 @@ import {
     GetUserLogin,
     fetchSupplierWithProjectStatus,
     resetPassword,
-    publicUpdateUser
+    publicUpdateUser,
+    publicSuplierAdmin
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -57,5 +58,5 @@ userRoutes.get("/admin/suppleir-statictics", authorizeRoles(), getAdminDashboard
 
 // public update API 
 userRoutes.patch("/public/update/:id", publicUpdateUser);
-userRoutes.get("/public/suplier/list", paginationMiddleware, fetchSuplierAdmin);
+userRoutes.get("/public/suplier/list", paginationMiddleware, publicSuplierAdmin);
 export default userRoutes;
