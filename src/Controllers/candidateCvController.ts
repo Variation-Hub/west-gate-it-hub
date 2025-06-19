@@ -652,89 +652,94 @@ export const getCandidatesByFilters = async (req: any, res: Response) => {
 // Save a new candidate filter
 export const saveCandidateFilter = async (req: any, res: Response) => {
     try {
-        const { jobTitle, minExperience, maxExperience } = req.body;
-        const userId = req.user.id;
+        const userId = req.user?.id || null; // Guest users will have null
+        const filters = req.body.filters;
 
-        if (!jobTitle) {
+        if (!Array.isArray(filters) || filters.length === 0) {
             return res.status(400).json({
-                message: "jobTitle is required",
+                message: "At least one filter is required.",
                 status: false
             });
         }
 
-        const existingFilter = await CandidateFilter.findOne({
-            userId,
-            jobTitle: { $regex: new RegExp(`^${jobTitle}$`, 'i') }
-        });
+        const savedFilters = [];
+        for (const filter of filters) {
+            const { jobTitle, minExperience = 0, maxExperience = 999 } = filter;
 
-        if (existingFilter) {
-            return res.status(400).json({
-                message: "Job title already exists. Please choose a different name.",
-                status: false
+            if (!jobTitle) continue;
+
+            const existing = await CandidateFilter.findOne({
+                userId,
+                jobTitle: { $regex: new RegExp(`^${jobTitle}$`, 'i') }
             });
+
+            if (existing) continue;
+
+            // Count matching candidates
+            const candidateCount = await CandidateCvModel.aggregate([
+                {
+                    $lookup: {
+                        from: "roles",
+                        localField: "roleId",
+                        foreignField: "_id",
+                        as: "roleData"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "roles",
+                        localField: "currentRole",
+                        foreignField: "_id",
+                        as: "currentRoleData"
+                    }
+                },
+                {
+                    $match: {
+                        $and: [
+                            {
+                                $or: [
+                                    { "roleData.name": { $regex: jobTitle, $options: "i" } },
+                                    { "roleData.otherRole": { $regex: jobTitle, $options: "i" } },
+                                    { "currentRoleData.name": { $regex: jobTitle, $options: "i" } },
+                                    { "currentRoleData.otherRole": { $regex: jobTitle, $options: "i" } }
+                                ]
+                            },
+                            {
+                                totalExperience: {
+                                    $gte: minExperience,
+                                    ...(maxExperience !== 999 ? { $lt: maxExperience } : {})
+                                }
+                            },
+                            { active: true }
+                        ]
+                    }
+                },
+                { $count: "count" }
+            ]);
+
+            const count = candidateCount.length > 0 ? candidateCount[0].count : 0;
+
+            const newFilter = new CandidateFilter({
+                userId,
+                jobTitle,
+                minExperience,
+                maxExperience,
+                candidateCount: count
+            });
+
+            const saved = await newFilter.save();
+            savedFilters.push(saved);
         }
-
-        const candidateCount = await CandidateCvModel.aggregate([
-            {
-                $lookup: {
-                    from: "roles",
-                    localField: "roleId",
-                    foreignField: "_id",
-                    as: "roleData"
-                }
-            },
-            {
-                $lookup: {
-                    from: "roles",
-                    localField: "currentRole",
-                    foreignField: "_id",
-                    as: "currentRoleData"
-                }
-            },
-            {
-                $match: {
-                    $and: [
-                        {
-                            $or: [
-                                { "roleData.name": { $regex: jobTitle, $options: "i" } },
-                                { "roleData.otherRole": { $regex: jobTitle, $options: "i" } },
-                                { "currentRoleData.name": { $regex: jobTitle, $options: "i" } },
-                                { "currentRoleData.otherRole": { $regex: jobTitle, $options: "i" } }
-                            ]
-                        },
-                        {
-                            totalExperience: {
-                                $gte: minExperience,
-                                ...(maxExperience !== 999 ? { $lt: maxExperience } : {})
-                            }
-                        },
-                        { active: true }
-                    ]
-                }
-            },
-            { $count: "count" }
-        ]);
-
-        const count = candidateCount.length > 0 ? candidateCount[0].count : 0;
-
-        const newFilter = new CandidateFilter({
-            userId,
-            jobTitle,
-            minExperience,
-            maxExperience,
-            candidateCount: count
-        });
-
-        const savedFilter = await newFilter.save();
 
         return res.status(201).json({
-            message: "Filter saved successfully",
+            message: `${savedFilters.length} filter(s) saved successfully.`,
             status: true,
-            data: savedFilter
+            data: savedFilters
         });
+
     } catch (error: any) {
         return res.status(500).json({
-            message: "Error saving filter",
+            message: "Error saving filters",
             status: false,
             error: error.message
         });
@@ -744,10 +749,13 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
 // Get list of saved filters
 export const getRoleList = async (req: any, res: Response) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user?.id || req.query.userId || null;
         const { search } = req.query;
 
-        const query: any = { userId, active: true };
+        const query: any = { active: true };
+        if (userId) {
+            query.userId = userId;
+        }
 
         if (search) {
             query.$or = [
@@ -833,14 +841,14 @@ export const getRoleList = async (req: any, res: Response) => {
 export const getCandidatesByFilterId = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.user.id;
+        const userId = req.user?.id || req.query.userId || null;
 
         // Get the saved filter
-        const filter = await CandidateFilter.findOne({
-            _id: filterId,
-            userId,
-            active: true
-        });
+        const filterQuery: any = { _id: filterId, active: true };
+        if (userId) {
+            filterQuery.userId = userId;
+        }
+        const filter = await CandidateFilter.findOne(filterQuery);
 
         if (!filter) {
             return res.status(404).json({
@@ -950,12 +958,14 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
 export const deleteCandidateFilter = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.user.id;
+        const userId = req.user?.id || req.query.userId || null;
 
-        const deletedFilter = await CandidateFilter.findOneAndDelete({
-            _id: filterId,
-            userId
-        });
+        const deleteQuery: any = { _id: filterId };
+        if (userId) {
+            deleteQuery.userId = userId;
+        }
+
+        const deletedFilter = await CandidateFilter.findOneAndDelete(deleteQuery);
 
         if (!deletedFilter) {
             return res.status(404).json({

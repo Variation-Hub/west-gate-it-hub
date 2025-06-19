@@ -387,3 +387,64 @@ export const getTechnologies = async (req: any, res: Response) => {
         });
     }
 };
+
+// Public API to get all roles and other roles combined in one list
+export const getAllRolesCombined = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const roles = await RoleModel.find({}).select('name otherRoles relatedRoles');
+
+        const combinedRoles: string[] = [];
+
+        roles.forEach(role => {
+            if (role.name) {
+                combinedRoles.push(role.name);
+            }
+
+            if (role.otherRoles && role.otherRoles.length > 0) {
+                role.otherRoles.forEach(otherRole => {
+                    if (otherRole && otherRole.trim()) {
+                        combinedRoles.push(otherRole.trim());
+                    }
+                });
+            }
+
+            if (role.relatedRoles && role.relatedRoles.length > 0) {
+                role.relatedRoles.forEach(relatedRole => {
+                    if (relatedRole && relatedRole.trim()) {
+                        combinedRoles.push(relatedRole.trim());
+                    }
+                });
+            }
+        });
+
+        const uniqueRoles = [...new Set(combinedRoles)].sort((a, b) =>
+            a.toLowerCase().localeCompare(b.toLowerCase())
+        );
+
+        let filteredRoles = uniqueRoles;
+        if (search && typeof search === 'string') {
+            const searchLower = search.toLowerCase();
+            filteredRoles = uniqueRoles.filter(role =>
+                role.toLowerCase().includes(searchLower)
+            );
+        }
+
+        return res.status(200).json({
+            message: "Roles list fetched successfully",
+            status: true,
+            data: {
+                roles: filteredRoles,
+                total: filteredRoles.length,
+                totalUnique: uniqueRoles.length
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch roles",
+            status: false,
+            data: null
+        });
+    }
+};
