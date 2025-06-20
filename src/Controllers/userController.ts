@@ -747,7 +747,15 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
                             $match: {
                                 $expr: {
                                     $and: [
-                                        { $in: ["$$userId", "$selectedUserIds.userId"] },
+                                        {
+                                            $anyElementTrue: {
+                                                $map: {
+                                                    input: { $ifNull: ["$selectedUserIds", []] },
+                                                    as: "selectedUser",
+                                                    in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+                                                }
+                                            }
+                                        },
                                         { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
                                     ]
                                 }
