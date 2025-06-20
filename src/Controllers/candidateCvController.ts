@@ -652,7 +652,7 @@ export const getCandidatesByFilters = async (req: any, res: Response) => {
 // Save a new candidate filter
 export const saveCandidateFilter = async (req: any, res: Response) => {
     try {
-        const userId = req.user?.id || null; // Guest users will have null
+        const userId = req.body.userId || null; // Guest users will have null
         const filters = req.body.filters;
 
         if (!Array.isArray(filters) || filters.length === 0) {
@@ -749,7 +749,7 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
 // Get list of saved filters
 export const getRoleList = async (req: any, res: Response) => {
     try {
-        const userId = req.user?.id || req.query.userId || null;
+        const userId = req.body.userId || null;
         const { search } = req.query;
 
         const query: any = { active: true };
@@ -841,7 +841,7 @@ export const getRoleList = async (req: any, res: Response) => {
 export const getCandidatesByFilterId = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.user?.id || req.query.userId || null;
+        const userId = req.body.userId || null;
         const { search } = req.query;
 
         // Get the saved filter
@@ -967,7 +967,7 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
 export const deleteCandidateFilter = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.user?.id || req.query.userId || null;
+        const userId = req.body.userId || null;
 
         const deleteQuery: any = { _id: filterId };
         if (userId) {
