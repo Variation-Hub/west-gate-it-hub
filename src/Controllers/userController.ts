@@ -13,6 +13,7 @@ import caseStudy from "../Models/caseStudy"
 import taskModel from "../Models/taskModel"
 import FileModel from "../Models/fileModel"
 import CandidateCvModel from "../Models/candidateCv"
+import SupplierFilter from "../Models/supplierFilter";
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -768,6 +769,13 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             aggregationPipeline.push({
                 $match: {
                     "matchedProjects.0": { $exists: true }
+                }
+            });
+
+            // Remove matchedProjects from output
+            aggregationPipeline.push({
+                $project: {
+                    matchedProjects: 0
                 }
             });
         }
@@ -1832,8 +1840,569 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
     }
 };
 
+// Save supplier filters
+export const saveSupplierFilter = async (req: any, res: Response) => {
+    try {
+        const userId = req.body.userId || null;
+        const filters = req.body.filters;
 
+        if (!Array.isArray(filters) || filters.length === 0) {
+            return res.status(400).json({
+                message: "At least one filter is required.",
+                status: false
+            });
+        }
 
+        const savedFilters = [];
+        for (const filter of filters) {
+            const { projectName, expertise, tags } = filter;
 
+            if (!projectName && !expertise && !tags) {
+                continue; // Skip if no filter criteria provided
+            }
 
+            // Check if similar filter already exists
+            const existing = await SupplierFilter.findOne({
+                userId,
+                projectName: projectName || null,
+                expertise: expertise || null,
+                tags: tags || null
+            });
 
+            if (existing) continue;
+
+            // Count matching suppliers using the same logic as publicSuplierAdmin
+            const query: any = {
+                role: userRoles.SupplierAdmin,
+                active: true
+            };
+
+            const aggregationPipeline: any[] = [
+                { $match: query }
+            ];
+
+            // Add projectName filter if provided
+            if (projectName) {
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "projects",
+                        let: { userId: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: {
+                                        $and: [
+                                            {
+                                                $anyElementTrue: {
+                                                    $map: {
+                                                        input: { $ifNull: ["$selectedUserIds", []] },
+                                                        as: "selectedUser",
+                                                        in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+                                                    }
+                                                }
+                                            },
+                                            { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
+                                        ]
+                                    }
+                                }
+                            }
+                        ],
+                        as: "matchedProjects"
+                    }
+                });
+                aggregationPipeline.push({
+                    $match: {
+                        "matchedProjects.0": { $exists: true }
+                    }
+                });
+            }
+
+            // Add expertise filter if provided
+            if (expertise) {
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertise.itemId",
+                        foreignField: "_id",
+                        as: "expertiseWithTags"
+                    }
+                });
+
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertiseICanDo.itemId",
+                        foreignField: "_id",
+                        as: "expertiseICanDoWithTags"
+                    }
+                });
+
+                aggregationPipeline.push({
+                    $match: {
+                        $or: [
+                            { "expertise.name": { $regex: expertise, $options: "i" } },
+                            { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
+                            { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
+                            { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
+                        ]
+                    }
+                });
+            }
+
+            // Add tags filter if provided
+            if (tags) {
+                if (!expertise) {
+                    aggregationPipeline.push({
+                        $lookup: {
+                            from: "masterlists",
+                            localField: "expertise.itemId",
+                            foreignField: "_id",
+                            as: "expertiseWithTags"
+                        }
+                    });
+
+                    aggregationPipeline.push({
+                        $lookup: {
+                            from: "masterlists",
+                            localField: "expertiseICanDo.itemId",
+                            foreignField: "_id",
+                            as: "expertiseICanDoWithTags"
+                        }
+                    });
+                }
+
+                aggregationPipeline.push({
+                    $match: {
+                        $or: [
+                            { "expertiseWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } },
+                            { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tags, $options: "i" } } }
+                        ]
+                    }
+                });
+            }
+
+            // Count suppliers
+            const countPipeline = [...aggregationPipeline, { $count: "total" }];
+            const countResult = await userModel.aggregate(countPipeline);
+            const count = countResult.length > 0 ? countResult[0].total : 0;
+
+            const newFilter = new SupplierFilter({
+                userId,
+                projectName,
+                expertise,
+                tags,
+                supplierCount: count
+            });
+
+            const saved = await newFilter.save();
+            savedFilters.push(saved);
+        }
+
+        return res.status(201).json({
+            message: `${savedFilters.length} supplier filter(s) saved successfully.`,
+            status: true,
+            data: savedFilters
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error saving supplier filters",
+            status: false,
+            error: error.message
+        });
+    }
+};
+
+// Get list of saved supplier filters
+export const getSupplierFilterList = async (req: any, res: Response) => {
+    try {
+        const userId = req.body.userId || null;
+        const { search } = req.query;
+
+        const query: any = { active: true };
+        if (userId) {
+            query.userId = userId;
+        }
+
+        if (search) {
+            query.$or = [
+                { projectName: { $regex: search, $options: "i" } },
+                { expertise: { $regex: search, $options: "i" } },
+                { tags: { $regex: search, $options: "i" } }
+            ];
+        }
+
+        const filters = await SupplierFilter.find(query)
+            .sort({ createdAt: -1 });
+
+        // Update supplier counts for each filter
+        const updatedFilters = await Promise.all(
+            filters.map(async (filter) => {
+                const baseQuery: any = {
+                    role: userRoles.SupplierAdmin,
+                    active: true
+                };
+
+                const aggregationPipeline: any[] = [
+                    { $match: baseQuery }
+                ];
+
+                // Add projectName filter if exists
+                if (filter.projectName) {
+                    aggregationPipeline.push({
+                        $lookup: {
+                            from: "projects",
+                            let: { userId: "$_id" },
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $and: [
+                                                {
+                                                    $anyElementTrue: {
+                                                        $map: {
+                                                            input: { $ifNull: ["$selectedUserIds", []] },
+                                                            as: "selectedUser",
+                                                            in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+                                                        }
+                                                    }
+                                                },
+                                                { $regexMatch: { input: "$projectName", regex: filter.projectName, options: "i" } }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ],
+                            as: "matchedProjects"
+                        }
+                    });
+                    aggregationPipeline.push({
+                        $match: {
+                            "matchedProjects.0": { $exists: true }
+                        }
+                    });
+                }
+
+                // Add expertise filter if exists
+                if (filter.expertise) {
+                    aggregationPipeline.push({
+                        $lookup: {
+                            from: "masterlists",
+                            localField: "expertise.itemId",
+                            foreignField: "_id",
+                            as: "expertiseWithTags"
+                        }
+                    });
+
+                    aggregationPipeline.push({
+                        $lookup: {
+                            from: "masterlists",
+                            localField: "expertiseICanDo.itemId",
+                            foreignField: "_id",
+                            as: "expertiseICanDoWithTags"
+                        }
+                    });
+
+                    aggregationPipeline.push({
+                        $match: {
+                            $or: [
+                                { "expertise.name": { $regex: filter.expertise, $options: "i" } },
+                                { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
+                                { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
+                                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
+                            ]
+                        }
+                    });
+                }
+
+                // Add tags filter if exists
+                if (filter.tags) {
+                    if (!filter.expertise) {
+                        aggregationPipeline.push({
+                            $lookup: {
+                                from: "masterlists",
+                                localField: "expertise.itemId",
+                                foreignField: "_id",
+                                as: "expertiseWithTags"
+                            }
+                        });
+
+                        aggregationPipeline.push({
+                            $lookup: {
+                                from: "masterlists",
+                                localField: "expertiseICanDo.itemId",
+                                foreignField: "_id",
+                                as: "expertiseICanDoWithTags"
+                            }
+                        });
+                    }
+
+                    aggregationPipeline.push({
+                        $match: {
+                            $or: [
+                                { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.tags, $options: "i" } } },
+                                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.tags, $options: "i" } } }
+                            ]
+                        }
+                    });
+                }
+
+                // Count suppliers
+                const countPipeline = [...aggregationPipeline, { $count: "total" }];
+                const countResult = await userModel.aggregate(countPipeline);
+                const count = countResult.length > 0 ? countResult[0].total : 0;
+
+                // Update count if different
+                if (count !== filter.supplierCount) {
+                    await SupplierFilter.findByIdAndUpdate(filter._id, { supplierCount: count });
+                }
+
+                return {
+                    ...filter.toObject(),
+                    supplierCount: count
+                };
+            })
+        );
+
+        return res.status(200).json({
+            message: "Supplier filters fetched successfully",
+            status: true,
+            data: updatedFilters
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching supplier filters",
+            status: false,
+            error: error.message
+        });
+    }
+};
+
+// Get suppliers by saved filter ID
+export const getSuppliersByFilterId = async (req: any, res: Response) => {
+    try {
+        const { filterId } = req.params;
+        const userId = req.body.userId || null;
+
+        // Get the saved filter
+        const filterQuery: any = { _id: filterId, active: true };
+        if (userId) {
+            filterQuery.userId = userId;
+        }
+        const filter = await SupplierFilter.findOne(filterQuery);
+
+        if (!filter) {
+            return res.status(404).json({
+                message: "Filter not found",
+                status: false
+            });
+        }
+
+        // Use the same logic as publicSuplierAdmin but with filter criteria
+        const query: any = {
+            role: userRoles.SupplierAdmin,
+            active: true
+        };
+
+        const aggregationPipeline: any[] = [
+            { $match: query }
+        ];
+
+        // Add projectName filter if exists in saved filter
+        if (filter.projectName) {
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "projects",
+                    let: { userId: "$_id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        {
+                                            $anyElementTrue: {
+                                                $map: {
+                                                    input: { $ifNull: ["$selectedUserIds", []] },
+                                                    as: "selectedUser",
+                                                    in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+                                                }
+                                            }
+                                        },
+                                        { $regexMatch: { input: "$projectName", regex: filter.projectName, options: "i" } }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "matchedProjects"
+                }
+            });
+            aggregationPipeline.push({
+                $match: {
+                    "matchedProjects.0": { $exists: true }
+                }
+            });
+            // Remove matchedProjects from output
+            aggregationPipeline.push({
+                $project: {
+                    matchedProjects: 0
+                }
+            });
+        }
+
+        // Add expertise filter if exists in saved filter
+        if (filter.expertise) {
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "masterlists",
+                    localField: "expertise.itemId",
+                    foreignField: "_id",
+                    as: "expertiseWithTags"
+                }
+            });
+
+            aggregationPipeline.push({
+                $lookup: {
+                    from: "masterlists",
+                    localField: "expertiseICanDo.itemId",
+                    foreignField: "_id",
+                    as: "expertiseICanDoWithTags"
+                }
+            });
+
+            aggregationPipeline.push({
+                $match: {
+                    $or: [
+                        { "expertise.name": { $regex: filter.expertise, $options: "i" } },
+                        { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
+                    ]
+                }
+            });
+        }
+
+        // Add tags filter if exists in saved filter
+        if (filter.tags) {
+            if (!filter.expertise) {
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertise.itemId",
+                        foreignField: "_id",
+                        as: "expertiseWithTags"
+                    }
+                });
+
+                aggregationPipeline.push({
+                    $lookup: {
+                        from: "masterlists",
+                        localField: "expertiseICanDo.itemId",
+                        foreignField: "_id",
+                        as: "expertiseICanDoWithTags"
+                    }
+                });
+            }
+
+            aggregationPipeline.push({
+                $match: {
+                    $or: [
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.tags, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.tags, $options: "i" } } }
+                    ]
+                }
+            });
+        }
+
+        // Get count for pagination
+        const countPipeline = [...aggregationPipeline, { $count: "total" }];
+        const countResult = await userModel.aggregate(countPipeline);
+        const count = countResult.length > 0 ? countResult[0].total : 0;
+
+        // Add pagination and sorting
+        aggregationPipeline.push(
+            { $sort: { active: -1, createdAt: -1 } },
+            { $skip: req.pagination?.skip || 0 },
+            { $limit: req.pagination?.limit || 10 }
+        );
+
+        const suppliers = await userModel.aggregate(aggregationPipeline);
+
+        // Get project details for suppliers (same as publicSuplierAdmin)
+        const userIds = suppliers.map(u => u._id);
+        const projects = await projectModel.find({
+            bidManagerStatus: { $in: ["InSolution", "WaitingForResult"] },
+            selectedUserIds: {
+                $elemMatch: {
+                    userId: { $in: userIds },
+                    isSelected: true
+                }
+            }
+        }).select("projectName bidManagerStatus selectedUserIds");
+
+        const userWithProjects = suppliers.map(u => {
+            const assignedProjects = projects.filter(project =>
+                project.selectedUserIds.some(sel =>
+                    sel.userId?.toString() === u._id.toString() && sel.isSelected === true
+                )
+            );
+
+            return {
+                ...(u.toObject ? u.toObject() : u),
+                assignedProjects,
+                assignedProjectCount: assignedProjects?.length
+            };
+        });
+
+        return res.status(200).json({
+            message: "Suppliers successfully fetched",
+            status: true,
+            data: userWithProjects,
+            meta_data: {
+                page: req.pagination?.page,
+                items: count,
+                page_size: req.pagination?.limit,
+                pages: Math.ceil(count / (req.pagination?.limit as number))
+            }
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching suppliers by filter",
+            status: false,
+            error: error.message
+        });
+    }
+};
+
+// Delete a saved supplier filter
+export const deleteSupplierFilter = async (req: any, res: Response) => {
+    try {
+        const { filterId } = req.params;
+        const userId = req.body.userId || null;
+
+        const deleteQuery: any = { _id: filterId };
+        if (userId) {
+            deleteQuery.userId = userId;
+        }
+
+        const deletedFilter = await SupplierFilter.findOneAndDelete(deleteQuery);
+
+        if (!deletedFilter) {
+            return res.status(404).json({
+                message: "Filter not found",
+                status: false
+            });
+        }
+
+        return res.status(200).json({
+            message: "Supplier filter deleted successfully",
+            status: true
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error deleting supplier filter",
+            status: false,
+            error: error.message
+        });
+    }
+};
