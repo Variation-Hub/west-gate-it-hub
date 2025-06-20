@@ -889,6 +889,40 @@ export const promoteOtherItem = async (req: any, res: Response) => {
     }
 };
 
+// Get all expertise only
+export const getAllExpertiseOnly = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const query: any = {};
+
+        if (search) {
+            query.name = { $regex: search, $options: "i" };
+        }
+
+        const expertiseList = await masterList.find(query)
+            .select('_id name type')
+            .sort({ name: 1 })
+            .lean();
+
+        return res.status(200).json({
+            message: "Expertise list fetched successfully",
+            status: true,
+            data: {
+                expertise: expertiseList,
+                total: expertiseList.length
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch expertise",
+            status: false,
+            data: null
+        });
+    }
+};
+
 export const addCustomItem = async (req: any, res: Response) => {
     try {
         const { name, type, tags, isMandatory } = req.body;
