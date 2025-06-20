@@ -108,7 +108,7 @@ export const getAllCandidates = async (req: any, res: Response) => {
             });
 
         return res.status(200).json({
-            message: "Candidates successfully fetched",
+            message: "Candidates fetched successfully",
             status: true,
             data: candidatesWithSortedLogs,
             executiveCount: executiveCount,
@@ -331,7 +331,7 @@ export const getCandidatesBySupplierId = async (req: any, res: Response) => {
         const candidates = await CandidateCvModel.aggregate(pipeline);
 
         return res.status(200).json({
-            message: "Candidates successfully fetched",
+            message: "Candidates fetched successfully",
             status: true,
             data: {
                 data: candidates,
@@ -443,7 +443,7 @@ export const getCandidates = async (req: any, res: Response) => {
         const candidates = await CandidateCvModel.aggregate(pipeline);
 
         return res.status(200).json({
-            message: "Candidates successfully fetched",
+            message: "Candidates fetched successfully",
             status: true,
             data: candidates,
             meta_data: {
@@ -842,6 +842,7 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
         const userId = req.user?.id || req.query.userId || null;
+        const { search } = req.query;
 
         // Get the saved filter
         const filterQuery: any = { _id: filterId, active: true };
@@ -901,6 +902,14 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         const countPipeline = [...pipeline, { $count: "count" }];
         const [{ count = 0 } = {}] = await CandidateCvModel.aggregate(countPipeline);
 
+        if (search) {
+            pipeline.unshift({
+                $match: {
+                    fullName: { $regex: search, $options: "i" }
+                }
+            });
+        }
+        
         pipeline.push(
             {
                 $addFields: {
