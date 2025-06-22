@@ -738,47 +738,47 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
         ];
 
         // Add projectName filter
-        if (projectName) {
-            aggregationPipeline.push({
-                $lookup: {
-                    from: "projects",
-                    let: { userId: "$_id" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        {
-                                            $anyElementTrue: {
-                                                $map: {
-                                                    input: { $ifNull: ["$selectedUserIds", []] },
-                                                    as: "selectedUser",
-                                                    in: { $eq: ["$$selectedUser.userId", "$$userId"] }
-                                                }
-                                            }
-                                        },
-                                        { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    as: "matchedProjects"
-                }
-            });
-            aggregationPipeline.push({
-                $match: {
-                    "matchedProjects.0": { $exists: true }
-                }
-            });
+        // if (projectName) {
+        //     aggregationPipeline.push({
+        //         $lookup: {
+        //             from: "projects",
+        //             let: { userId: "$_id" },
+        //             pipeline: [
+        //                 {
+        //                     $match: {
+        //                         $expr: {
+        //                             $and: [
+        //                                 {
+        //                                     $anyElementTrue: {
+        //                                         $map: {
+        //                                             input: { $ifNull: ["$selectedUserIds", []] },
+        //                                             as: "selectedUser",
+        //                                             in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+        //                                         }
+        //                                     }
+        //                                 },
+        //                                 { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
+        //                             ]
+        //                         }
+        //                     }
+        //                 }
+        //             ],
+        //             as: "matchedProjects"
+        //         }
+        //     });
+        //     aggregationPipeline.push({
+        //         $match: {
+        //             "matchedProjects.0": { $exists: true }
+        //         }
+        //     });
 
-            // Remove matchedProjects from output
-            aggregationPipeline.push({
-                $project: {
-                    matchedProjects: 0
-                }
-            });
-        }
+        //     // Remove matchedProjects from output
+        //     aggregationPipeline.push({
+        //         $project: {
+        //             matchedProjects: 0
+        //         }
+        //     });
+        // }
 
         // Add expertise filter (searches in both names and tags)
         if (expertise) {
@@ -847,7 +847,7 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
 
         // Get count using aggregation if complex filters are applied
         let count: number;
-        if (projectName || expertise || tags) {
+        if (expertise || tags) {
             const countPipeline = [...aggregationPipeline, { $count: "total" }];
             const countResult = await userModel.aggregate(countPipeline);
             count = countResult.length > 0 ? countResult[0].total : 0;
@@ -870,7 +870,7 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
 
         // Get users using aggregation if complex filters are applied
         let user: any[];
-        if (projectName || expertise || tags) {
+        if (expertise || tags) {
             // Add pagination and sorting to aggregation pipeline
             aggregationPipeline.push(
                 { $sort: { active: -1, createdAt: -1 } },
@@ -1882,40 +1882,40 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
             ];
 
             // Add projectName filter if provided
-            if (projectName) {
-                aggregationPipeline.push({
-                    $lookup: {
-                        from: "projects",
-                        let: { userId: "$_id" },
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: {
-                                        $and: [
-                                            {
-                                                $anyElementTrue: {
-                                                    $map: {
-                                                        input: { $ifNull: ["$selectedUserIds", []] },
-                                                        as: "selectedUser",
-                                                        in: { $eq: ["$$selectedUser.userId", "$$userId"] }
-                                                    }
-                                                }
-                                            },
-                                            { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
-                                        ]
-                                    }
-                                }
-                            }
-                        ],
-                        as: "matchedProjects"
-                    }
-                });
-                aggregationPipeline.push({
-                    $match: {
-                        "matchedProjects.0": { $exists: true }
-                    }
-                });
-            }
+            // if (projectName) {
+            //     aggregationPipeline.push({
+            //         $lookup: {
+            //             from: "projects",
+            //             let: { userId: "$_id" },
+            //             pipeline: [
+            //                 {
+            //                     $match: {
+            //                         $expr: {
+            //                             $and: [
+            //                                 {
+            //                                     $anyElementTrue: {
+            //                                         $map: {
+            //                                             input: { $ifNull: ["$selectedUserIds", []] },
+            //                                             as: "selectedUser",
+            //                                             in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+            //                                         }
+            //                                     }
+            //                                 },
+            //                                 { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
+            //                             ]
+            //                         }
+            //                     }
+            //                 }
+            //             ],
+            //             as: "matchedProjects"
+            //         }
+            //     });
+            //     aggregationPipeline.push({
+            //         $match: {
+            //             "matchedProjects.0": { $exists: true }
+            //         }
+            //     });
+            // }
 
             // Add expertise filter if provided
             if (expertise) {
@@ -2209,46 +2209,46 @@ export const getSuppliersByFilterId = async (req: any, res: Response) => {
         ];
 
         // Add projectName filter if exists in saved filter
-        if (filter.projectName) {
-            aggregationPipeline.push({
-                $lookup: {
-                    from: "projects",
-                    let: { userId: "$_id" },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        {
-                                            $anyElementTrue: {
-                                                $map: {
-                                                    input: { $ifNull: ["$selectedUserIds", []] },
-                                                    as: "selectedUser",
-                                                    in: { $eq: ["$$selectedUser.userId", "$$userId"] }
-                                                }
-                                            }
-                                        },
-                                        { $regexMatch: { input: "$projectName", regex: filter.projectName, options: "i" } }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    as: "matchedProjects"
-                }
-            });
-            aggregationPipeline.push({
-                $match: {
-                    "matchedProjects.0": { $exists: true }
-                }
-            });
-            // Remove matchedProjects from output
-            aggregationPipeline.push({
-                $project: {
-                    matchedProjects: 0
-                }
-            });
-        }
+        // if (filter.projectName) {
+        //     aggregationPipeline.push({
+        //         $lookup: {
+        //             from: "projects",
+        //             let: { userId: "$_id" },
+        //             pipeline: [
+        //                 {
+        //                     $match: {
+        //                         $expr: {
+        //                             $and: [
+        //                                 {
+        //                                     $anyElementTrue: {
+        //                                         $map: {
+        //                                             input: { $ifNull: ["$selectedUserIds", []] },
+        //                                             as: "selectedUser",
+        //                                             in: { $eq: ["$$selectedUser.userId", "$$userId"] }
+        //                                         }
+        //                                     }
+        //                                 },
+        //                                 { $regexMatch: { input: "$projectName", regex: filter.projectName, options: "i" } }
+        //                             ]
+        //                         }
+        //                     }
+        //                 }
+        //             ],
+        //             as: "matchedProjects"
+        //         }
+        //     });
+        //     aggregationPipeline.push({
+        //         $match: {
+        //             "matchedProjects.0": { $exists: true }
+        //         }
+        //     });
+        //     // Remove matchedProjects from output
+        //     aggregationPipeline.push({
+        //         $project: {
+        //             matchedProjects: 0
+        //         }
+        //     });
+        // }
 
         // Add expertise filter if exists in saved filter
         if (filter.expertise) {
