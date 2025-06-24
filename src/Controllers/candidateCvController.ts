@@ -44,7 +44,8 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 }
                 // If roleId is a string
                 else if (typeof roleId === 'string') {
-                    let existingRole = await RoleModel.findOne({ name: roleId });
+                    let roleInput = roleId.replace(/\s+/g, ' ').trim();
+                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${roleInput}$`, "i") });
 
                     if (!existingRole) {
                         existingRole = await RoleModel.create({
@@ -62,7 +63,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
             const rawCurrentRole = candidate.currentRole;
 
             if (rawCurrentRole && typeof rawCurrentRole === 'string' && rawCurrentRole.trim()) {
-                const trimmedRole = rawCurrentRole.trim();
+                const trimmedRole =  rawCurrentRole.replace(/\s+/g, ' ').trim();
 
                 if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
                     const existingRole = await RoleModel.findById(trimmedRole);
@@ -76,7 +77,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
                         candidate.currentRole = newRole._id;
                     }
                 } else {
-                    let existingRole = await RoleModel.findOne({ name: trimmedRole });
+                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${trimmedRole}$`, "i") });
                     if (!existingRole) {
                         existingRole = await RoleModel.create({
                             name: trimmedRole,
@@ -417,17 +418,48 @@ export const getCandidates = async (req: any, res: Response) => {
             });
         }
 
-        // Add role search condition if provided
+        // Add role search condition with tag-based search
         if (roleSearch) {
+            const matchingRoles = await RoleModel.find({
+                name: { $regex: `^${roleSearch}$`, $options: "i" }
+            }).select('otherRoles').lean();
+
+            // Extract all otherRoles from matching role documents
+            const relatedRoles = matchingRoles.reduce((roles: string[], role: any) => {
+                if (role.otherRoles && role.otherRoles.length > 0) {
+                    roles.push(...role.otherRoles);
+                }
+                return roles;
+            }, [] as string[]);
+
+            // Remove duplicates from roles array
+            const uniqueRoles = [...new Set(relatedRoles)];
+
             const regex = new RegExp(roleSearch, "i");
 
+            // Build match conditions for role search
+            const roleMatchConditions = [
+                { "roleIdData.name": { $regex: regex } },
+                { "roleIdData.otherRoles": { $elemMatch: { $regex: regex } } },
+                { "currentRoleData.name": { $regex: regex } },
+                { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } }
+            ];
+
+            // Add related roles matching if we found related roles
+            if (uniqueRoles.length > 0) {
+                uniqueRoles.forEach((relatedRole: string) => {
+                    const relatedRegex = new RegExp(relatedRole, "i");
+                    roleMatchConditions.push(
+                        { "roleIdData.name": { $regex: relatedRegex } },
+                        { "roleIdData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
+                        { "currentRoleData.name": { $regex: relatedRegex } },
+                        { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } }
+                    );
+                });
+            }
+
             matchConditions.push({
-                $or: [
-                    { "roleIdData.name": { $regex: regex } },
-                    { "roleIdData.otherRoles": { $elemMatch: { $regex: regex } } },
-                    { "currentRoleData.name": { $regex: regex } },
-                    { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } }
-                ]
+                $or: roleMatchConditions
             });
         }
 
@@ -683,6 +715,7 @@ export const getCandidatesByFilters = async (req: any, res: Response) => {
 export const saveCandidateFilter = async (req: any, res: Response) => {
     try {
         const userId = req.body.userId || null; // Guest users will have null
+        const anonymousUserId = req.body.anonymousUserId || null;
         const filters = req.body.filters;
 
         if (!Array.isArray(filters) || filters.length === 0) {
@@ -698,10 +731,21 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
 
             if (!jobTitle) continue;
 
-            const existing = await CandidateFilter.findOne({
-                userId,
+            const existingQuery: any = {
                 jobTitle: { $regex: new RegExp(`^${jobTitle}$`, 'i') }
-            });
+            };
+
+            // Check for existing filter based on userId or anonymousUserId
+            if (userId) {
+                existingQuery.userId = userId;
+            } else if (anonymousUserId) {
+                existingQuery.anonymousUserId = anonymousUserId;
+            } else {
+                existingQuery.userId = null;
+                existingQuery.anonymousUserId = null;
+            }
+
+            const existing = await CandidateFilter.findOne(existingQuery);
 
             if (existing) continue;
 
@@ -751,6 +795,7 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
 
             const newFilter = new CandidateFilter({
                 userId,
+                anonymousUserId,
                 jobTitle,
                 minExperience,
                 maxExperience,
@@ -779,12 +824,16 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
 // Get list of saved filters
 export const getRoleList = async (req: any, res: Response) => {
     try {
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
         const { search } = req.query;
 
         const query: any = { active: true };
+
         if (userId) {
             query.userId = userId;
+        } else if (anonymousUserId) {
+            query.anonymousUserId = anonymousUserId;
         }
 
         if (search) {
@@ -871,14 +920,19 @@ export const getRoleList = async (req: any, res: Response) => {
 export const getCandidatesByFilterId = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
         const { search } = req.query;
 
         // Get the saved filter
         const filterQuery: any = { _id: filterId, active: true };
+
         if (userId) {
             filterQuery.userId = userId;
+        } else if (anonymousUserId) {
+            filterQuery.anonymousUserId = anonymousUserId;
         }
+
         const filter = await CandidateFilter.findOne(filterQuery);
 
         if (!filter) {
@@ -997,11 +1051,15 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
 export const deleteCandidateFilter = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
 
         const deleteQuery: any = { _id: filterId };
+
         if (userId) {
             deleteQuery.userId = userId;
+        } else if (anonymousUserId) {
+            deleteQuery.anonymousUserId = anonymousUserId;
         }
 
         const deletedFilter = await CandidateFilter.findOneAndDelete(deleteQuery);

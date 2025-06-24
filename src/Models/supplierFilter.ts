@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 const SupplierFilterSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false, default: null },
+    anonymousUserId: { type: String, required: false, default: null },
     projectName: { type: String, required: false },
     expertise: { type: String, required: false },
     tags: { type: String, required: false },
