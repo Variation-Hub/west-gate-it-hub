@@ -36,7 +36,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
                         processedRoleIds.push(roleId);
                     } else {
                         const newRole = await RoleModel.create({
-                            name: `Role ${roleId}`,
+                            name: roleId,
                             otherRoles: []
                         });
                         processedRoleIds.push(newRole._id);
@@ -58,6 +58,36 @@ export const createCandidateCV = async (req: any, res: Response) => {
             }
 
             candidate.roleId = processedRoleIds;
+
+            const rawCurrentRole = candidate.currentRole;
+
+            if (rawCurrentRole && typeof rawCurrentRole === 'string' && rawCurrentRole.trim()) {
+                const trimmedRole = rawCurrentRole.trim();
+
+                if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
+                    const existingRole = await RoleModel.findById(trimmedRole);
+                    if (existingRole) {
+                        candidate.currentRole = existingRole._id;
+                    } else {
+                        const newRole = await RoleModel.create({
+                            name: trimmedRole,
+                            otherRoles: []
+                        });
+                        candidate.currentRole = newRole._id;
+                    }
+                } else {
+                    let existingRole = await RoleModel.findOne({ name: trimmedRole });
+                    if (!existingRole) {
+                        existingRole = await RoleModel.create({
+                            name: trimmedRole,
+                            otherRoles: []
+                        });
+                    }
+                    candidate.currentRole = existingRole._id;
+                }
+            } else {
+                candidate.currentRole = null;
+            }
         }
 
         const candidates = await CandidateCvModel.insertMany(data);
