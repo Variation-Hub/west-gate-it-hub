@@ -14,6 +14,7 @@ import taskModel from "../Models/taskModel"
 import FileModel from "../Models/fileModel"
 import CandidateCvModel from "../Models/candidateCv"
 import SupplierFilter from "../Models/supplierFilter";
+import masterList from "../Models/masterList"
 
 export const createUser = async (req: Request, res: Response) => {
     try {
@@ -683,7 +684,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
 
 export const publicSuplierAdmin = async (req: any, res: Response) => {
     try {
-        const { startDate, endDate, search, resourceSharing, subContracting, status, isDeleted, inHold, projectName, expertise, tags } = req.query;
+        const { startDate, endDate, search, projectName, expertise, tags } = req.query;
         const query: any = {
             role: userRoles.SupplierAdmin,
             active: true  // Only return active suppliers
@@ -700,89 +701,27 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             query.name = { $regex: search, $options: "i" };
         }
 
-        if (resourceSharing === "true") {
-            query.resourceSharingSupplier = true;
-            query.active = true;
-        } else if (resourceSharing === "false") {
-            query.resourceSharingSupplier = false;
-            query.active = true;
-        }
-
-        // Subcontracting Filter
-        if (subContracting === "true") {
-            query.subcontractingSupplier = true;
-            query.active = true;
-        } else if (subContracting === "false") {
-            query.subcontractingSupplier = false;
-            query.active = true;
-        }
-
-        if (inHold === "true") {
-            query.isInHold = true;
-        } else if (inHold === "false") {
-            query.isInHold = false;
-        }
-
-
-        if (typeof isDeleted === "undefined") {
-            query.isDeleted = false;
-        } else if (isDeleted === "true") {
-            query.isDeleted = true;
-        } else if (isDeleted === "false") {
-            query.isDeleted = false;
-        }
-
         // Build aggregation pipeline for filters
         let aggregationPipeline: any[] = [
             { $match: query }  // This already includes active: true
         ];
 
-        // Add projectName filter
-        // if (projectName) {
-        //     aggregationPipeline.push({
-        //         $lookup: {
-        //             from: "projects",
-        //             let: { userId: "$_id" },
-        //             pipeline: [
-        //                 {
-        //                     $match: {
-        //                         $expr: {
-        //                             $and: [
-        //                                 {
-        //                                     $anyElementTrue: {
-        //                                         $map: {
-        //                                             input: { $ifNull: ["$selectedUserIds", []] },
-        //                                             as: "selectedUser",
-        //                                             in: { $eq: ["$$selectedUser.userId", "$$userId"] }
-        //                                         }
-        //                                     }
-        //                                 },
-        //                                 { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
-        //                             ]
-        //                         }
-        //                     }
-        //                 }
-        //             ],
-        //             as: "matchedProjects"
-        //         }
-        //     });
-        //     aggregationPipeline.push({
-        //         $match: {
-        //             "matchedProjects.0": { $exists: true }
-        //         }
-        //     });
-
-        //     // Remove matchedProjects from output
-        //     aggregationPipeline.push({
-        //         $project: {
-        //             matchedProjects: 0
-        //         }
-        //     });
-        // }
-
-        // Add expertise filter (searches in both names and tags)
+        // Add expertise filter with tag-based search
         if (expertise) {
-            // Add lookup to get tags from masterList for both expertise fields
+            const matchingExpertise = await masterList.find({
+                name: { $regex: expertise, $options: "i" }
+            }).select('tags').lean();
+
+            const relatedTags = matchingExpertise.reduce((tags: string[], exp: any) => {
+                if (exp.tags && exp.tags.length > 0) {
+                    tags.push(...exp.tags);
+                }
+                return tags;
+            }, [] as string[]);
+
+            // Remove duplicates from tags array
+            const uniqueTags = [...new Set(relatedTags)];
+            
             aggregationPipeline.push({
                 $lookup: {
                     from: "masterlists",
@@ -801,15 +740,27 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
                 }
             });
 
-            // Match in expertise name, expertiseICanDo name, OR their tags arrays
+            // Build match conditions for expertise search
+            const expertiseMatchConditions = [
+                { "expertise.name": { $regex: expertise, $options: "i" } },
+                { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
+                { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
+                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
+            ];
+
+            // Add tag-based matching if we found related tags
+            if (uniqueTags.length > 0) {
+                uniqueTags.forEach(tag => {
+                    expertiseMatchConditions.push(
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
+                    );
+                });
+            }
+
             aggregationPipeline.push({
                 $match: {
-                    $or: [
-                        { "expertise.name": { $regex: expertise, $options: "i" } },
-                        { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
-                        { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
-                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
-                    ]
+                    $or: expertiseMatchConditions
                 }
             });
         }
@@ -1844,6 +1795,7 @@ export const fetchSupplierWithProjectStatus = async (req: any, res: Response) =>
 export const saveSupplierFilter = async (req: any, res: Response) => {
     try {
         const userId = req.body.userId || null;
+        const anonymousUserId = req.body.anonymousUserId || null;
         const filters = req.body.filters;
 
         if (!Array.isArray(filters) || filters.length === 0) {
@@ -1862,12 +1814,23 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
             }
 
             // Check if similar filter already exists
-            const existing = await SupplierFilter.findOne({
-                userId,
+            const existingQuery: any = {
                 projectName: projectName || null,
                 expertise: expertise || null,
                 tags: tags || null
-            });
+            };
+
+            // Check for existing filter based on userId or anonymousUserId
+            if (userId) {
+                existingQuery.userId = userId;
+            } else if (anonymousUserId) {
+                existingQuery.anonymousUserId = anonymousUserId;
+            } else {
+                existingQuery.userId = null;
+                existingQuery.anonymousUserId = null;
+            }
+
+            const existing = await SupplierFilter.findOne(existingQuery);
 
             if (existing) continue;
 
@@ -1917,8 +1880,24 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
             //     });
             // }
 
-            // Add expertise filter if provided
+            // Add expertise filter with enhanced tag-based search
             if (expertise) {
+                // First, find matching expertise documents and get their tags
+                const matchingExpertise = await masterList.find({
+                    name: { $regex: expertise, $options: "i" }
+                }).select('tags').lean();
+
+                // Extract all tags from matching expertise documents
+                const relatedTags = matchingExpertise.reduce((tags: string[], exp: any) => {
+                    if (exp.tags && exp.tags.length > 0) {
+                        tags.push(...exp.tags);
+                    }
+                    return tags;
+                }, [] as string[]);
+
+                // Remove duplicates from tags array
+                const uniqueTags = [...new Set(relatedTags)];
+
                 aggregationPipeline.push({
                     $lookup: {
                         from: "masterlists",
@@ -1937,14 +1916,27 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                     }
                 });
 
+                // Build match conditions for expertise search
+                const expertiseMatchConditions = [
+                    { "expertise.name": { $regex: expertise, $options: "i" } },
+                    { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
+                    { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
+                    { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
+                ];
+
+                // Add tag-based matching if we found related tags
+                if (uniqueTags.length > 0) {
+                    uniqueTags.forEach(tag => {
+                        expertiseMatchConditions.push(
+                            { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
+                            { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
+                        );
+                    });
+                }
+
                 aggregationPipeline.push({
                     $match: {
-                        $or: [
-                            { "expertise.name": { $regex: expertise, $options: "i" } },
-                            { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
-                            { "expertiseWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } },
-                            { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
-                        ]
+                        $or: expertiseMatchConditions
                     }
                 });
             }
@@ -1988,6 +1980,7 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
 
             const newFilter = new SupplierFilter({
                 userId,
+                anonymousUserId,
                 projectName,
                 expertise,
                 tags,
@@ -2016,12 +2009,16 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
 // Get list of saved supplier filters
 export const getSupplierFilterList = async (req: any, res: Response) => {
     try {
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
         const { search } = req.query;
 
         const query: any = { active: true };
+
         if (userId) {
             query.userId = userId;
+        } else if (anonymousUserId) {
+            query.anonymousUserId = anonymousUserId;
         }
 
         if (search) {
@@ -2083,8 +2080,24 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
                     });
                 }
 
-                // Add expertise filter if exists
+                // Add expertise filter with enhanced tag-based search
                 if (filter.expertise) {
+                    // First, find matching expertise documents and get their tags
+                    const matchingExpertise = await masterList.find({
+                        name: { $regex: filter.expertise, $options: "i" }
+                    }).select('tags').lean();
+
+                    // Extract all tags from matching expertise documents
+                    const relatedTags = matchingExpertise.reduce((tags: string[], exp: any) => {
+                        if (exp.tags && exp.tags.length > 0) {
+                            tags.push(...exp.tags);
+                        }
+                        return tags;
+                    }, [] as string[]);
+
+                    // Remove duplicates from tags array
+                    const uniqueTags = [...new Set(relatedTags)];
+
                     aggregationPipeline.push({
                         $lookup: {
                             from: "masterlists",
@@ -2103,14 +2116,27 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
                         }
                     });
 
+                    // Build match conditions for expertise search
+                    const expertiseMatchConditions = [
+                        { "expertise.name": { $regex: filter.expertise, $options: "i" } },
+                        { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
+                    ];
+
+                    // Add tag-based matching if we found related tags
+                    if (uniqueTags.length > 0) {
+                        uniqueTags.forEach(tag => {
+                            expertiseMatchConditions.push(
+                                { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
+                                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
+                            );
+                        });
+                    }
+
                     aggregationPipeline.push({
                         $match: {
-                            $or: [
-                                { "expertise.name": { $regex: filter.expertise, $options: "i" } },
-                                { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
-                                { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
-                                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
-                            ]
+                            $or: expertiseMatchConditions
                         }
                     });
                 }
@@ -2182,13 +2208,19 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
 export const getSuppliersByFilterId = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
 
         // Get the saved filter
         const filterQuery: any = { _id: filterId, active: true };
+
+        // Filter by userId or anonymousUserId
         if (userId) {
             filterQuery.userId = userId;
+        } else if (anonymousUserId) {
+            filterQuery.anonymousUserId = anonymousUserId;
         }
+
         const filter = await SupplierFilter.findOne(filterQuery);
 
         if (!filter) {
@@ -2250,8 +2282,24 @@ export const getSuppliersByFilterId = async (req: any, res: Response) => {
         //     });
         // }
 
-        // Add expertise filter if exists in saved filter
+        // Add expertise filter with enhanced tag-based search
         if (filter.expertise) {
+            // First, find matching expertise documents and get their tags
+            const matchingExpertise = await masterList.find({
+                name: { $regex: filter.expertise, $options: "i" }
+            }).select('tags').lean();
+
+            // Extract all tags from matching expertise documents
+            const relatedTags = matchingExpertise.reduce((tags: string[], exp: any) => {
+                if (exp.tags && exp.tags.length > 0) {
+                    tags.push(...exp.tags);
+                }
+                return tags;
+            }, [] as string[]);
+
+            // Remove duplicates from tags array
+            const uniqueTags = [...new Set(relatedTags)];
+
             aggregationPipeline.push({
                 $lookup: {
                     from: "masterlists",
@@ -2270,14 +2318,27 @@ export const getSuppliersByFilterId = async (req: any, res: Response) => {
                 }
             });
 
+            // Build match conditions for expertise search
+            const expertiseMatchConditions = [
+                { "expertise.name": { $regex: filter.expertise, $options: "i" } },
+                { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
+                { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
+                { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
+            ];
+
+            // Add tag-based matching if we found related tags
+            if (uniqueTags.length > 0) {
+                uniqueTags.forEach(tag => {
+                    expertiseMatchConditions.push(
+                        { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
+                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
+                    );
+                });
+            }
+
             aggregationPipeline.push({
                 $match: {
-                    $or: [
-                        { "expertise.name": { $regex: filter.expertise, $options: "i" } },
-                        { "expertiseICanDo.name": { $regex: filter.expertise, $options: "i" } },
-                        { "expertiseWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } },
-                        { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: filter.expertise, $options: "i" } } }
-                    ]
+                    $or: expertiseMatchConditions
                 }
             });
         }
@@ -2378,11 +2439,15 @@ export const getSuppliersByFilterId = async (req: any, res: Response) => {
 export const deleteSupplierFilter = async (req: any, res: Response) => {
     try {
         const { filterId } = req.params;
-        const userId = req.body.userId || null;
+        const userId = req.body.userId || req.query.userId || null;
+        const anonymousUserId = req.query.anonymousUserId || null;
 
         const deleteQuery: any = { _id: filterId };
+
         if (userId) {
             deleteQuery.userId = userId;
+        } else if (anonymousUserId) {
+            deleteQuery.anonymousUserId = anonymousUserId;
         }
 
         const deletedFilter = await SupplierFilter.findOneAndDelete(deleteQuery);
