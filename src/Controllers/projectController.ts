@@ -360,7 +360,7 @@ export const getProject = async (req: any, res: Response) => {
                 supplierId: supplier.supplierId
             }));
         }
-        
+
         if (project?.category?.length) {
             project.casestudy = await caseStudy.find({
                 verify: true,
@@ -822,7 +822,7 @@ export const exportProjectsToCSV = async (req: any, res: any) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest } = req.query as any
 
         category = category?.split(',');
         industry = industry?.split(',');
@@ -902,6 +902,15 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (clientType) {
             filter.clientType = { $in: clientType };
+        }
+
+
+        if (registerInterest == 'true' || registerInterest) {
+            filter.register_interest = { $in: registerInterest == true };
+        }
+
+        if (registerInterest == 'false' || registerInterest == false) {
+            filter.register_interest = { $in: registerInterest == false };
         }
 
         if (foiNotUploaded) {
