@@ -4833,3 +4833,121 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         return res.status(500).json({ message: err.message, status: false });
     }
 };
+
+// Get list of suppliers who have registered interest in projects
+export const getInterestedSuppliers = async (req: any, res: Response) => {
+    try {
+        const { projectId } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        // Validate ObjectId format
+        if (!projectId || !projectId.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({
+                message: "Invalid project ID format",
+                status: false
+            });
+        }
+
+        // Find the project
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false
+            });
+        }
+
+        // Check if project has register_interest = true
+        if (!project.register_interest) {
+            return res.status(200).json({
+                message: "No suppliers have registered interest in this project",
+                status: true,
+                data: {
+                    suppliers: [],
+                    total: 0,
+                    meta_data: {
+                        page: parseInt(page),
+                        items: 0,
+                        page_size: parseInt(limit),
+                        pages: 0
+                    }
+                }
+            });
+        }
+
+        // Get supplier IDs from interestedSuppliers array (no attendees)
+        const interestedSupplierIds = project.interestedSuppliers
+            ?.filter((supplier: any) => supplier.attendee === false)
+            ?.map((supplier: any) => supplier.supplierId) || [];
+
+        if (interestedSupplierIds.length === 0) {
+            return res.status(200).json({
+                message: "No suppliers have registered interest in this project",
+                status: true,
+                data: {
+                    suppliers: [],
+                    total: 0,
+                    meta_data: {
+                        page: parseInt(page),
+                        items: 0,
+                        page_size: parseInt(limit),
+                        pages: 0
+                    }
+                }
+            });
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = interestedSupplierIds.length;
+        const totalPages = Math.ceil(total / parseInt(limit));
+
+        // Get paginated supplier IDs
+        const paginatedSupplierIds = interestedSupplierIds.slice(skip, skip + parseInt(limit));
+
+        const suppliers = await userModel.find({
+            _id: { $in: paginatedSupplierIds },
+            active: true
+        }).select('_id name email phone expertise expertiseICanDo technologies languages active createdAt');
+
+        // Add additional project-related info to each supplier
+        const suppliersWithDetails = suppliers.map(supplier => {
+            return {
+                ...supplier.toObject(),
+                projectInterest: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    registeredAt: project.updatedAt,
+                    isInterested: true
+                }
+            };
+        });
+
+        return res.status(200).json({
+            message: "Interested suppliers fetched successfully",
+            status: true,
+            data: {
+                project: {
+                    _id: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest
+                },
+                suppliers: suppliersWithDetails,
+                total: total,
+                meta_data: {
+                    page: parseInt(page),
+                    items: total,
+                    page_size: parseInt(limit),
+                    pages: totalPages
+                }
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};

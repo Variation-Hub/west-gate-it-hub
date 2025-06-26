@@ -1810,31 +1810,36 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
             const { projectName, expertise, tags } = filter;
 
             if (!projectName && !expertise && !tags) {
-                continue; // Skip if no filter criteria provided
+                continue; // Skip empty filter
             }
 
-            // Check if similar filter already exists
-            const existingQuery: any = {
-                projectName: projectName || null,
-                expertise: expertise || null,
-                tags: tags || null
+            // Check for existing filter
+            const queryConditions: any[] = [];
+
+            if (projectName) {
+                queryConditions.push({ projectName });
+            }
+            if (expertise) {
+                queryConditions.push({ expertise });
+            }
+            if (tags) {
+                queryConditions.push({ tags });
+            }
+
+            const contextQuery: any = {
+                userId,
+                anonymousUserId
             };
 
-            // Check for existing filter based on userId or anonymousUserId
-            if (userId) {
-                existingQuery.userId = userId;
-            } else if (anonymousUserId) {
-                existingQuery.anonymousUserId = anonymousUserId;
-            } else {
-                existingQuery.userId = null;
-                existingQuery.anonymousUserId = null;
-            }
+            const existing = queryConditions.length
+                ? await SupplierFilter.findOne({
+                    $and: [
+                        contextQuery,
+                        { $or: queryConditions }
+                    ]
+                })
+                : null;
 
-            const existing = await SupplierFilter.findOne(existingQuery);
-
-            if (existing) continue;
-
-            // Count matching suppliers using the same logic as publicSuplierAdmin
             const query: any = {
                 role: userRoles.SupplierAdmin,
                 active: true
@@ -1844,43 +1849,6 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                 { $match: query }
             ];
 
-            // Add projectName filter if provided
-            // if (projectName) {
-            //     aggregationPipeline.push({
-            //         $lookup: {
-            //             from: "projects",
-            //             let: { userId: "$_id" },
-            //             pipeline: [
-            //                 {
-            //                     $match: {
-            //                         $expr: {
-            //                             $and: [
-            //                                 {
-            //                                     $anyElementTrue: {
-            //                                         $map: {
-            //                                             input: { $ifNull: ["$selectedUserIds", []] },
-            //                                             as: "selectedUser",
-            //                                             in: { $eq: ["$$selectedUser.userId", "$$userId"] }
-            //                                         }
-            //                                     }
-            //                                 },
-            //                                 { $regexMatch: { input: "$projectName", regex: projectName, options: "i" } }
-            //                             ]
-            //                         }
-            //                     }
-            //                 }
-            //             ],
-            //             as: "matchedProjects"
-            //         }
-            //     });
-            //     aggregationPipeline.push({
-            //         $match: {
-            //             "matchedProjects.0": { $exists: true }
-            //         }
-            //     });
-            // }
-
-            // Add expertise filter with enhanced tag-based search
             if (expertise) {
                 // First, find matching expertise documents and get their tags
                 const matchingExpertise = await masterList.find({
@@ -1916,7 +1884,6 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                     }
                 });
 
-                // Build match conditions for expertise search
                 const expertiseMatchConditions = [
                     { "expertise.name": { $regex: expertise, $options: "i" } },
                     { "expertiseICanDo.name": { $regex: expertise, $options: "i" } },
@@ -1924,7 +1891,6 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                     { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: expertise, $options: "i" } } }
                 ];
 
-                // Add tag-based matching if we found related tags
                 if (uniqueTags.length > 0) {
                     uniqueTags.forEach(tag => {
                         expertiseMatchConditions.push(
@@ -1941,7 +1907,6 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                 });
             }
 
-            // Add tags filter if provided
             if (tags) {
                 if (!expertise) {
                     aggregationPipeline.push({
@@ -1973,22 +1938,29 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                 });
             }
 
-            // Count suppliers
             const countPipeline = [...aggregationPipeline, { $count: "total" }];
             const countResult = await userModel.aggregate(countPipeline);
-            const count = countResult.length > 0 ? countResult[0].total : 0;
+            const supplierCount = countResult.length > 0 ? countResult[0].total : 0;
 
-            const newFilter = new SupplierFilter({
-                userId,
-                anonymousUserId,
-                projectName,
-                expertise,
-                tags,
-                supplierCount: count
-            });
-
-            const saved = await newFilter.save();
-            savedFilters.push(saved);
+            if (existing) {
+                existing.projectName = projectName;
+                existing.expertise = expertise;
+                existing.tags = tags;
+                existing.supplierCount = supplierCount;
+                await existing.save();
+                savedFilters.push(existing);
+            } else {
+                const newFilter = new SupplierFilter({
+                    userId,
+                    anonymousUserId,
+                    projectName,
+                    expertise,
+                    tags,
+                    supplierCount
+                });
+                const saved = await newFilter.save();
+                savedFilters.push(saved);
+            }
         }
 
         return res.status(201).json({
@@ -2082,7 +2054,6 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
 
                 // Add expertise filter with enhanced tag-based search
                 if (filter.expertise) {
-                    // First, find matching expertise documents and get their tags
                     const matchingExpertise = await masterList.find({
                         name: { $regex: filter.expertise, $options: "i" }
                     }).select('tags').lean();
