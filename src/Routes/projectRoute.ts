@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { selectUserForProject, addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile, exportProjectsToCSV, deleteDocument, removeFromSortList, registerInterest, updateAttendeeStatus } from '../Controllers/projectController';
+import { selectUserForProject, addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile, exportProjectsToCSV, deleteDocument, removeFromSortList, registerInterest, updateAttendeeStatus, getInterestedSuppliers } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -70,6 +70,9 @@ projectRoutes.get("/project-coordinator/dashboard", authorizeRoles(userRoles.Pro
 
 // export projects
 projectRoutes.get("/export-csv", exportProjectsToCSV);
+
+// Get interested suppliers for a project
+projectRoutes.get("/interested-suppliers/:projectId", paginationMiddleware, authorizeRoles(), getInterestedSuppliers);
 
 export default projectRoutes;
 
