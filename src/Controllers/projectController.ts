@@ -906,11 +906,11 @@ export const getProjects = async (req: any, res: Response) => {
 
 
         if (registerInterest == 'true' || registerInterest) {
-            filter.register_interest = { $in: registerInterest == true };
+            filter.register_interest = true;
         }
 
         if (registerInterest == 'false' || registerInterest == false) {
-            filter.register_interest = { $in: registerInterest == false };
+            filter.register_interest = false;
         }
 
         if (foiNotUploaded) {
