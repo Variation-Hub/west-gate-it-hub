@@ -293,10 +293,15 @@ const userModel = new mongoose.Schema({
             subExpertise: { type: [String], default: [] }
         }
     ],
-    poc_name: { type: String, default: "" },
-    poc_phone: { type: String, default: "" },
-    poc_email: { type: String, default: "" },
-    poc_role: { type: String, default: "" },
+    pocDetails: [
+        {
+            name: { type: String, default: "" },
+            phone: { type: String, default: "" },
+            email: { type: String, default: "" },
+            role: { type: String, default: "" },
+            isPrimary: { type: Boolean, default: false }
+        }
+    ],
     certifications: {
         type: [String],
         default: [],
