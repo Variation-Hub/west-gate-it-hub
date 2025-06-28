@@ -186,7 +186,13 @@ export const updateUser = async (req: any, res: Response) => {
             };
 
             if (updateData?.isSendMail) {
-                await sendMailForInactiveSupplier(user?.poc_email);
+                if (user?.pocDetails && user.pocDetails.length > 0) {
+                    for (const poc of user.pocDetails) {
+                        if (poc.email) {
+                            await sendMailForInactiveSupplier(poc.email);
+                        }
+                    }
+                }
             }
             user.activeStatus.push(logEntry);
             delete updateData.activeStatus;
@@ -205,7 +211,13 @@ export const updateUser = async (req: any, res: Response) => {
             }
 
             if (updateData?.isSendMail) {
-                await sendRegisterMailToSupplier(user?.poc_email);
+                if (user?.pocDetails && user.pocDetails.length > 0) {
+                    for (const poc of user.pocDetails) {
+                        if (poc.email) {
+                            await sendRegisterMailToSupplier(poc.email);
+                        }
+                    }
+                }
             }
             updateData.isInHold = false
         }
@@ -229,7 +241,13 @@ export const updateUser = async (req: any, res: Response) => {
         const updatedUser = await user.save();
 
         if (req.body?.isUpdateSendMail || req.body?.isUpdateSendMail == 'true' || req.body?.isUpdateSendMail == 'True') {
-            await sendMailForProfileUpdate(req.body?.poc_email, id);
+            if (updatedUser?.pocDetails && updatedUser.pocDetails.length > 0) {
+                for (const poc of updatedUser.pocDetails) {
+                    if (poc.email) {
+                        await sendMailForProfileUpdate(poc.email, id);
+                    }
+                }
+            }
         }
 
         return res.status(200).json({
@@ -291,7 +309,13 @@ export const publicUpdateUser = async (req: any, res: Response) => {
                 }
             }
 
-            await sendRegisterMailToSupplier(user?.poc_email);
+            if (user?.pocDetails && user.pocDetails.length > 0) {
+                for (const poc of user.pocDetails) {
+                    if (poc.email) {
+                        await sendRegisterMailToSupplier(poc.email);
+                    }
+                }
+            }
             updateData.isInHold = false
         }
 
@@ -410,7 +434,10 @@ export const resetPassword = async (req: Request, res: Response) => {
         const { email, password, role } = req.body;
         console.log("email, password, role ", email, password, role);
 
-        const user = await userModel.findOne({ poc_email: email, role });
+        const user = await userModel.findOne({
+            "pocDetails.email": email,
+            role
+        });
 
         if (!user) {
             return res.status(404).json({
@@ -1139,9 +1166,10 @@ export const getUserList = async (req: any, res: Response) => {
                 { userName: { $regex: search, $options: 'i' } },
                 { domain: { $regex: search, $options: 'i' } },
                 { department: { $regex: search, $options: 'i' } },
-                { poc_name: { $regex: search, $options: 'i' } },
-                { poc_phone: { $regex: search, $options: 'i' } },
-                { poc_email: { $regex: search, $options: 'i' } }
+                { "pocDetails.name": { $regex: search, $options: 'i' } },
+                { "pocDetails.phone": { $regex: search, $options: 'i' } },
+                { "pocDetails.email": { $regex: search, $options: 'i' } },
+                { "pocDetails.role": { $regex: search, $options: 'i' } }
             ];
         }
 
