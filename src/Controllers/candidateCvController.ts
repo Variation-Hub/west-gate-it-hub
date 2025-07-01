@@ -917,6 +917,16 @@ export const getRoleList = async (req: any, res: Response) => {
     }
 };
 
+// This API will return all unique anonymousUserId values from the CandidateFilter collection.
+export const getUniqueAnonymousUsers = async (req: Request, res: Response) => {
+  try {
+    const uniqueUsers = await CandidateFilter.distinct("anonymousUserId");
+    res.status(200).json({ success: true, data: uniqueUsers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error", error: err });
+  }
+};
+
 // Get candidates by saved filter ID
 export const getCandidatesByFilterId = async (req: any, res: Response) => {
     try {

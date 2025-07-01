@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { createCandidateCV, updateCandidate, getAllCandidates, getCandidateById, deleteCandidate, getCandidatesBySupplierId, getCandidates, getCandidateFilters, getCandidatesByFilters, saveCandidateFilter, getRoleList, getCandidatesByFilterId, deleteCandidateFilter } from '../Controllers/candidateCvController';
+import { createCandidateCV, updateCandidate, getAllCandidates, getCandidateById, deleteCandidate, getCandidatesBySupplierId, getCandidates, getCandidateFilters, getCandidatesByFilters, saveCandidateFilter, getRoleList, getCandidatesByFilterId, deleteCandidateFilter, getUniqueAnonymousUsers } from '../Controllers/candidateCvController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
@@ -25,6 +25,7 @@ candidateCvRoute.delete("/filter/:filterId", deleteCandidateFilter);
 // Public filter routes
 candidateCvRoute.post("/public/save-filter", saveCandidateFilter);
 candidateCvRoute.get("/public/filter-list", getRoleList);
+candidateCvRoute.get('/public/anonymous-users', getUniqueAnonymousUsers);
 candidateCvRoute.get("/public/filter/:filterId/candidates", paginationMiddleware, getCandidatesByFilterId);
 candidateCvRoute.delete("/public/filter/:filterId", deleteCandidateFilter);
 

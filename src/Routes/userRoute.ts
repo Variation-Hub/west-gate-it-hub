@@ -25,7 +25,8 @@ import {
     saveSupplierFilter,
     getSupplierFilterList,
     getSuppliersByFilterId,
-    deleteSupplierFilter
+    deleteSupplierFilter,
+    getUniqueAnonymousUsers
 } from '../Controllers/userController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -67,6 +68,7 @@ userRoutes.get("/public/suplier/list", paginationMiddleware, publicSuplierAdmin)
 // Public Supplier Filter APIs (alternative endpoints)
 userRoutes.post("/public/supplier-filter/save", saveSupplierFilter);
 userRoutes.get("/public/supplier-filter/list", getSupplierFilterList);
+userRoutes.get('/public/supplier-filter/anonymous-users', getUniqueAnonymousUsers);
 userRoutes.get("/public/supplier-filter/:filterId/suppliers", paginationMiddleware, getSuppliersByFilterId);
 userRoutes.delete("/public/supplier-filter/:filterId", deleteSupplierFilter);
 

@@ -2203,6 +2203,15 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
     }
 };
 
+export const getUniqueAnonymousUsers = async (req: Request, res: Response) => {
+  try {
+    const uniqueUsers = await SupplierFilter.distinct("anonymousUserId");
+    res.status(200).json({ success: true, data: uniqueUsers });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Server Error", error: err });
+  }
+};
+
 // Get suppliers by saved filter ID
 export const getSuppliersByFilterId = async (req: any, res: Response) => {
     try {
