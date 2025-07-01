@@ -859,7 +859,7 @@ export const getProjects = async (req: any, res: Response) => {
                 },
                 {
                     $match: {
-                        "user.name": { $regex: keyword, $options: "i" }
+                        "user.name": { $regex: safeKeyword, $options: "i" }
                     }
                 },
                 {
@@ -878,7 +878,7 @@ export const getProjects = async (req: any, res: Response) => {
 
             filter = {
                 $or: [
-                    { BOSID: keyword },
+                    { BOSID: { $regex: safeKeyword, $options: 'i' } },
                     { clientName: { $regex: safeKeyword, $options: 'i' } },
                     { website: { $regex: safeKeyword, $options: 'i' } },
                     { projectName: { $regex: safeKeyword, $options: 'i' } },

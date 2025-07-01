@@ -573,6 +573,7 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
                 name: exp.name,
                 type: exp.type,
                 isSystem: exp.isSystem,
+                isMandatory: exp.isMandatory,
                 totalSupplierCount,
                 activeSupplierCount,
                 subExpertiseList,
@@ -580,9 +581,13 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             };
         });
 
-        let finalExpertiseList = expertiseData.filter(
-            exp => !(exp.totalSupplierCount === 0 && (exp.isSystem === false || exp.type.endsWith("-other")))
-        );
+        let finalExpertiseList = expertiseData.filter(exp => {
+            // Always include mandatory ones, even with 0 suppliers
+            if (exp.isMandatory === true) return true;
+
+            // For non-mandatory items
+            return exp.totalSupplierCount > 0;
+        });
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
@@ -775,9 +780,9 @@ export const getAlldata = async (req: any, res: Response) => {
             queryObj["name"] = { $regex: searchRegex };
         }
 
-        if (mandatory) {
-            queryObj["isSystem"] = true;
-        }
+        // if (mandatory) {
+        //     queryObj["isMandatory"] = true;
+        // }
 
         //const count = await masterList.countDocuments(queryObj);
         if (!type) {
@@ -800,14 +805,28 @@ export const getAlldata = async (req: any, res: Response) => {
 
                 if (!mergedMap[typeKey]) mergedMap[typeKey] = [];
 
-                for (const item of items) {
-                    // If isSystem: false, try to push into <type>-other
-                    if (item.isSystem === false && !typeKey.endsWith("-other")) {
-                        const otherType = `${typeKey}-other`;
-                        if (!mergedMap[otherType]) mergedMap[otherType] = [];
-                        mergedMap[otherType].push(item);
-                    } else {
-                        mergedMap[typeKey].push(item);
+                if (mandatory === true || mandatory === "true") {
+                    for (const item of items) {
+                        const baseType = item.type;
+
+                        let finalTypeKey = baseType;
+                        if (item.isMandatory === false) {
+                            finalTypeKey = `${baseType}-other`;
+                        }
+
+                        if (!mergedMap[finalTypeKey]) mergedMap[finalTypeKey] = [];
+                        mergedMap[finalTypeKey].push(item);
+                    }
+                } else {
+                    for (const item of items) {
+                        // If isSystem: false, try to push into <type>-other
+                        if (item.isSystem === false && !typeKey.endsWith("-other")) {
+                            const otherType = `${typeKey}-other`;
+                            if (!mergedMap[otherType]) mergedMap[otherType] = [];
+                            mergedMap[otherType].push(item);
+                        } else {
+                            mergedMap[typeKey].push(item);
+                        }
                     }
                 }
             }
@@ -828,12 +847,6 @@ export const getAlldata = async (req: any, res: Response) => {
             message: "Data successfully fetched",
             status: true,
             data: data,
-            // meta_data: {
-            //     page: req.pagination?.page,
-            //     items: count,
-            //     page_size: req.pagination?.limit,
-            //     pages: Math.ceil(count / (req.pagination?.limit as number))
-            // }
         });
     } catch (error: any) {
         return res.status(500).json({
