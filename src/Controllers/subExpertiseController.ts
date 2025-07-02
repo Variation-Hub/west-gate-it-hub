@@ -135,3 +135,48 @@ export const getAllSubExpertise = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const updateSubExpertise = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid sub-expertise ID",
+                status: false
+            });
+        }
+        
+        if (!name) {
+            return res.status(400).json({
+                message: "Sub-expertise name is required",
+                status: false
+            });
+        }
+        
+        const updatedSubExpertise = await SubExpertise.findByIdAndUpdate(
+            id,
+            { name },
+            { new: true }
+        );
+        
+        if (!updatedSubExpertise) {
+            return res.status(404).json({
+                message: "Sub-expertise not found",
+                status: false
+            });
+        }
+        
+        return res.status(200).json({
+            message: "Sub-expertise updated successfully",
+            status: true,
+            data: updatedSubExpertise
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to update sub-expertise",
+            status: false
+        });
+    }
+};

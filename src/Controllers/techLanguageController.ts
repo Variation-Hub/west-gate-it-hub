@@ -246,3 +246,93 @@ export const getLanguages = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const updateTechnology = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid technology ID",
+                status: false
+            });
+        }
+        
+        if (!name) {
+            return res.status(400).json({
+                message: "Technology name is required",
+                status: false
+            });
+        }
+        
+        const updatedTechnology = await Technology.findByIdAndUpdate(
+            id,
+            { name },
+            { new: true }
+        );
+        
+        if (!updatedTechnology) {
+            return res.status(404).json({
+                message: "Technology not found",
+                status: false
+            });
+        }
+        
+        return res.status(200).json({
+            message: "Technology updated successfully",
+            status: true,
+            data: updatedTechnology
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to update technology",
+            status: false
+        });
+    }
+};
+
+export const updateLanguage = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name } = req.body;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                message: "Invalid language ID",
+                status: false
+            });
+        }
+        
+        if (!name) {
+            return res.status(400).json({
+                message: "Language name is required",
+                status: false
+            });
+        }
+        
+        const updatedLanguage = await Language.findByIdAndUpdate(
+            id,
+            { name },
+            { new: true }
+        );
+        
+        if (!updatedLanguage) {
+            return res.status(404).json({
+                message: "Language not found",
+                status: false
+            });
+        }
+        
+        return res.status(200).json({
+            message: "Language updated successfully",
+            status: true,
+            data: updatedLanguage
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to update language",
+            status: false
+        });
+    }
+};
