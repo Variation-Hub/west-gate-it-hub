@@ -1838,6 +1838,16 @@ export const getProjects = async (req: any, res: Response) => {
             })
         );
 
+        // Add interestedSuppliersCount to each project
+        projects = projects.map((project: any) => {
+            const interestedSuppliersCount = project.interestedSuppliers?.filter(
+                (supplier: any) => supplier.attendee 
+            ).length || 0;
+
+            project._doc.interestedSuppliersCount = interestedSuppliersCount;
+            return project;
+        });
+
         return res.status(200).json({
             message: "projects fetch success",
             status: true,
