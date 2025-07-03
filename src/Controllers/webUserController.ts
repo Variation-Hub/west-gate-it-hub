@@ -780,9 +780,7 @@ export const getAlldata = async (req: any, res: Response) => {
             queryObj["name"] = { $regex: searchRegex };
         }
 
-        // if (mandatory) {
-        //     queryObj["isMandatory"] = true;
-        // }
+        // Handle mandatory parameter logic will be applied in grouping
 
         //const count = await masterList.countDocuments(queryObj);
         if (!type) {
@@ -805,21 +803,22 @@ export const getAlldata = async (req: any, res: Response) => {
 
                 if (!mergedMap[typeKey]) mergedMap[typeKey] = [];
 
-                if (mandatory === true || mandatory === "true") {
-                    for (const item of items) {
-                        const baseType = item.type;
-
-                        let finalTypeKey = baseType;
-                        if (item.isMandatory === false) {
-                            finalTypeKey = `${baseType}-other`;
+                for (const item of items) {
+                    if (mandatory === 'true') {
+                        // When mandatory=true, categorize based on isMandatory
+                        if (item.isMandatory === true) {
+                            // Mandatory items go to main type
+                            const mainType = typeKey.replace("-other", "");
+                            if (!mergedMap[mainType]) mergedMap[mainType] = [];
+                            mergedMap[mainType].push(item);
+                        } else {
+                            // Non-mandatory items go to -other
+                            const baseType = typeKey.replace("-other", "");
+                            const otherType = `${baseType}-other`;
+                            if (!mergedMap[otherType]) mergedMap[otherType] = [];
+                            mergedMap[otherType].push(item);
                         }
-
-                        if (!mergedMap[finalTypeKey]) mergedMap[finalTypeKey] = [];
-                        mergedMap[finalTypeKey].push(item);
-                    }
-                } else {
-                    for (const item of items) {
-                        // If isSystem: false, try to push into <type>-other
+                    } else {
                         if (item.isSystem === false && !typeKey.endsWith("-other")) {
                             const otherType = `${typeKey}-other`;
                             if (!mergedMap[otherType]) mergedMap[otherType] = [];
@@ -847,6 +846,12 @@ export const getAlldata = async (req: any, res: Response) => {
             message: "Data successfully fetched",
             status: true,
             data: data,
+            // meta_data: {
+            //     page: req.pagination?.page,
+            //     items: count,
+            //     page_size: req.pagination?.limit,
+            //     pages: Math.ceil(count / (req.pagination?.limit as number))
+            // }
         });
     } catch (error: any) {
         return res.status(500).json({
