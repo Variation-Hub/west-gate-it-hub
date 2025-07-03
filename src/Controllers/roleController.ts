@@ -12,7 +12,7 @@ export const createRole = async (req: Request, res: Response) => {
         const existingRole = await RoleModel.findOne({ name });
         if (existingRole) return res.status(400).json({ message: 'Role already exists', status: false });
 
-        const newRole = new RoleModel({ name, otherRole: otherRole || [] });
+        const newRole = new RoleModel({ name, otherRoles: otherRole || [] });
         await newRole.save();
         res.status(201).json({ message: 'Role created successfully', status: true, data: newRole });
     } catch (err: any) {
@@ -23,10 +23,10 @@ export const createRole = async (req: Request, res: Response) => {
 export const updateRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, otherRole } = req.body;
+        const { name, otherRoles } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
 
-        const updatedRole = await RoleModel.findByIdAndUpdate(id, { name, otherRole: otherRole || [] }, { new: true });
+        const updatedRole = await RoleModel.findByIdAndUpdate(id, { name, otherRoles: otherRoles || [] }, { new: true });
         if (!updatedRole) return res.status(404).json({ message: 'Role not found', status: false });
 
         res.status(200).json({ message: 'Role updated successfully', status: true, data: updatedRole });
