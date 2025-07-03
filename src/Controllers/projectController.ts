@@ -1838,21 +1838,22 @@ export const getProjects = async (req: any, res: Response) => {
             })
         );
 
-        // Add interestedSuppliersCount to each project
-        projects = projects.map((project: any) => {
-            const interestedSuppliersCount = project.interestedSuppliers?.filter(
-                (supplier: any) => supplier.attendee 
-            ).length || 0;
+        // Get total interested count
+        const result = await projectModel.aggregate([
+            { $match: filter },
+            { $unwind: '$interestedSuppliers' },
+            { $match: { 'interestedSuppliers.attendee': true } },
+            { $count: 'totalInterestedCount' }
+        ]);
 
-            project._doc.interestedSuppliersCount = interestedSuppliersCount;
-            return project;
-        });
 
+        const totalInterestedCount = result[0]?.totalInterestedCount || 0;
         return res.status(200).json({
             message: "projects fetch success",
             status: true,
             data: {
                 data: projects,
+                totalInterestedCount,
                 meta_data: {
                     page: req.pagination?.page,
                     items: count,
