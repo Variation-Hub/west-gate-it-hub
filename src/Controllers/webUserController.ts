@@ -861,13 +861,15 @@ export const promoteOtherItem = async (req: any, res: Response) => {
     try {
         const { itemId, promoteToType, name, tags, isMandatory } = req.body;
 
-        if (!itemId || !promoteToType) {
-            return res.status(400).json({ message: "Missing data", status: false });
+        if (!itemId) {
+            return res.status(400).json({ message: "itemId required", status: false });
         }
 
-        const validTypes = ["domain", "technologies", "product"];
-        if (!validTypes.includes(promoteToType)) {
-            return res.status(400).json({ message: "Invalid type", status: false });
+        if(promoteToType){            
+            const validTypes = ["domain", "technologies", "product"];
+            if (!validTypes.includes(promoteToType)) {
+                return res.status(400).json({ message: "Invalid type", status: false });
+            }
         }
 
         const updateData: any = { type: promoteToType, name, isMandatory: isMandatory ? isMandatory : false };
