@@ -906,7 +906,7 @@ export const getProjects = async (req: any, res: Response) => {
 
 
         if (registerInterest == 'true' || registerInterest) {
-            filter.register_interest = true;
+            filter.interestedSuppliers = { $exists: true, $not: { $size: 0 } };
         }
 
         if (registerInterest == 'false' || registerInterest == false) {
@@ -1842,7 +1842,7 @@ export const getProjects = async (req: any, res: Response) => {
         const result = await projectModel.aggregate([
             { $match: filter },
             { $unwind: '$interestedSuppliers' },
-            { $match: { 'interestedSuppliers.attendee': true } },
+            { $match: { 'interestedSuppliers.attendee': false } },
             { $count: 'totalInterestedCount' }
         ]);
 
