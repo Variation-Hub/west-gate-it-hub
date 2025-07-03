@@ -86,7 +86,7 @@ export const createFormData = async (req: Request, res: Response) => {
 // Get all form data with pagination and search
 export const getFormDataList = async (req: any, res: Response) => {
     try {
-        const { search, formType } = req.query;
+        const { search, formType, status } = req.query;
 
         const pipeline: any[] = [
             { $match: { isDeleted: false } }
@@ -95,6 +95,10 @@ export const getFormDataList = async (req: any, res: Response) => {
         // Filter by form type if provided
         if (formType) {
             pipeline[0].$match.formType = formType;
+        }
+
+        if (status) {
+            pipeline[0].$match.status = status;
         }
 
         // Add search functionality in formData
@@ -206,7 +210,7 @@ export const getFormDataById = async (req: Request, res: Response) => {
 // Get all form submissions for a specific email+formType combination
 export const getFormDataDetails = async (req: Request, res: Response) => {
     try {
-        const { email, formType } = req.query;
+        const { email, formType, status } = req.query;
 
         if (!email || !formType) {
             return res.status(400).json({
@@ -219,6 +223,7 @@ export const getFormDataDetails = async (req: Request, res: Response) => {
         const formDataList = await formDataModel.find({
             'formData.emailAddress': email,
             formType: formType,
+            status: status ? status : { $exists: true },
             isDeleted: false
         })
         .populate('candidateFilters')
