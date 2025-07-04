@@ -49,17 +49,25 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 // If roleId is a string
                 else if (typeof roleId === 'string') {
                     let roleInput = roleId.replace(/\s+/g, ' ').trim();
-                    let safeInput = escapeRegExp(roleInput);
-                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${safeInput}$`, "i") });
 
-                    if (!existingRole) {
-                        existingRole = await RoleModel.create({
-                            name: roleId,
+                    const { findRoleByName } = require('./roleController');
+                    let roleInfo = await findRoleByName(roleInput);
+
+                    if (!roleInfo) {
+                        const newRole = await RoleModel.create({
+                            name: roleInput,
+                            type: 'main',
+                            isActive: true,
                             otherRoles: []
                         });
+                        roleInfo = {
+                            roleId: newRole._id,
+                            roleName: newRole.name,
+                            type: 'main'
+                        };
                     }
 
-                    processedRoleIds.push(existingRole._id);
+                    processedRoleIds.push(roleInfo.roleId);
                 }
             }
 
@@ -82,15 +90,23 @@ export const createCandidateCV = async (req: any, res: Response) => {
                         candidate.currentRole = newRole._id;
                     }
                 } else {
-                    let safeInput = escapeRegExp(trimmedRole);
-                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${safeInput}$`, "i") });
-                    if (!existingRole) {
-                        existingRole = await RoleModel.create({
+                    const { findRoleByName } = require('./roleController');
+                    let roleInfo = await findRoleByName(trimmedRole);
+
+                    if (!roleInfo) {
+                        const newRole = await RoleModel.create({
                             name: trimmedRole,
+                            type: 'main',
+                            isActive: true,
                             otherRoles: []
                         });
+                        roleInfo = {
+                            roleId: newRole._id,
+                            roleName: newRole.name,
+                            type: 'main'
+                        };
                     }
-                    candidate.currentRole = existingRole._id;
+                    candidate.currentRole = roleInfo.roleId;
                 }
             } else {
                 candidate.currentRole = null;
@@ -127,8 +143,8 @@ export const getAllCandidates = async (req: any, res: Response) => {
         ]);
 
         const candidates = await CandidateCvModel.find(queryObj)
-            .populate("roleId",  ["name", "otherRole"])
-            .populate("currentRole", "name")
+            .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
+            .populate("currentRole", ["name", "type", "parentRoleId"])
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
@@ -170,7 +186,9 @@ export const getCandidateById = async (req: any, res: Response) => {
     try {
         const { id } = req.params;
 
-        const candidate = await CandidateCvModel.findById(id).populate("roleId",  ["name", "otherRole"]).populate("currentRole", "name");
+        const candidate = await CandidateCvModel.findById(id)
+            .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
+            .populate("currentRole", ["name", "type", "parentRoleId"]);
         if (!candidate) {
             return res.status(404).json({ message: "Candidate not found", status: false });
         }
@@ -207,6 +225,59 @@ export const updateCandidate = async (req: any, res: Response) => {
         
         if (data.roleId && !Array.isArray(data.roleId)) {
             return res.status(400).json({ message: "roleId must be an array", status: false });
+        }
+
+        if (data.roleId && Array.isArray(data.roleId)) {
+            const processedRoleIds = [];
+            for (const roleId of data.roleId) {
+                if (mongoose.Types.ObjectId.isValid(roleId)) {
+                    processedRoleIds.push(roleId);
+                } else if (typeof roleId === 'string') {
+                    const { findRoleByName } = require('./roleController');
+                    let roleInfo = await findRoleByName(roleId.trim());
+
+                    if (!roleInfo) {
+                        // Create new main role if not found
+                        const newRole = await RoleModel.create({
+                            name: roleId.trim(),
+                            type: 'main',
+                            isActive: true,
+                            otherRoles: []
+                        });
+                        roleInfo = {
+                            roleId: newRole._id,
+                            roleName: newRole.name,
+                            type: 'main'
+                        };
+                    }
+                    processedRoleIds.push(roleInfo.roleId);
+                }
+            }
+            data.roleId = processedRoleIds;
+        }
+
+        if (data.currentRole && typeof data.currentRole === 'string') {
+            if (!mongoose.Types.ObjectId.isValid(data.currentRole)) {
+                // Use smart role lookup for string names
+                const { findRoleByName } = require('./roleController');
+                let roleInfo = await findRoleByName(data.currentRole.trim());
+
+                if (!roleInfo) {
+                    // Create new main role if not found
+                    const newRole = await RoleModel.create({
+                        name: data.currentRole.trim(),
+                        type: 'main',
+                        isActive: true,
+                        otherRoles: []
+                    });
+                    roleInfo = {
+                        roleId: newRole._id,
+                        roleName: newRole.name,
+                        type: 'main'
+                    };
+                }
+                data.currentRole = roleInfo.roleId;
+            }
         }
 
         if (data.active === false) {
@@ -424,45 +495,42 @@ export const getCandidates = async (req: any, res: Response) => {
             });
         }
 
-        // Add role search condition with tag-based search
+        // Add role search condition with 
         if (roleSearch) {
             const matchingRoles = await RoleModel.find({
-                name: { $regex: `^${roleSearch}$`, $options: "i" }
-            }).select('otherRoles').lean();
+                $or: [
+                    { name: { $regex: roleSearch, $options: "i" }, isActive: true },
+                    { otherRoles: { $regex: roleSearch, $options: "i" }, isActive: true }
+                ]
+            }).select('_id name type parentRoleId otherRoles').lean();
 
-            // Extract all otherRoles from matching role documents
-            const relatedRoles = matchingRoles.reduce((roles: string[], role: any) => {
-                if (role.otherRoles && role.otherRoles.length > 0) {
-                    roles.push(...role.otherRoles);
-                }
-                return roles;
-            }, [] as string[]);
+            const roleIds = matchingRoles.map(role => role._id);
 
-            // Remove duplicates from roles array
-            const uniqueRoles = [...new Set(relatedRoles)];
+            // Also find sub-roles that have matching parent roles
+            const subRoles = await RoleModel.find({
+                type: 'sub',
+                parentRoleId: { $in: roleIds },
+                isActive: true
+            }).select('_id').lean();
+
+            const allMatchingRoleIds = [...roleIds, ...subRoles.map(sr => sr._id)];
+
+             const roleMatchConditions = [];
+
+            if (allMatchingRoleIds.length > 0) {
+                roleMatchConditions.push(
+                    { "roleId": { $in: allMatchingRoleIds } },
+                    { "currentRole": { $in: allMatchingRoleIds } }
+                );
+            }
 
             const regex = new RegExp(roleSearch, "i");
-
-            // Build match conditions for role search
-            const roleMatchConditions = [
+            roleMatchConditions.push(
                 { "roleIdData.name": { $regex: regex } },
                 { "roleIdData.otherRoles": { $elemMatch: { $regex: regex } } },
                 { "currentRoleData.name": { $regex: regex } },
                 { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } }
-            ];
-
-            // Add related roles matching if we found related roles
-            if (uniqueRoles.length > 0) {
-                uniqueRoles.forEach((relatedRole: string) => {
-                    const relatedRegex = new RegExp(relatedRole, "i");
-                    roleMatchConditions.push(
-                        { "roleIdData.name": { $regex: relatedRegex } },
-                        { "roleIdData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
-                        { "currentRoleData.name": { $regex: relatedRegex } },
-                        { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } }
-                    );
-                });
-            }
+            );
 
             matchConditions.push({
                 $or: roleMatchConditions
@@ -958,21 +1026,28 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
                 status: false
             });
         }
-        console.log(filter)
+        
         const matchingRoles = await RoleModel.find({
             $or: [
-                { name: { $regex: filter.jobTitle, $options: "i" } },
-                { otherRoles: { $elemMatch: { $regex: filter.jobTitle, $options: "i" } } }
+                { name: { $regex: filter.jobTitle, $options: "i" }, isActive: true },
+                { otherRoles: { $elemMatch: { $regex: filter.jobTitle, $options: "i" } }, isActive: true }
             ]
-        }).select('name otherRoles').lean();
+        }).select('_id name type parentRoleId otherRoles').lean();
 
-        // Extract all related roles from matching role documents
+        const roleIds = matchingRoles.map(role => role._id);
+
+        const subRoles = await RoleModel.find({
+            type: 'sub',
+            parentRoleId: { $in: roleIds },
+            isActive: true
+        }).select('_id').lean();
+
+        const allMatchingRoleIds = [...roleIds, ...subRoles.map(sr => sr._id)];
+
         const relatedRoles = matchingRoles.reduce((roles: string[], role: any) => {
-            // Add the main role name
             if (role.name) {
                 roles.push(role.name);
             }
-            // Add all otherRoles
             if (role.otherRoles && role.otherRoles.length > 0) {
                 roles.push(...role.otherRoles);
             }
@@ -982,15 +1057,22 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         // Remove duplicates from roles array
         const uniqueRoles = [...new Set(relatedRoles)];
 
-        const regex = new RegExp(filter.jobTitle, "i");
+        const roleMatchConditions = [];
 
-        // Build match conditions for role search
-        const roleMatchConditions = [
+        if (allMatchingRoleIds.length > 0) {
+            roleMatchConditions.push(
+                { "roleId": { $in: allMatchingRoleIds } },
+                { "currentRole": { $in: allMatchingRoleIds } }
+            );
+        }
+
+        const regex = new RegExp(filter.jobTitle, "i");
+        roleMatchConditions.push(
             { "roleData.name": { $regex: regex } },
-            { "roleData.otherRole": { $regex: regex } },
+            { "roleData.otherRoles": { $elemMatch: { $regex: regex } } },
             { "currentRoleData.name": { $regex: regex } },
-            { "currentRoleData.otherRole": { $regex: regex } }
-        ];
+            { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } }
+        );
 
         // Add related roles matching if we found related roles
         if (uniqueRoles.length > 0) {
@@ -998,9 +1080,9 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
                 const relatedRegex = new RegExp(relatedRole, "i");
                 roleMatchConditions.push(
                     { "roleData.name": { $regex: relatedRegex } },
-                    { "roleData.otherRole": { $regex: relatedRegex } },
+                    { "roleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
                     { "currentRoleData.name": { $regex: relatedRegex } },
-                    { "currentRoleData.otherRole": { $regex: relatedRegex } }
+                    { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } }
                 );
             });
         }
