@@ -13,6 +13,10 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid data format", status: false });
         }
 
+        function escapeRegExp(str: any) {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
         for (const candidate of data) {
             if (!Array.isArray(candidate.roleId)) {
                 throw new Error("roleId must be an array");
@@ -45,7 +49,8 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 // If roleId is a string
                 else if (typeof roleId === 'string') {
                     let roleInput = roleId.replace(/\s+/g, ' ').trim();
-                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${roleInput}$`, "i") });
+                    let safeInput = escapeRegExp(roleInput);
+                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${safeInput}$`, "i") });
 
                     if (!existingRole) {
                         existingRole = await RoleModel.create({
@@ -62,7 +67,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
 
             const rawCurrentRole = candidate.currentRole;
 
-            if (rawCurrentRole && typeof rawCurrentRole === 'string' && rawCurrentRole.trim()) {
+            if (rawCurrentRole) {
                 const trimmedRole =  rawCurrentRole.replace(/\s+/g, ' ').trim();
 
                 if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
@@ -77,7 +82,8 @@ export const createCandidateCV = async (req: any, res: Response) => {
                         candidate.currentRole = newRole._id;
                     }
                 } else {
-                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${trimmedRole}$`, "i") });
+                    let safeInput = escapeRegExp(trimmedRole);
+                    let existingRole = await RoleModel.findOne({ name: new RegExp(`^${safeInput}$`, "i") });
                     if (!existingRole) {
                         existingRole = await RoleModel.create({
                             name: trimmedRole,
