@@ -17,6 +17,8 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
+        const finalCreateList = [];
+
         for (const candidate of data) {
             if (!Array.isArray(candidate.roleId)) {
                 throw new Error("roleId must be an array");
@@ -65,6 +67,12 @@ export const createCandidateCV = async (req: any, res: Response) => {
                             roleName: newRole.name,
                             type: 'main'
                         };
+                    } else {
+                        // If role already exists but is now being used as sub-role
+                        await RoleModel.updateOne(
+                            { _id: roleInfo.roleId, type: { $ne: 'main' } },
+                            { $set: { type: 'sub' } }
+                        );
                     }
 
                     processedRoleIds.push(roleInfo.roleId);
@@ -111,14 +119,30 @@ export const createCandidateCV = async (req: any, res: Response) => {
             } else {
                 candidate.currentRole = null;
             }
+
+            let existingCandidate = null;
+            if (candidate.uniqueId) {
+                existingCandidate = await CandidateCvModel.findOne({ uniqueId: candidate.uniqueId });
+            }
+            if (candidate.uniqueId) {
+                const existingCandidate = await CandidateCvModel.findOne({ uniqueId: candidate.uniqueId });
+                if (existingCandidate) {
+                    await CandidateCvModel.findByIdAndUpdate(existingCandidate._id, candidate, { new: true });
+                    continue; // Skip insert, as we updated
+                }
+            }
+
+            // Push to final create list if not updated
+            finalCreateList.push(candidate);
         }
 
-        const candidates = await CandidateCvModel.insertMany(data);
-
+        if (finalCreateList.length > 0) {
+            await CandidateCvModel.insertMany(finalCreateList);
+        }
         return res.status(201).json({
-            message: "Candidates added successfully",
+            message: "Candidates saved successfully",
             status: true,
-            data: candidates,
+            data: finalCreateList
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message, status: false });
