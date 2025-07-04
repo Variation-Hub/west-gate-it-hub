@@ -9,11 +9,39 @@ export const createRole = async (req: Request, res: Response) => {
         const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
 
-        const existingRole = await RoleModel.findOne({ name });
+        const existingRole = await RoleModel.findOne({ name, isActive: true });
         if (existingRole) return res.status(400).json({ message: 'Role already exists', status: false });
 
-        const newRole = new RoleModel({ name, otherRoles: otherRole || [] });
+        const newRole = new RoleModel({
+            name,
+            type: 'main',
+            isActive: true,
+            otherRoles: otherRole || []
+        });
         await newRole.save();
+
+        // Auto-create sub-role documents for otherRoles
+        if (otherRole && otherRole.length > 0) {
+            for (const otherRoleName of otherRole) {
+                if (otherRoleName && otherRoleName.trim()) {
+                    const existingSubRole = await RoleModel.findOne({
+                        name: otherRoleName.trim(),
+                        type: 'sub',
+                        parentRoleId: newRole._id
+                    });
+
+                    if (!existingSubRole) {
+                        await RoleModel.create({
+                            name: otherRoleName.trim(),
+                            type: 'sub',
+                            parentRoleId: newRole._id,
+                            isActive: true
+                        });
+                    }
+                }
+            }
+        }
+
         res.status(201).json({ message: 'Role created successfully', status: true, data: newRole });
     } catch (err: any) {
         res.status(500).json({ message: err.message, status: false });
@@ -21,20 +49,109 @@ export const createRole = async (req: Request, res: Response) => {
 };
 
 export const updateRole = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        const { name, otherRoles } = req.body;
-        if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
+  try {
+    const { id } = req.params;
+    const { name, otherRoles } = req.body;
 
-        const updatedRole = await RoleModel.findByIdAndUpdate(id, { name, otherRoles: otherRoles || [] }, { new: true });
-        if (!updatedRole) return res.status(404).json({ message: 'Role not found', status: false });
+    if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
 
-        res.status(200).json({ message: 'Role updated successfully', status: true, data: updatedRole });
-    } catch (err: any) {
-        res.status(500).json({ message: err.message, status: false });
+    const existingRole = await RoleModel.findById(id);
+    if (!existingRole) return res.status(404).json({ message: 'Role not found', status: false });
+
+    const oldOtherRoles = existingRole.otherRoles || [];
+    const newOtherRoles = otherRoles || [];
+
+    // Step 1: Update main role
+    const updatedRole = await RoleModel.findByIdAndUpdate(
+      id,
+      {
+        name,
+        otherRoles: newOtherRoles,
+        type: existingRole.type || 'main',
+        isActive: true,
+      },
+      { new: true }
+    );
+
+    // Step 2: Deactivate removed sub-roles - not really needed 
+    const rolesToDeactivate = oldOtherRoles.filter((r: string) => !newOtherRoles.includes(r));
+    if (rolesToDeactivate.length > 0) {
+      await RoleModel.updateMany(
+        {
+          name: { $in: rolesToDeactivate },
+          parentRoleId: id,
+          type: 'sub',
+        },
+        { isActive: false }
+      );
     }
-};
 
+    // Step 3: Handle new or changed sub-roles
+    for (const roleName of newOtherRoles) {
+      const trimmedName = roleName.trim();
+      if (!trimmedName) continue;
+
+      let subRole = await RoleModel.findOne({ name: trimmedName });
+
+      // If role exists
+      if (subRole) {
+        // If it's a main role (convert to sub)
+        if (subRole.type === 'main') {
+          subRole.type = 'sub';
+          subRole.parentRoleId = new mongoose.Types.ObjectId(id);
+          subRole.isActive = true;
+          await subRole.save();
+        }
+
+        // If sub-role but with different parent, update
+        else if (subRole.type === 'sub' && subRole.parentRoleId?.toString() !== id) {
+          subRole.parentRoleId = new mongoose.Types.ObjectId(id);
+          subRole.isActive = true;
+          await subRole.save();
+        }
+
+        // If it's already correct sub-role, just activate
+        else {
+          subRole.isActive = true;
+          await subRole.save();
+        }
+      } else {
+        // Create new sub-role
+        subRole = await RoleModel.create({
+          name: trimmedName,
+          type: 'sub',
+          parentRoleId: id,
+          isActive: true,
+        });
+      }
+
+      // Step 5: Migrate any inactive roles with same name
+      const inactiveRoles = await RoleModel.find({
+        name: trimmedName,
+        isActive: false,
+      }).select('_id');
+
+      const inactiveRoleIds = inactiveRoles.map(r => r._id);
+
+      if (inactiveRoleIds.length > 0) {
+        await CandidateCvModel.updateMany(
+          { roleId: { $in: inactiveRoleIds } },
+          { $set: { "roleId.$[elem]": subRole._id } },
+          { arrayFilters: [{ "elem": { $in: inactiveRoleIds } }] }
+        );
+
+        await CandidateCvModel.updateMany(
+          { currentRole: { $in: inactiveRoleIds } },
+          { $set: { currentRole: subRole._id } }
+        );
+      }
+    }
+
+    return res.status(200).json({ message: 'Role updated successfully', status: true, data: updatedRole });
+  } catch (err: any) {
+    return res.status(500).json({ message: err.message, status: false });
+  }
+};
 export const deleteRole = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -51,7 +168,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
         // const limit = Number(req.pagination?.limit) || 10;
         // const skip = Number(req.pagination?.skip) || 0;
 
-        const query: any = {};
+        const query: any = { isActive: true };
         if (search) {
             query["$or"] = [
                 { name: { $regex: search, $options: "i" } },
@@ -292,9 +409,9 @@ export const getlistByRole = async (req: Request, res: Response) => {
         const inActiveCandidates = await CandidateCvModel.countDocuments({ ...dateFilter, active: false });
 
         const candidates = await CandidateCvModel.find(matchStage)
-            .populate("roleId", ["name", "otherRole"])
+            .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
             .populate("supplierId", "name")
-            .populate("currentRole", "name")
+            .populate("currentRole", ["name", "type", "parentRoleId"])
             .sort({ active: -1, createdAt: -1 });
 
         res.status(200).json({
@@ -331,7 +448,7 @@ export const roleList = async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
 
-        const query: any = {};
+        const query: any = { isActive: true };
         if (search) {
             query["$or"] = [
                 { name: { $regex: search, $options: "i" } },
@@ -393,7 +510,7 @@ export const getAllRolesCombined = async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
 
-        const roles = await RoleModel.find({}).select('name otherRoles relatedRoles');
+        const roles = await RoleModel.find({ isActive: true }).select('name type otherRoles relatedRoles');
 
         const combinedRoles: string[] = [];
 
@@ -402,7 +519,8 @@ export const getAllRolesCombined = async (req: Request, res: Response) => {
                 combinedRoles.push(role.name);
             }
 
-            if (role.otherRoles && role.otherRoles.length > 0) {
+            // For main roles, also include their otherRoles
+            if (role.type !== 'sub' && role.otherRoles && role.otherRoles.length > 0) {
                 role.otherRoles.forEach(otherRole => {
                     if (otherRole && otherRole.trim()) {
                         combinedRoles.push(otherRole.trim());
@@ -447,4 +565,151 @@ export const getAllRolesCombined = async (req: Request, res: Response) => {
             data: null
         });
     }
+};
+
+// Helper function to find role by name (checks both main and sub roles)
+export const findRoleByName = async (roleName: string) => {
+    if (!roleName || !roleName.trim()) return null;
+
+    const trimmedName = roleName.trim();
+
+    // First check if it exists as any role (main or sub)
+    let role = await RoleModel.findOne({
+        name: { $regex: `^${trimmedName}$`, $options: 'i' },
+        isActive: true
+    });
+
+    if (role) {
+        return {
+            roleId: role._id,
+            roleName: role.name,
+            type: role.type || 'main',
+            parentRoleId: role.parentRoleId
+        };
+    }
+
+    // If not found as direct role, check if it exists in otherRoles of any main role
+    const parentRole = await RoleModel.findOne({
+        otherRoles: { $regex: `^${trimmedName}$`, $options: 'i' },
+        isActive: true,
+        type: { $ne: 'sub' } // Only check main roles for otherRoles
+    });
+
+    if (parentRole) {
+        // Check if this sub-role already exists as a separate document
+        let subRole = await RoleModel.findOne({
+            name: { $regex: `^${trimmedName}$`, $options: 'i' },
+            type: 'sub',
+            parentRoleId: parentRole._id,
+            isActive: true
+        });
+
+        if (!subRole) {
+            // Auto-create sub-role document if it doesn't exist
+            subRole = new RoleModel({
+                name: trimmedName,
+                type: 'sub',
+                parentRoleId: parentRole._id,
+                isActive: true
+            });
+            await subRole.save();
+        }
+
+        return {
+            roleId: subRole._id,
+            roleName: subRole.name,
+            type: 'sub',
+            parentRoleId: parentRole._id,
+            parentRoleName: parentRole.name
+        };
+    }
+
+    return null;
+};
+
+// script to update roleids in candidatecvs
+const CandidateCV = mongoose.model("CandidateCV", new mongoose.Schema({}, { strict: false }), "candidatecvs");
+const OldRole = mongoose.model("OldRole", new mongoose.Schema({}, { strict: false }), "roles"); // OLD roles
+const NewRole = mongoose.model("NewRole", new mongoose.Schema({}, { strict: false }), "new_roles"); // NEW roles
+
+export const updateRoleIds = async (req: Request, res: Response) => {
+  try {
+    const oldRoles = await OldRole.find({});
+    const newRoles = await NewRole.find({});
+
+    // Build maps
+    const oldIdToName = new Map(); // old _id -> name
+    for (const role of oldRoles) {
+      if (role._id && (role as any).name) {
+        oldIdToName.set(role._id.toString(), (role as any).name.trim().toLowerCase());
+      }
+    }
+
+    const nameToNewId = new Map(); // name -> new _id
+    for (const role of newRoles) {
+      if ((role as any).name && (role as any)._id) {
+        nameToNewId.set((role as any).name.trim().toLowerCase(), role._id);
+      }
+      // Also map otherRoles (aliases)
+      if ((role as any).otherRoles && Array.isArray((role as any).otherRoles)) {
+        for (const alias of (role as any).otherRoles) {
+          nameToNewId.set(alias.trim().toLowerCase(), role._id);
+        }
+      }
+    }
+
+    const candidates = await CandidateCV.find({});
+    let updatedCount = 0;
+
+    for (const candidate of candidates) {
+      const updatedData = {};
+
+      // --- Update roleId array ---
+      const oldRoleIds = (candidate as any).roleId || [];
+      const newRoleIds = [];
+
+      for (const oldId of oldRoleIds) {
+        const roleName = oldIdToName.get(oldId.toString());
+        if (!roleName) continue;
+
+        const newId = nameToNewId.get(roleName);
+        if (newId) newRoleIds.push(newId);
+      }
+
+      if (newRoleIds.length > 0) {
+        (updatedData as any).roleId = newRoleIds;
+      }
+
+      // --- Update currentRole ---
+      const oldCurrentRoleId = (candidate as any).currentRole?.toString();
+      if (oldCurrentRoleId) {
+        const roleName = oldIdToName.get(oldCurrentRoleId);
+        if (roleName) {
+          const newId = nameToNewId.get(roleName);
+          if (newId) {
+            (updatedData as any).currentRole = newId;
+          }
+        }
+      }
+
+      // --- Apply updates ---
+      if (Object.keys(updatedData).length > 0) {
+        await CandidateCV.updateOne(
+          { _id: candidate._id },
+          { $set: updatedData }
+        );
+        updatedCount++;
+      }
+    }
+
+    res.send({
+      message: `🎉 Update completed.`,
+      totalCandidates: candidates.length,
+      updatedCandidates: updatedCount
+    });
+
+  } catch (err) {
+    console.error("❌ Error during update:", err);
+    res.status(500).send("Internal Server Error");
+  }
 };
