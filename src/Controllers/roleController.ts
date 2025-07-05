@@ -4,16 +4,26 @@ import RoleModel from "../Models/roleModel"
 import mongoose from "mongoose";
 const technologies = require('../Util/technologies.json');
 
+const normalizeName = (name: string): string => {
+  return name
+    .replace(/\s+/g, ' ')        // replace multiple spaces with single
+    .replace(/\s+\(/g, '(')      // remove space before (
+    .replace(/\(\s+/g, '(')      // remove space after (
+    .replace(/\s+\)/g, ')')      // remove space before )
+    .trim();              // remove trailing spaces
+};
+
+
 export const createRole = async (req: Request, res: Response) => {
     try {
         const { name, otherRole } = req.body;
         if (!name) return res.status(400).json({ message: 'Role name is required', status: false });
-
-        const existingRole = await RoleModel.findOne({ name, isActive: true });
+        const normalizedRoleName = normalizeName(name);
+        const existingRole = await RoleModel.findOne({ name: normalizedRoleName, isActive: true });
         if (existingRole) return res.status(400).json({ message: 'Role already exists', status: false });
 
         const newRole = new RoleModel({
-            name,
+            name: normalizedRoleName,
             type: 'main',
             isActive: true,
             otherRoles: otherRole || []
@@ -25,14 +35,14 @@ export const createRole = async (req: Request, res: Response) => {
             for (const otherRoleName of otherRole) {
                 if (otherRoleName && otherRoleName.trim()) {
                     const existingSubRole = await RoleModel.findOne({
-                        name: otherRoleName.trim(),
+                        name: normalizeName(otherRoleName.trim()),
                         type: 'sub',
                         parentRoleId: newRole._id
                     });
 
                     if (!existingSubRole) {
                         await RoleModel.create({
-                            name: otherRoleName.trim(),
+                            name: normalizeName(otherRoleName.trim()),
                             type: 'sub',
                             parentRoleId: newRole._id,
                             isActive: true
@@ -58,6 +68,7 @@ export const updateRole = async (req: Request, res: Response) => {
     const existingRole = await RoleModel.findById(id);
     if (!existingRole) return res.status(404).json({ message: 'Role not found', status: false });
 
+    const normalizedRoleName = normalizeName(name);
     const oldOtherRoles = existingRole.otherRoles || [];
     const newOtherRoles = otherRoles || [];
 
@@ -65,7 +76,7 @@ export const updateRole = async (req: Request, res: Response) => {
     const updatedRole = await RoleModel.findByIdAndUpdate(
       id,
       {
-        name,
+        name: normalizedRoleName,
         otherRoles: newOtherRoles,
         type: existingRole.type || 'main',
         isActive: true,
@@ -91,7 +102,7 @@ export const updateRole = async (req: Request, res: Response) => {
       const trimmedName = roleName.trim();
       if (!trimmedName) continue;
 
-      let subRole = await RoleModel.findOne({ name: trimmedName });
+      let subRole = await RoleModel.findOne({ name: normalizeName(trimmedName) });
 
       // If role exists
       if (subRole) {
@@ -118,7 +129,7 @@ export const updateRole = async (req: Request, res: Response) => {
       } else {
         // Create new sub-role
         subRole = await RoleModel.create({
-          name: trimmedName,
+          name: normalizeName(trimmedName),
           type: 'sub',
           parentRoleId: id,
           isActive: true,
@@ -127,7 +138,7 @@ export const updateRole = async (req: Request, res: Response) => {
 
       // Step 5: Migrate any inactive roles with same name
       const inactiveRoles = await RoleModel.find({
-        name: trimmedName,
+        name: normalizeName(trimmedName),
         isActive: false,
       }).select('_id');
 
@@ -164,7 +175,7 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
-        const { search, startDate, endDate, supplierId } = req.query;
+        const { search, startDate, endDate, supplierId, type } = req.query;
         // const limit = Number(req.pagination?.limit) || 10;
         // const skip = Number(req.pagination?.skip) || 0;
 
@@ -174,6 +185,10 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 { name: { $regex: search, $options: "i" } },
                 { otherRoles: { $regex: search, $options: "i" } }
             ];
+        }
+
+        if (type) {
+            query.type = type;
         }
 
         if (startDate && endDate) {
@@ -273,6 +288,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
                       otherRoles: 1,
                       createdAt: 1,
                       updatedAt: 1,
+                      type: 1,
                       totalSuppliersCount: 1,
                       activeSuppliersCount: 1,
                       totalCandidatesCount: 1,
@@ -446,7 +462,7 @@ export const getCount = async (req: Request, res: Response) => {
 
 export const roleList = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query;
+        const { search, type } = req.query;
 
         const query: any = { isActive: true };
         if (search) {
@@ -454,6 +470,10 @@ export const roleList = async (req: Request, res: Response) => {
                 { name: { $regex: search, $options: "i" } },
                 { otherRoles: { $regex: search, $options: "i" } }
             ];
+        }
+
+        if (type) {
+            query.type = type;
         }
 
         const roles = await RoleModel.find(query);

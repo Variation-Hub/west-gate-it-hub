@@ -5,6 +5,15 @@ import RoleModel from "../Models/roleModel"
 import CandidateFilter from "../Models/candidateFilter"
 import mongoose from "mongoose";
 
+const normalizeName = (name: string): string => {
+  return name
+    .replace(/\s+/g, ' ')        // replace multiple spaces with single
+    .replace(/\s+\(/g, '(')      // remove space before (
+    .replace(/\(\s+/g, '(')      // remove space after (
+    .replace(/\s+\)/g, ')')      // remove space before )
+    .trim();              // remove trailing spaces
+};
+
 export const createCandidateCV = async (req: any, res: Response) => {
     try {
         const { data } = req.body;
@@ -46,7 +55,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 }
                 // If roleId is a string
                 else if (typeof roleId === 'string') {
-                    let roleInput = roleId.replace(/\s+/g, ' ').trim();
+                    let roleInput = normalizeName(roleId);
 
                     const { findRoleByName } = require('./roleController');
                     let roleInfo = await findRoleByName(roleInput);
@@ -80,7 +89,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
             const rawCurrentRole = candidate.currentRole;
 
             if (rawCurrentRole) {
-                const trimmedRole =  rawCurrentRole.replace(/\s+/g, ' ').trim();
+                const trimmedRole =  normalizeName(rawCurrentRole);
 
                 if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
                     const existingRole = await RoleModel.findById(trimmedRole);
