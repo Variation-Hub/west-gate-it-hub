@@ -13,10 +13,6 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid data format", status: false });
         }
 
-        function escapeRegExp(str: any) {
-            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
         const finalCreateList = [];
 
         for (const candidate of data) {
