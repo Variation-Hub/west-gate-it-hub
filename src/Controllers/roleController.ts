@@ -571,11 +571,14 @@ export const getAllRolesCombined = async (req: Request, res: Response) => {
 export const findRoleByName = async (roleName: string) => {
     if (!roleName || !roleName.trim()) return null;
 
+  function escapeRegExp(str: any) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
     const trimmedName = roleName.trim();
-
+    let safeInput = escapeRegExp(trimmedName);
     // First check if it exists as any role (main or sub)
     let role = await RoleModel.findOne({
-        name: { $regex: `^${trimmedName}$`, $options: 'i' },
+        name: { $regex: `^${safeInput}$`, $options: 'i' },
         isActive: true
     });
 
@@ -590,7 +593,7 @@ export const findRoleByName = async (roleName: string) => {
 
     // If not found as direct role, check if it exists in otherRoles of any main role
     const parentRole = await RoleModel.findOne({
-        otherRoles: { $regex: `^${trimmedName}$`, $options: 'i' },
+        otherRoles: { $regex: `^${safeInput}$`, $options: 'i' },
         isActive: true,
         type: { $ne: 'sub' } // Only check main roles for otherRoles
     });
@@ -598,7 +601,7 @@ export const findRoleByName = async (roleName: string) => {
     if (parentRole) {
         // Check if this sub-role already exists as a separate document
         let subRole = await RoleModel.findOne({
-            name: { $regex: `^${trimmedName}$`, $options: 'i' },
+            name: { $regex: `^${safeInput}$`, $options: 'i' },
             type: 'sub',
             parentRoleId: parentRole._id,
             isActive: true
@@ -607,7 +610,7 @@ export const findRoleByName = async (roleName: string) => {
         if (!subRole) {
             // Auto-create sub-role document if it doesn't exist
             subRole = new RoleModel({
-                name: trimmedName,
+                name: safeInput,
                 type: 'sub',
                 parentRoleId: parentRole._id,
                 isActive: true
