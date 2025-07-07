@@ -73,7 +73,13 @@ export const registerWebUser = async (req: Request, res: Response) => {
         await sendMail(req.body);
 
         if (req.body?.isSendMail || req.body?.isSendMail == 'true' || req.body?.isSendMail == 'True') {
-            await sendMailForProfileUpdate(req.body?.poc_email, newUser._id);
+            if (req.body?.pocDetails && req.body.pocDetails.length > 0) {
+                for (const poc of req.body.pocDetails) {
+                    if (poc.email) {
+                        await sendRegisterMailToSupplier(poc.email);
+                    }
+                }
+            }
         }
 
         const token = generateToken({
@@ -102,8 +108,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
 export const loginWebUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body
-        const user: any = await userModel.findOne({ poc_email: email.toLowerCase(), role: userRoles.SupplierAdmin })
-        console.log(user, "sdsd", email, password);
+        const user: any = await userModel.findOne({ "pocDetails.email": email.toLowerCase(), role: userRoles.SupplierAdmin })
 
         if (!user) {
             return res.status(404).json({
@@ -167,9 +172,8 @@ export const loginWebUser = async (req: Request, res: Response) => {
 export const userForgotPassword = async (req: Request, res: Response) => {
     try {
         const { email, role } = req.body;
-        console.log("this is testng user", email, role);
 
-        const user = await userModel.findOne({ poc_email: email.toLowerCase(), role });
+        const user = await userModel.findOne({ "pocDetails.email": email.toLowerCase(), role });
 
         if (!user) {
             return res.status(404).json({
@@ -221,9 +225,8 @@ export const userForgotPassword = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
     try {
         const { email, password, role } = req.body;
-        console.log("email, password, role ", email, password, role);
 
-        const user = await userModel.findOne({ poc_email: email, role });
+        const user = await userModel.findOne({ "pocDetails.email": email, role });
 
         if (!user) {
             return res.status(404).json({
