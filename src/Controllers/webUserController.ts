@@ -870,8 +870,32 @@ export const promoteOtherItem = async (req: any, res: Response) => {
             return res.status(400).json({ message: "itemId required", status: false });
         }
 
-        if(promoteToType){            
-            const validTypes = ["domain", "technologies", "product"];
+        if (promoteToType) {
+            const validTypes = [
+                "Product",
+                "Service",
+                "Testing Tools",
+                "Cloud Platforms",
+                "DevOps & Automation",
+                "Containerization & Orchestration",
+                "Networking & Infrastructure",
+                "Database Platforms",
+                "Data, Analytics & BI",
+                "AI/ML Platforms",
+                "Security & IAM",
+                "Monitoring & Observability",
+                "Integration & API Management",
+                "Event Streaming & Messaging",
+                "ERP/Enterprise Systems",
+                "CRM & Customer Platforms",
+                "ITSM/IT Operations",
+                "Business Apps & Productivity",
+                "E-Commerce & CMS",
+                "Learning & HR Systems",
+                "Low-Code/No-Code Platforms",
+                "Testing & QA",
+                "Web3 & Decentralized Tech"
+            ];
             if (!validTypes.includes(promoteToType)) {
                 return res.status(400).json({ message: "Invalid type", status: false });
             }
@@ -951,7 +975,31 @@ export const addCustomItem = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Name and type required", status: false });
         }
 
-        const validTypes = ["domain", "technologies", "product"];
+        const validTypes = [
+            "Product",
+            "Service",
+            "Testing Tools",
+            "Cloud Platforms",
+            "DevOps & Automation",
+            "Containerization & Orchestration",
+            "Networking & Infrastructure",
+            "Database Platforms",
+            "Data, Analytics & BI",
+            "AI/ML Platforms",
+            "Security & IAM",
+            "Monitoring & Observability",
+            "Integration & API Management",
+            "Event Streaming & Messaging",
+            "ERP/Enterprise Systems",
+            "CRM & Customer Platforms",
+            "ITSM/IT Operations",
+            "Business Apps & Productivity",
+            "E-Commerce & CMS",
+            "Learning & HR Systems",
+            "Low-Code/No-Code Platforms",
+            "Testing & QA",
+            "Web3 & Decentralized Tech"
+        ];
 
         if (!validTypes.includes(type)) {
             return res.status(400).json({ message: "Invalid type", status: false });
