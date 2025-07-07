@@ -9,7 +9,31 @@ const masterListSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ["domain", "technologies", "product", "domain-other", "technologies-other", "product-other"]
+    enum: [
+      "Product",
+      "Service",
+      "Testing Tools",
+      "Cloud Platforms",
+      "DevOps & Automation",
+      "Containerization & Orchestration",
+      "Networking & Infrastructure",
+      "Database Platforms",
+      "Data, Analytics & BI",
+      "AI/ML Platforms",
+      "Security & IAM",
+      "Monitoring & Observability",
+      "Integration & API Management",
+      "Event Streaming & Messaging",
+      "ERP/Enterprise Systems",
+      "CRM & Customer Platforms",
+      "ITSM/IT Operations",
+      "Business Apps & Productivity",
+      "E-Commerce & CMS",
+      "Learning & HR Systems",
+      "Low-Code/No-Code Platforms",
+      "Testing & QA",
+      "Web3 & Decentralized Tech"
+    ]
   },
   isSystem: {
     type: Boolean,
