@@ -4,6 +4,7 @@ import userModel from "../Models/userModel"
 import RoleModel from "../Models/roleModel"
 import CandidateFilter from "../Models/candidateFilter"
 import mongoose from "mongoose";
+import { findRoleByName } from "./roleController";
 
 const normalizeName = (name: string): string => {
   return name
@@ -29,51 +30,35 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 throw new Error("roleId must be an array");
             }
 
-            if (candidate.ukDayRate && candidate.ukDayRate >= 250) {
-                candidate.executive = true;
-            } else {
-                candidate.executive = false;
-            }
+      candidate.executive = candidate.ukDayRate && candidate.ukDayRate >= 250;
 
-            const processedRoleIds = [];
+      const processedRoleIds: mongoose.Types.ObjectId[] = [];
             for (let i = 0; i < candidate.roleId.length; i++) {
                 const roleId = candidate.roleId[i];
 
-                // If roleId is a valid ObjectId, check if it exists
                 if (mongoose.Types.ObjectId.isValid(roleId)) {
                     const existingRole = await RoleModel.findById(roleId);
-
                     if (existingRole) {
-                        processedRoleIds.push(roleId);
+                        processedRoleIds.push(existingRole._id);
                     } else {
-                        const newRole = await RoleModel.create({
-                            name: roleId,
-                            otherRoles: []
-                        });
+                        const newRole = new RoleModel({ name: roleId, otherRoles: [] });
+                        await newRole.save();
                         processedRoleIds.push(newRole._id);
                     }
-                }
-                // If roleId is a string
-                else if (typeof roleId === 'string') {
-                    let roleInput = normalizeName(roleId);
-
-                    const { findRoleByName } = require('./roleController');
+                } else if (typeof roleId === 'string') {
+                    const roleInput = normalizeName(roleId);
                     let roleInfo = await findRoleByName(roleInput);
 
                     if (!roleInfo) {
-                        const newRole = await RoleModel.create({
-                            name: roleInput,
-                            type: 'main',
-                            isActive: true,
-                            otherRoles: []
-                        });
+                        const newRole = new RoleModel({ name: roleInput, type: 'main', isActive: true, otherRoles: [] });
+                        await newRole.save();
                         roleInfo = {
                             roleId: newRole._id,
                             roleName: newRole.name,
-                            type: 'main'
+                            type: 'main',
+                            parentRoleId: newRole._id
                         };
                     } else {
-                        // If role already exists but is now being used as sub-role
                         await RoleModel.updateOne(
                             { _id: roleInfo.roleId, type: { $ne: 'main' } },
                             { $set: { type: 'sub' } }
@@ -96,27 +81,20 @@ export const createCandidateCV = async (req: any, res: Response) => {
                     if (existingRole) {
                         candidate.currentRole = existingRole._id;
                     } else {
-                        const newRole = await RoleModel.create({
-                            name: trimmedRole,
-                            otherRoles: []
-                        });
+                        const newRole = new RoleModel({ name: trimmedRole, otherRoles: [] });
+                        await newRole.save();
                         candidate.currentRole = newRole._id;
                     }
                 } else {
-                    const { findRoleByName } = require('./roleController');
                     let roleInfo = await findRoleByName(trimmedRole);
-
                     if (!roleInfo) {
-                        const newRole = await RoleModel.create({
-                            name: trimmedRole,
-                            type: 'main',
-                            isActive: true,
-                            otherRoles: []
-                        });
+                        const newRole = new RoleModel({ name: trimmedRole, type: 'main', isActive: true, otherRoles: [] });
+                        await newRole.save();
                         roleInfo = {
                             roleId: newRole._id,
                             roleName: newRole.name,
-                            type: 'main'
+                            type: 'main',
+                            parentRoleId: newRole._id
                         };
                     }
                     candidate.currentRole = roleInfo.roleId;
@@ -125,19 +103,14 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 candidate.currentRole = null;
             }
 
-            let existingCandidate = null;
-            if (candidate.uniqueId) {
-                existingCandidate = await CandidateCvModel.findOne({ uniqueId: candidate.uniqueId });
-            }
             if (candidate.uniqueId) {
                 const existingCandidate = await CandidateCvModel.findOne({ uniqueId: candidate.uniqueId });
                 if (existingCandidate) {
                     await CandidateCvModel.findByIdAndUpdate(existingCandidate._id, candidate, { new: true });
-                    continue; // Skip insert, as we updated
+                    continue;
                 }
             }
 
-            // Push to final create list if not updated
             finalCreateList.push(candidate);
         }
 
@@ -1037,7 +1010,7 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         const userId = req.body.userId || req.query.userId || null;
         const anonymousUserId = req.query.anonymousUserId || null;
         const { search } = req.query;
-
+        console.log(filterId, anonymousUserId)
         // Get the saved filter
         const filterQuery: any = { _id: filterId, active: true };
 
@@ -1046,8 +1019,9 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         } else if (anonymousUserId) {
             filterQuery.anonymousUserId = anonymousUserId;
         }
-
+        console.log(filterQuery)
         const filter = await CandidateFilter.findOne(filterQuery);
+        console.log(filter)
 
         if (!filter) {
             return res.status(404).json({
