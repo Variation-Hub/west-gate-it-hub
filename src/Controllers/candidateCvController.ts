@@ -23,7 +23,23 @@ export const createCandidateCV = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Invalid data format", status: false });
         }
 
-        const finalCreateList = [];
+        const roleCache = new Map<string, any>();
+
+        const getRoleInfo = async (name: string) => {
+            const normalized = normalizeName(name);
+            const cacheKey = normalized.toLowerCase();
+            if (roleCache.has(cacheKey)) return roleCache.get(cacheKey);
+
+            let roleInfo = await findRoleByName(normalized);
+            if (!roleInfo) {
+                const newRole = new RoleModel({ name: normalized, type: 'main', isActive: true, otherRoles: [] });
+                await newRole.save();
+                roleInfo = { roleId: newRole._id, roleName: newRole.name, type: 'main', parentRoleId: newRole._id };
+            }
+
+            roleCache.set(cacheKey, roleInfo);
+            return roleInfo;
+        };
 
         for (const candidate of data) {
             if (!Array.isArray(candidate.roleId)) {
@@ -37,35 +53,15 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 const roleId = candidate.roleId[i];
 
                 if (mongoose.Types.ObjectId.isValid(roleId)) {
-                    const existingRole = await RoleModel.findById(roleId);
+                    const existingRole = await RoleModel.findById(roleId).lean();
                     if (existingRole) {
                         processedRoleIds.push(existingRole._id);
-                    } else {
-                        const newRole = new RoleModel({ name: roleId, otherRoles: [] });
-                        await newRole.save();
-                        processedRoleIds.push(newRole._id);
                     }
                 } else if (typeof roleId === 'string') {
-                    const roleInput = normalizeName(roleId);
-                    let roleInfo = await findRoleByName(roleInput);
-
-                    if (!roleInfo) {
-                        const newRole = new RoleModel({ name: roleInput, type: 'main', isActive: true, otherRoles: [] });
-                        await newRole.save();
-                        roleInfo = {
-                            roleId: newRole._id,
-                            roleName: newRole.name,
-                            type: 'main',
-                            parentRoleId: newRole._id
-                        };
-                    } else {
-                        await RoleModel.updateOne(
-                            { _id: roleInfo.roleId, type: { $ne: 'main' } },
-                            { $set: { type: 'sub' } }
-                        );
+                    const roleInfo = await getRoleInfo(roleId);
+                    if (roleInfo) {
+                        processedRoleIds.push(roleInfo.roleId);
                     }
-
-                    processedRoleIds.push(roleInfo.roleId);
                 }
             }
 
@@ -77,7 +73,7 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 const trimmedRole =  normalizeName(rawCurrentRole);
 
                 if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
-                    const existingRole = await RoleModel.findById(trimmedRole);
+                    const existingRole = await RoleModel.findById(trimmedRole).lean();
                     if (existingRole) {
                         candidate.currentRole = existingRole._id;
                     } else {
@@ -86,18 +82,10 @@ export const createCandidateCV = async (req: any, res: Response) => {
                         candidate.currentRole = newRole._id;
                     }
                 } else {
-                    let roleInfo = await findRoleByName(trimmedRole);
-                    if (!roleInfo) {
-                        const newRole = new RoleModel({ name: trimmedRole, type: 'main', isActive: true, otherRoles: [] });
-                        await newRole.save();
-                        roleInfo = {
-                            roleId: newRole._id,
-                            roleName: newRole.name,
-                            type: 'main',
-                            parentRoleId: newRole._id
-                        };
+                    const roleInfo = await getRoleInfo(trimmedRole);
+                    if (roleInfo) {
+                        candidate.currentRole = roleInfo.roleId;
                     }
-                    candidate.currentRole = roleInfo.roleId;
                 }
             } else {
                 candidate.currentRole = null;
@@ -111,16 +99,12 @@ export const createCandidateCV = async (req: any, res: Response) => {
                 }
             }
 
-            finalCreateList.push(candidate);
+            await new CandidateCvModel(candidate).save();
         }
 
-        if (finalCreateList.length > 0) {
-            await CandidateCvModel.insertMany(finalCreateList);
-        }
         return res.status(201).json({
             message: "Candidates saved successfully",
-            status: true,
-            data: finalCreateList
+            status: true
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message, status: false });

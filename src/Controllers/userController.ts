@@ -779,6 +779,8 @@ export const publicSuplierAdmin = async (req: any, res: Response) => {
             if (uniqueTags.length > 0) {
                 uniqueTags.forEach(tag => {
                     expertiseMatchConditions.push(
+                        { "expertise.name": { $regex: tag, $options: "i" } },
+                        { "expertiseICanDo.name": { $regex: tag, $options: "i" } },
                         { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
                         { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
                     );
@@ -1922,6 +1924,8 @@ export const saveSupplierFilter = async (req: any, res: Response) => {
                 if (uniqueTags.length > 0) {
                     uniqueTags.forEach(tag => {
                         expertiseMatchConditions.push(
+                            { "expertise.name": { $regex: tag, $options: "i" } },
+                            { "expertiseICanDo.name": { $regex: tag, $options: "i" } },                        
                             { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
                             { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
                         );
@@ -2127,6 +2131,8 @@ export const getSupplierFilterList = async (req: any, res: Response) => {
                     if (uniqueTags.length > 0) {
                         uniqueTags.forEach(tag => {
                             expertiseMatchConditions.push(
+                                { "expertise.name": { $regex: tag, $options: "i" } },
+                                { "expertiseICanDo.name": { $regex: tag, $options: "i" } },
                                 { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
                                 { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
                             );
@@ -2338,6 +2344,8 @@ export const getSuppliersByFilterId = async (req: any, res: Response) => {
             if (uniqueTags.length > 0) {
                 uniqueTags.forEach(tag => {
                     expertiseMatchConditions.push(
+                        { "expertise.name": { $regex: tag, $options: "i" } },
+                        { "expertiseICanDo.name": { $regex: tag, $options: "i" } },
                         { "expertiseWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } },
                         { "expertiseICanDoWithTags.tags": { $elemMatch: { $regex: tag, $options: "i" } } }
                     );
