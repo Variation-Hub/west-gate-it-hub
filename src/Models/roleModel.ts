@@ -30,5 +30,9 @@ const RoleSchema = new mongoose.Schema({
     }
 }, { timestamps: true, versionKey: false, minimize: false, strict: false });
 
+RoleSchema.index({ name: 1, isActive: 1 });
+RoleSchema.index({ otherRoles: 1, isActive: 1 });
+RoleSchema.index({ name: 1, type: 1, parentRoleId: 1, isActive: 1 });
+
 const Role = mongoose.model("Role", RoleSchema);
 export default Role;
