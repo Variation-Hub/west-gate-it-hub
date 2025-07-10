@@ -21,7 +21,7 @@ router.get('/:id', getFormDataById);
 router.put('/:id', updateFormData);
 
 // Update form status (Admin only)
-router.patch('/:id/status', authorizeRoles('Admin'), updateFormStatus);
+router.patch('/:id/status', updateFormStatus);
 
 // Delete form data
 router.delete('/:id', deleteFormData);
