@@ -298,7 +298,7 @@ export const updateFormStatus = async (req: any, res: Response) => {
     try {
         const { status, comment } = req.body;
         const formId = req.params.id;
-        const adminUserId = req.user?._id || req.user?.id;
+        const adminUserId = req.user?._id || req.user?.id || null;
 
         // Validate required fields
         if (!status || !comment) {
