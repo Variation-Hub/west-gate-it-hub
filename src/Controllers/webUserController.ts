@@ -762,7 +762,7 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
 
 export const getAlldata = async (req: any, res: Response) => {
     try {
-        const { type, search, mandatory } = req.query;
+        const { type, search, mandatory, isSystem } = req.query;
 
         const queryObj: any = {};
 
@@ -781,6 +781,13 @@ export const getAlldata = async (req: any, res: Response) => {
         if (search) {
             const searchRegex = new RegExp(search, "i");
             queryObj["name"] = { $regex: searchRegex };
+        }
+
+        if (isSystem === 'true') {
+            queryObj["isSystem"] = true;
+        }
+        else if (isSystem === 'false') {
+            queryObj["isSystem"] = false;
         }
 
         // Handle mandatory parameter logic will be applied in grouping
@@ -867,7 +874,7 @@ export const getAlldata = async (req: any, res: Response) => {
 
 export const promoteOtherItem = async (req: any, res: Response) => {
     try {
-        const { itemId, promoteToType, name, tags, isMandatory } = req.body;
+        const { itemId, promoteToType, name, tags, isMandatory, isSystem } = req.body;
 
         if (!itemId) {
             return res.status(400).json({ message: "itemId required", status: false });
@@ -904,7 +911,7 @@ export const promoteOtherItem = async (req: any, res: Response) => {
             }
         }
 
-        const updateData: any = { type: promoteToType, name, isMandatory: isMandatory ? isMandatory : false };
+        const updateData: any = { type: promoteToType, name, isMandatory: isMandatory ? isMandatory : false, isSystem: isSystem ? isSystem : true };
 
         if (tags && Array.isArray(tags)) {
             updateData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
@@ -941,7 +948,9 @@ export const getAllExpertiseOnly = async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
 
-        const query: any = {};
+        const query: any = {
+            isSystem: true
+        };
 
         if (search) {
             query.name = { $regex: search, $options: "i" };
@@ -964,6 +973,42 @@ export const getAllExpertiseOnly = async (req: Request, res: Response) => {
     } catch (err: any) {
         return res.status(500).json({
             message: err.message || "Failed to fetch expertise",
+            status: false,
+            data: null
+        });
+    }
+};
+
+// Get unapproved custom expertise for admin review
+export const getUnapprovedExpertise = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const query: any = {
+            isSystem: false  // Only show unapproved custom expertise
+        };
+
+        if (search) {
+            query.name = { $regex: search, $options: "i" };
+        }
+
+        const expertiseList = await masterList.find(query)
+            .select('_id name type tags isMandatory createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            message: "Unapproved expertise list fetched successfully",
+            status: true,
+            data: {
+                expertise: expertiseList,
+                total: expertiseList.length
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch unapproved expertise",
             status: false,
             data: null
         });
