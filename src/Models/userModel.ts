@@ -327,6 +327,79 @@ const userModel = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    // New expertise fields
+    cloudPlatforms: {
+        type: [String],
+        default: [],
+    },
+    devOpsAutomation: {
+        type: [String],
+        default: [],
+    },
+    containerizationOrchestration: {
+        type: [String],
+        default: [],
+    },
+    networkingInfrastructure: {
+        type: [String],
+        default: [],
+    },
+    securityIAM: {
+        type: [String],
+        default: [],
+    },
+    monitoringObservability: {
+        type: [String],
+        default: [],
+    },
+    integrationAPIManagement: {
+        type: [String],
+        default: [],
+    },
+    eventStreamingMessaging: {
+        type: [String],
+        default: [],
+    },
+    erpEnterpriseSystems: {
+        type: [String],
+        default: [],
+    },
+    crmCustomerPlatforms: {
+        type: [String],
+        default: [],
+    },
+    itsmITOperations: {
+        type: [String],
+        default: [],
+    },
+    businessAppsProductivity: {
+        type: [String],
+        default: [],
+    },
+    eCommerceCMS: {
+        type: [String],
+        default: [],
+    },
+    learningHRSystems: {
+        type: [String],
+        default: [],
+    },
+    lowCodeNoCodePlatforms: {
+        type: [String],
+        default: [],
+    },
+    testingQA: {
+        type: [String],
+        default: [],
+    },
+    web3DecentralizedTech: {
+        type: [String],
+        default: [],
+    },
+    product: {
+        type: [String],
+        default: [],
+    },
     isInHold: {
         type: Boolean,
         default: true
