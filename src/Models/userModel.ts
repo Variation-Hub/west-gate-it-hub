@@ -396,6 +396,10 @@ const userModel = new mongoose.Schema({
         type: [String],
         default: [],
     },
+    services: {
+        type: [String],
+        default: [],
+    },
     product: {
         type: [String],
         default: [],
