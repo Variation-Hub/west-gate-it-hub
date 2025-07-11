@@ -360,6 +360,18 @@ const userModel = new mongoose.Schema({
         type: [String],
         default: [],
     },
+    aiMLPlatforms: {
+        type: [String],
+        default: [],
+    },
+    databasePlatforms: {
+        type: [String],
+        default: [],
+    },
+    dataAnalyticsBI: {
+        type: [String],
+        default: [],
+    },
     erpEnterpriseSystems: {
         type: [String],
         default: [],
