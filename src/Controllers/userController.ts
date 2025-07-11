@@ -613,7 +613,7 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
             .skip(req.pagination?.skip as number)
             .sort({ active: -1, createdAt: -1 });
 
-        console.log("user", user)
+        //console.log("user", user)
 
         const userIds = user.map(u => u._id);
 
@@ -1133,7 +1133,8 @@ export const getUserList = async (req: any, res: Response) => {
         const type = req.query.type;
         const pickACategory = req.query.pickACategory;
         const search = req.query.search;
-
+        const active = req.query.active;
+            
         if (projectId) {
             const project = await projectModel.findById(projectId);
 
@@ -1155,6 +1156,13 @@ export const getUserList = async (req: any, res: Response) => {
         if (req.query.userRoles) {
             const userRoles = (req.query.userRoles).split(",");
             filter.role = { $in: userRoles };
+        }
+
+        // Add active user filter
+        if (active === 'true') {
+            filter.active = true;
+        } else if (active === 'false') {
+            filter.active = false;
         }
 
         // Add search functionality
