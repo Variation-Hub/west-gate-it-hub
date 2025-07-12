@@ -22,6 +22,7 @@ import subExpertiseRoute from './subExpertiseRoute';
 import formDataRoute from './formDataRoutes';
 import poundRateRoute from './poundRateRoute';
 import tagRoute from './tagRoute';
+import cartRoute from './cartRoute';
 
 const Routes = express.Router();
 
@@ -48,5 +49,6 @@ Routes.use("/sub-expertise", subExpertiseRoute);
 Routes.use("/search-ui/formdata", formDataRoute);
 Routes.use("/pound-rate", poundRateRoute);
 Routes.use("/tags", tagRoute);
+Routes.use("/cart", cartRoute);
 
 export default Routes;
