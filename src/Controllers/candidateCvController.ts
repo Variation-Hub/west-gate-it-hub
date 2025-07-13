@@ -836,7 +836,8 @@ export const saveCandidateFilter = async (req: any, res: Response) => {
                                     { "roleData.name": { $regex: jobTitle, $options: "i" } },
                                     { "roleData.otherRole": { $regex: jobTitle, $options: "i" } },
                                     { "currentRoleData.name": { $regex: jobTitle, $options: "i" } },
-                                    { "currentRoleData.otherRole": { $regex: jobTitle, $options: "i" } }
+                                    { "currentRoleData.otherRole": { $regex: jobTitle, $options: "i" } },
+                                    { "technicalSkills": { $regex: jobTitle, $options: "i" } }
                                 ]
                             },
                             {
@@ -934,7 +935,8 @@ export const getRoleList = async (req: any, res: Response) => {
                                         { "roleData.name": { $regex: filter.jobTitle, $options: "i" } },
                                         { "roleData.otherRole": { $regex: filter.jobTitle, $options: "i" } },
                                         { "currentRoleData.name": { $regex: filter.jobTitle, $options: "i" } },
-                                        { "currentRoleData.otherRole": { $regex: filter.jobTitle, $options: "i" } }
+                                        { "currentRoleData.otherRole": { $regex: filter.jobTitle, $options: "i" } },
+                                        { "technicalSkills": { $regex: filter.jobTitle, $options: "i" } }
                                     ]
                                 },
                                 {
@@ -1058,7 +1060,8 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
             { "roleData.name": { $regex: regex } },
             { "roleData.otherRoles": { $elemMatch: { $regex: regex } } },
             { "currentRoleData.name": { $regex: regex } },
-            { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } }
+            { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } },
+            { "technicalSkills": { $regex: regex } }
         );
 
         // Add related roles matching if we found related roles
@@ -1069,7 +1072,8 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
                     { "roleData.name": { $regex: relatedRegex } },
                     { "roleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
                     { "currentRoleData.name": { $regex: relatedRegex } },
-                    { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } }
+                    { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
+                    { "technicalSkills": { $regex: relatedRegex } }
                 );
             });
         }

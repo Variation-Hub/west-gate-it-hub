@@ -336,3 +336,33 @@ export const updateLanguage = async (req: Request, res: Response) => {
         });
     }
 };
+
+// Get all technologies for public use (with search support)
+export const getPublicTechnologies = async (req: Request, res: Response) => {
+    try {
+        const { search } = req.query;
+
+        const query: any = {};
+
+        if (search) {
+            const searchRegex = new RegExp(search as string, "i");
+            query.name = { $regex: searchRegex };
+        }
+
+        const technologies = await Technology.find(query)
+            .select('_id name')
+            .sort({ name: 1 });
+
+        return res.status(200).json({
+            message: "Technologies list fetched successfully",
+            status: true,
+            data: technologies
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message || "Failed to fetch technologies",
+            status: false,
+            data: []
+        });
+    }
+};

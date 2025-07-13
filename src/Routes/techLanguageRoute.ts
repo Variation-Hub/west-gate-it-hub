@@ -1,13 +1,14 @@
 import * as express from 'express';
-import { 
-    createTechnology, 
-    createLanguage, 
-    deleteTechnology, 
+import {
+    createTechnology,
+    createLanguage,
+    deleteTechnology,
     deleteLanguage,
     getTechnologies,
     getLanguages,
     updateTechnology,
-    updateLanguage
+    updateLanguage,
+    getPublicTechnologies
 } from '../Controllers/techLanguageController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 
@@ -21,5 +22,8 @@ techLanguageRoute.delete("/technologies/:id", authorizeRoles(), deleteTechnology
 techLanguageRoute.delete("/languages/:id", authorizeRoles(), deleteLanguage);
 techLanguageRoute.patch("/technologies/:id", authorizeRoles(), updateTechnology);
 techLanguageRoute.patch("/languages/:id", authorizeRoles(), updateLanguage);
+
+// Public routes
+techLanguageRoute.get("/public/technologies", getPublicTechnologies);
 
 export default techLanguageRoute;
