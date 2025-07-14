@@ -50,7 +50,7 @@ const CartSchema = new mongoose.Schema({
 CartSchema.index({ userId: 1, active: 1 });
 CartSchema.index({ anonymousUserId: 1, active: 1 });
 CartSchema.index({ itemType: 1, itemId: 1 });
-CartSchema.index({ userId: 1, anonymousUserId: 1, itemType: 1, itemId: 1 }, { unique: true });
+CartSchema.index({ userId: 1, anonymousUserId: 1, itemType: 1, itemId: 1, active: 1 }, { unique: true });
 
 // Virtual populate for candidates
 CartSchema.virtual('candidateDetails', {
