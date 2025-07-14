@@ -66,8 +66,7 @@ export const addToCart = async (req: any, res: Response) => {
             userId,
             anonymousUserId,
             itemType,
-            itemId,
-            active: true
+            itemId
         });
 
         if (existingCartItem) {
@@ -116,7 +115,7 @@ export const getCartItems = async (req: any, res: Response) => {
             });
         }
 
-        const query: any = { active: true };
+        const query: any = {};
         
         if (userId) {
             query.userId = userId;
@@ -200,10 +199,9 @@ export const removeFromCart = async (req: any, res: Response) => {
             });
         }
 
-        const cartItem = await Cart.findOneAndUpdate(
+        const cartItem = await Cart.findOneAndDelete(
             query,
-            { active: false },
-            { new: true }
+            {}
         );
 
         if (!cartItem) {
@@ -242,7 +240,7 @@ export const markAsEngaged = async (req: any, res: Response) => {
             });
         }
 
-        const query: any = { _id: cartItemId, active: true };
+        const query: any = { _id: cartItemId };
         
         if (userId) {
             query.userId = userId;
