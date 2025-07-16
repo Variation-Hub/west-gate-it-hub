@@ -607,6 +607,60 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
     }
 };
 
+// Get suppliers by expertise
+export const getSuppliersByExpertiseCount = async (req: Request, res: Response) => {
+    try {
+        const { expertiseName } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        if (!expertiseName) {
+            return res.status(400).json({
+                message: "Expertise name is required",
+                status: false
+            });
+        }
+
+        const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+        // Find suppliers with this expertise
+        const suppliersQuery = {
+            "expertise.name": expertiseName,
+            active: true,
+            isDeleted: false,
+            isInHold: false,
+            role: userRoles.SupplierAdmin
+        };
+
+        const totalCount = await userModel.countDocuments(suppliersQuery);
+
+        const suppliers = await userModel.find(suppliersQuery)
+            .select('-password')
+            .skip(skip)
+            .limit(parseInt(limit as string))
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            message: "Suppliers fetched successfully",
+            status: true,
+            data: suppliers,
+            meta_data: {
+                page: parseInt(page as string),
+                items: totalCount,
+                page_size: parseInt(limit as string),
+                pages: Math.ceil(totalCount / parseInt(limit as string))
+            }
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching suppliers by expertise",
+            status: false,
+            error: error.message
+        });
+    }
+};
+
 
 export const getSuppliersByExpertise = async (req: any, res: Response) => {
     try {

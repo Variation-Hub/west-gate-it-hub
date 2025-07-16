@@ -650,89 +650,58 @@ export const findRoleByName = async (roleName: string) => {
     return null;
 };
 
-// script to update roleids in candidatecvs
-const CandidateCV = mongoose.model("CandidateCV", new mongoose.Schema({}, { strict: false }), "candidatecvs");
-const OldRole = mongoose.model("OldRole", new mongoose.Schema({}, { strict: false }), "roles"); // OLD roles
-const NewRole = mongoose.model("NewRole", new mongoose.Schema({}, { strict: false }), "new_roles"); // NEW roles
+// Get candidates by role
+export const getCandidatesByRoleCount = async (req: Request, res: Response) => {
+    try {
+        const { roleId } = req.params;
+        const { page = 1, limit = 10 } = req.query;
 
-export const updateRoleIds = async (req: Request, res: Response) => {
-  try {
-    const oldRoles = await OldRole.find({});
-    const newRoles = await NewRole.find({});
-
-    // Build maps
-    const oldIdToName = new Map(); // old _id -> name
-    for (const role of oldRoles) {
-      if (role._id && (role as any).name) {
-        oldIdToName.set(role._id.toString(), (role as any).name.trim().toLowerCase());
-      }
-    }
-
-    const nameToNewId = new Map(); // name -> new _id
-    for (const role of newRoles) {
-      if ((role as any).name && (role as any)._id) {
-        nameToNewId.set((role as any).name.trim().toLowerCase(), role._id);
-      }
-      // Also map otherRoles (aliases)
-      if ((role as any).otherRoles && Array.isArray((role as any).otherRoles)) {
-        for (const alias of (role as any).otherRoles) {
-          nameToNewId.set(alias.trim().toLowerCase(), role._id);
+        if (!roleId) {
+            return res.status(400).json({
+                message: "Role ID is required",
+                status: false
+            });
         }
-      }
-    }
 
-    const candidates = await CandidateCV.find({});
-    let updatedCount = 0;
+        const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
 
-    for (const candidate of candidates) {
-      const updatedData = {};
+        // Find candidates with this role
+        const candidatesQuery = {
+            $or: [
+                { roleId: new mongoose.Types.ObjectId(roleId) },
+                { currentRole: new mongoose.Types.ObjectId(roleId) }
+            ],
+            active: true
+        };
 
-      // --- Update roleId array ---
-      const oldRoleIds = (candidate as any).roleId || [];
-      const newRoleIds = [];
+        const totalCount = await CandidateCvModel.countDocuments(candidatesQuery);
 
-      for (const oldId of oldRoleIds) {
-        const roleName = oldIdToName.get(oldId.toString());
-        if (!roleName) continue;
+        const candidates = await CandidateCvModel.find(candidatesQuery)
+            .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
+            .populate("currentRole", ["name", "type", "parentRoleId"])
+            .populate("supplierId", ["name", "companyName", "email"])
+            .skip(skip)
+            .limit(parseInt(limit as string))
+            .sort({ createdAt: -1 })
+            .lean();
 
-        const newId = nameToNewId.get(roleName);
-        if (newId) newRoleIds.push(newId);
-      }
+        return res.status(200).json({
+            message: "Candidates fetched successfully",
+            status: true,
+            data: candidates,
+            meta_data: {
+                page: parseInt(page as string),
+                items: totalCount,
+                page_size: parseInt(limit as string),
+                pages: Math.ceil(totalCount / parseInt(limit as string))
+            }
+        });
 
-      if (newRoleIds.length > 0) {
-        (updatedData as any).roleId = newRoleIds;
-      }
-
-      // --- Update currentRole ---
-      const oldCurrentRoleId = (candidate as any).currentRole?.toString();
-      if (oldCurrentRoleId) {
-        const roleName = oldIdToName.get(oldCurrentRoleId);
-        if (roleName) {
-          const newId = nameToNewId.get(roleName);
-          if (newId) {
-            (updatedData as any).currentRole = newId;
-          }
-        }
-      }
-
-      // --- Apply updates ---
-      if (Object.keys(updatedData).length > 0) {
-        await CandidateCV.updateOne(
-          { _id: candidate._id },
-          { $set: updatedData }
-        );
-        updatedCount++;
-      }
-    }
-
-    res.send({
-      message: `🎉 Update completed.`,
-      totalCandidates: candidates.length,
-      updatedCandidates: updatedCount
-    });
-
-  } catch (err) {
-    console.error("❌ Error during update:", err);
-    res.status(500).send("Internal Server Error");
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching candidates by role",
+            status: false,
+            error: error.message
+        });
   }
 };
