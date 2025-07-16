@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { createRole, updateRole, getAllRoles, getlistByRole, deleteRole, getCount, roleList, getTechnologies, getAllRolesCombined } from '../Controllers/roleController';
+import { createRole, updateRole, getAllRoles, getlistByRole, deleteRole, getCount, roleList, getTechnologies, getAllRolesCombined, getCandidatesByRoleCount } from '../Controllers/roleController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
@@ -13,6 +13,7 @@ roleRoute.get("/candidates/:id", authorizeRoles(), getlistByRole);
 roleRoute.get("/candidates-count", authorizeRoles(), getCount);
 roleRoute.get("/get-all", authorizeRoles(), roleList);
 roleRoute.get("/get-technologies", authorizeRoles(), getTechnologies);
+roleRoute.get("/:roleId/candidates", authorizeRoles(), paginationMiddleware, getCandidatesByRoleCount);
 
 // Public available roles
 roleRoute.get("/public/get-technologies", getTechnologies);

@@ -210,8 +210,8 @@ const userModel = new mongoose.Schema({
         default: null
     },
     typeOfCompany: {
-        type: [String],
-        default: [],
+        type: String,
+        default: "",
     },
     industry_Sector: {
         type: [String],

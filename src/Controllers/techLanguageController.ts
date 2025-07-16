@@ -189,7 +189,7 @@ export const deleteLanguage = async (req: Request, res: Response) => {
     }
 };
 
-// Get all technologies with IDs (for admin management)
+// Get all technologies with candidate counts
 export const getTechnologies = async (req: Request, res: Response) => {
     try {
         const { search } = req.query;
@@ -203,17 +203,87 @@ export const getTechnologies = async (req: Request, res: Response) => {
         
         const technologies = await Technology.find(query)
             .sort({ name: 1 });
-            
+
+        // Add candidate counts for each technology
+        const technologiesWithCounts = await Promise.all(
+            technologies.map(async (technology) => {
+                const candidateCount = await CandidateCvModel.countDocuments({
+                    technicalSkills: { $regex: technology.name, $options: "i" },
+                    active: true
+                });
+
+                return {
+                    _id: technology._id,
+                    name: technology.name,
+                    isSystem: technology.isSystem,
+                    candidateCount
+                };
+            })
+        );
+
         return res.status(200).json({
             message: "Technologies list fetched successfully",
             status: true,
-            data: technologies
+            data: technologiesWithCounts
         });
     } catch (err: any) {
         return res.status(500).json({
             message: err.message || "Failed to fetch technologies",
             status: false,
             data: []
+        });
+    }
+};
+
+// Get candidates by technology
+export const getCandidatesByTechnology = async (req: Request, res: Response) => {
+    try {
+        const { technologyName } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        if (!technologyName) {
+            return res.status(400).json({
+                message: "Technology name is required",
+                status: false
+            });
+        }
+
+        const skip = (parseInt(page as string) - 1) * parseInt(limit as string);
+
+        // Find candidates with this technology in technical skills
+        const candidatesQuery = {
+            technicalSkills: { $regex: technologyName, $options: "i" },
+            active: true
+        };
+
+        const totalCount = await CandidateCvModel.countDocuments(candidatesQuery);
+
+        const candidates = await CandidateCvModel.find(candidatesQuery)
+            .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
+            .populate("currentRole", ["name", "type", "parentRoleId"])
+            .populate("supplierId", ["name", "companyName", "email"])
+            .skip(skip)
+            .limit(parseInt(limit as string))
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            message: "Candidates fetched successfully",
+            status: true,
+            data: candidates,
+            meta_data: {
+                page: parseInt(page as string),
+                items: totalCount,
+                page_size: parseInt(limit as string),
+                pages: Math.ceil(totalCount / parseInt(limit as string))
+            }
+        });
+
+    } catch (error: any) {
+        return res.status(500).json({
+            message: "Error fetching candidates by technology",
+            status: false,
+            error: error.message
         });
     }
 };

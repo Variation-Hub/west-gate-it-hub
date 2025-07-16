@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword, getWebUserPublic, syncMasterListItemTags, getAllExpertiseOnly, getUnapprovedExpertise } from '../Controllers/webUserController';
+import { getWebUser, loginWebUser, registerSendMail, registerWebUser, uploadFile, deleteFile, getAllExpertise, getAllExpertise2, getSuppliersByExpertise, updateSupplierExpertise, getAlldata, promoteOtherItem, addCustomItem, getAllSubExpertise, addSubExpertiseToSupplier, deleteExpertise, deleteSubExpertise, getlanguages, deleteMasterListExpertise, resetPassword, userForgotPassword, getWebUserPublic, syncMasterListItemTags, getAllExpertiseOnly, getUnapprovedExpertise, getSuppliersByExpertiseCount } from '../Controllers/webUserController';
 import { authorizeRoles } from '../Controllers/Middleware/verifyToken';
 import { multipleFileUpload } from '../Util/multer';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
@@ -22,6 +22,7 @@ webUserRoutes.post("/forgot", userForgotPassword);
 // drop down data
 webUserRoutes.get("/drop-down", authorizeRoles(), getAllExpertise2);
 webUserRoutes.get("/drop-down-list", authorizeRoles(), getAlldata);
+webUserRoutes.get("/expertise/:expertiseName/suppliers", authorizeRoles(), paginationMiddleware, getSuppliersByExpertiseCount);
 webUserRoutes.post("/masterlist/promote", authorizeRoles(), promoteOtherItem);
 webUserRoutes.post("/masterlist/custom", authorizeRoles(), addCustomItem);
 webUserRoutes.get("/masterlist/unapproved", authorizeRoles(), getUnapprovedExpertise);
