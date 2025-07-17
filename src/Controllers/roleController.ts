@@ -175,11 +175,16 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
-        const { search, startDate, endDate, supplierId, type } = req.query;
+        const { search, startDate, endDate, supplierId, type, role } = req.query;
         // const limit = Number(req.pagination?.limit) || 10;
         // const skip = Number(req.pagination?.skip) || 0;
 
-        const query: any = { isActive: true };
+        let query: any = {};
+
+        if (role !== 'admin') {
+            query.isActive = true;
+        }
+
         if (search) {
             query["$or"] = [
                 { name: { $regex: search, $options: "i" } },
@@ -198,8 +203,115 @@ export const getAllRoles = async (req: Request, res: Response) => {
             query.createdAt = { $gte: start, $lte: end };
         }
 
-        const result = await RoleModel.aggregate([
-            { $match: query },
+        let result;
+
+        if (role === 'admin') {
+            // For admin, get all roles with counts (including zero counts)
+            result = await RoleModel.aggregate([
+                { $match: query },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "_id",
+                        foreignField: "roleId",
+                        as: "candidatesAsRole"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "_id",
+                        foreignField: "currentRole",
+                        as: "candidatesAsCurrent"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "candidatesAsRole.supplierId",
+                        foreignField: "_id",
+                        as: "suppliersFromRole"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "candidatesAsCurrent.supplierId",
+                        foreignField: "_id",
+                        as: "suppliersFromCurrent"
+                    }
+                },
+                {
+                    $addFields: {
+                        allCandidates: { $concatArrays: ["$candidatesAsRole", "$candidatesAsCurrent"] },
+                        allSuppliers: { $concatArrays: ["$suppliersFromRole", "$suppliersFromCurrent"] }
+                    }
+                },
+                {
+                    $addFields: {
+                        totalCandidatesCount: { $size: "$allCandidates" },
+                        activeCandidatesCount: {
+                            $size: {
+                                $filter: {
+                                    input: "$allCandidates",
+                                    as: "candidate",
+                                    cond: { $eq: ["$$candidate.active", true] }
+                                }
+                            }
+                        },
+                        totalSuppliersCount: { $size: { $setUnion: ["$allSuppliers._id", []] } },
+                        activeSuppliersCount: {
+                            $size: {
+                                $setUnion: [
+                                    {
+                                        $map: {
+                                            input: {
+                                                $filter: {
+                                                    input: "$allSuppliers",
+                                                    as: "supplier",
+                                                    cond: { $eq: ["$$supplier.active", true] }
+                                                }
+                                            },
+                                            as: "activeSupplier",
+                                            in: "$$activeSupplier._id"
+                                        }
+                                    },
+                                    []
+                                ]
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        type: 1,
+                        otherRoles: 1,
+                        isActive: 1,
+                        createdAt: 1,
+                        updatedAt: 1,
+                        totalCandidatesCount: 1,
+                        activeCandidatesCount: 1,
+                        totalSuppliersCount: 1,
+                        activeSuppliersCount: 1
+                    }
+                },
+                { $sort: { createdAt: -1, _id: -1 } }
+            ]);
+
+            // Convert to the expected format
+            result = [{
+                roles: result,
+                total: result.length,
+                totalActiveCandidates: result.reduce((sum: number, role: any) => sum + (role.activeCandidatesCount || 0), 0),
+                totalExecutiveTrueCount: 0,
+                totalExecutiveFalseCount: 0
+            }];
+        } else {
+            // Original aggregation for normal users
+            result = await RoleModel.aggregate([
+                { $match: query },
             {
               $lookup: {
                 from: "candidatecvs",
@@ -367,13 +479,69 @@ export const getAllRoles = async (req: Request, res: Response) => {
             // { $skip: skip },
             // { $limit: limit },
           ]);
+        }
 
-          const roles = result[0]?.roles || [];
+          let roles = result[0]?.roles || [];
           const total = result[0]?.total || 0;
           const totalActiveCandidates = result[0]?.totalActiveCandidates || 0;
           const totalExecutiveTrueCount = result[0]?.totalExecutiveTrueCount || 0;
           const totalExecutiveFalseCount = result[0]?.totalExecutiveFalseCount || 0;
-          
+
+          if (role === 'admin') {
+            const processedRoles = [];
+            const processedRoleNames = new Set();
+
+            for (const roleItem of roles) {
+              if (roleItem.type === 'main') {
+                const otherRolesWithCounts = [];
+
+                if (roleItem.otherRoles && roleItem.otherRoles.length > 0) {
+                  for (const otherRoleName of roleItem.otherRoles) {
+                    const subRole = roles.find((r: any) => r.name === otherRoleName && r.type === 'sub');
+                    if (subRole) {
+                      otherRolesWithCounts.push({
+                        id: subRole._id,
+                        name: otherRoleName,
+                        totalCandidatesCount: subRole.totalCandidatesCount || 0,
+                        activeCandidatesCount: subRole.activeCandidatesCount || 0,
+                        totalSuppliersCount: subRole.totalSuppliersCount || 0,
+                        activeSuppliersCount: subRole.activeSuppliersCount || 0
+                      });
+
+                      processedRoleNames.add(otherRoleName);
+                    } else {
+                      otherRolesWithCounts.push({
+                        id: null,
+                        name: otherRoleName,
+                        totalCandidatesCount: 0,
+                        activeCandidatesCount: 0,
+                        totalSuppliersCount: 0,
+                        activeSuppliersCount: 0
+                      });
+                    }
+                  }
+                }
+
+                processedRoles.push({
+                  ...roleItem,
+                  otherRoles: roleItem.otherRoles,
+                  otherRolesWithCounts
+                });
+
+                processedRoleNames.add(roleItem.name);
+              }
+            }
+
+            // Add sub roles that are not part of any main role
+            for (const roleItem of roles) {
+              if (roleItem.type === 'sub' && !processedRoleNames.has(roleItem.name)) {
+                processedRoles.push(roleItem);
+              }
+            }
+
+            roles = processedRoles;
+          }
+
         return res.status(200).json({
             message: "Roles fetched successfully",
             status: true,
