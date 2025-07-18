@@ -594,6 +594,7 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
                 name: exp.name,
                 type: exp.type,
                 isSystem: exp.isSystem,
+                tags: exp.tags,
                 isMandatory: exp.isMandatory,
                 totalSupplierCount,
                 activeSupplierCount,
