@@ -492,9 +492,14 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
-        const { type, search, supplierId, startDate, endDate } = req.query;
+        const { type, search, supplierId, startDate, endDate, role } = req.query;
 
         const expertiseQuery: any = {};
+
+        if (role !== 'admin') {
+            expertiseQuery.isSystem = true;
+        }
+
         if (supplierId && typeof supplierId === 'string') {
             expertiseQuery._id = new mongoose.Types.ObjectId(supplierId);
         }
@@ -513,20 +518,33 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             expertiseQuery["name"] = { $regex: regex };
         }
 
-        const expertiseList = await masterList.find(expertiseQuery).lean();
-        const matchStage: any = { "expertise.name": { $exists: true } };
+        let expertiseList;
+        let allSuppliers;
 
-        if (startDate && endDate) {
-            const start = new Date(startDate as string);
-            const end = new Date(endDate as string);
-            end.setHours(23, 59, 59, 999);
-            matchStage.createdAt = { $gte: start, $lte: end };
+        if (role === 'admin') {
+            expertiseList = await masterList.find(expertiseQuery).lean();
+
+            allSuppliers = await userModel.find(
+                { "expertise.name": { $exists: true } },
+                { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
+            ).lean();
+        } else {
+            // Normal mode - used
+            expertiseList = await masterList.find(expertiseQuery).lean();
+            const matchStage: any = { "expertise.name": { $exists: true } };
+
+            if (startDate && endDate) {
+                const start = new Date(startDate as string);
+                const end = new Date(endDate as string);
+                end.setHours(23, 59, 59, 999);
+                matchStage.createdAt = { $gte: start, $lte: end };
+            }
+
+            allSuppliers = await userModel.find(
+                matchStage,
+                { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
+            ).lean();
         }
-
-        const allSuppliers = await userModel.find(
-            matchStage,
-            { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
-        ).lean();
 
         const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
 
@@ -584,13 +602,17 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             };
         });
 
-        let finalExpertiseList = expertiseData.filter(exp => {
-            // Always include mandatory ones, even with 0 suppliers
-            if (exp.isMandatory === true) return true;
+        let finalExpertiseList;
 
-            // For non-mandatory items
-            return exp.totalSupplierCount > 0;
-        });
+        if (role === 'admin') {
+            finalExpertiseList = expertiseData;
+        } else {
+            finalExpertiseList = expertiseData.filter(exp => {
+                if (exp.isMandatory === true) return true;
+
+                return exp.totalSupplierCount > 0;
+            });
+        }
 
         return res.status(200).json({
             message: "Expertise list fetched successfully",
