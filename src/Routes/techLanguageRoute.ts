@@ -24,7 +24,7 @@ techLanguageRoute.delete("/technologies/:id", authorizeRoles(), deleteTechnology
 techLanguageRoute.delete("/languages/:id", authorizeRoles(), deleteLanguage);
 techLanguageRoute.patch("/technologies/:id", authorizeRoles(), updateTechnology);
 techLanguageRoute.patch("/languages/:id", authorizeRoles(), updateLanguage);
-techLanguageRoute.get("/:technologyName/candidates", authorizeRoles(), getCandidatesByTechnology);
+techLanguageRoute.get("/:technologyName/candidates", authorizeRoles(), paginationMiddleware, getCandidatesByTechnology);
 
 // Public routes
 techLanguageRoute.get("/public/technologies", getPublicTechnologies);
