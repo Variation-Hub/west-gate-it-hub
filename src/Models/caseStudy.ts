@@ -45,9 +45,8 @@ const caseStudyModel = new mongoose.Schema({
         trim: true
     },
     technologies: {
-        type: String,
-        default: null,
-        trim: true
+        type: [String],
+        default: [],
     },
     maintenance: {
         type: String,
