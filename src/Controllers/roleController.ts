@@ -302,11 +302,16 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 },
                 { $sort: { createdAt: -1, _id: -1 } }
             ]);
+            const totalRoles = result.length;
+
+            if (shouldPaginate) {
+                result = result.slice(skip, skip + limitNum);
+            }
 
             // Convert to the expected format
             result = [{
                 roles: result,
-                total: result.length,
+                total: totalRoles,
                 totalActiveCandidates: result.reduce((sum: number, role: any) => sum + (role.activeCandidatesCount || 0), 0),
                 totalExecutiveTrueCount: 0,
                 totalExecutiveFalseCount: 0
