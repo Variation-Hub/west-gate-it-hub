@@ -192,17 +192,29 @@ export const deleteLanguage = async (req: Request, res: Response) => {
 // Get all technologies with candidate counts
 export const getTechnologies = async (req: Request, res: Response) => {
     try {
-        const { search } = req.query;
-        
+        const { search, page, limit } = req.query;
         const query: any = {};
         
         if (search) {
             const searchRegex = new RegExp(search as string, "i");
             query.name = { $regex: searchRegex };
         }
-        
-        const technologies = await Technology.find(query)
-            .sort({ name: 1 });
+
+        const shouldPaginate = page && limit;
+        const pageNum = shouldPaginate ? parseInt(page as string) : 1;
+        const limitNum = shouldPaginate ? parseInt(limit as string) : 0;
+        const skip = shouldPaginate ? (pageNum - 1) * limitNum : 0;
+
+        // Get total count for pagination
+        const totalCount = await Technology.countDocuments(query);
+
+        let technologiesQuery = Technology.find(query).sort({ name: 1 });
+
+        if (shouldPaginate) {
+            technologiesQuery = technologiesQuery.skip(skip).limit(limitNum);
+        }
+
+        const technologies = await technologiesQuery;
 
         // Add candidate counts for each technology
         const technologiesWithCounts = await Promise.all(
@@ -221,11 +233,23 @@ export const getTechnologies = async (req: Request, res: Response) => {
             })
         );
 
-        return res.status(200).json({
+        const response: any = {
             message: "Technologies list fetched successfully",
             status: true,
             data: technologiesWithCounts
-        });
+        };
+
+        // Add pagination metadata
+        if (shouldPaginate) {
+            response.meta_data = {
+                page: pageNum,
+                items: totalCount,
+                page_size: limitNum,
+                pages: Math.ceil(totalCount / limitNum)
+            };
+        }
+
+        return res.status(200).json(response);
     } catch (err: any) {
         return res.status(500).json({
             message: err.message || "Failed to fetch technologies",

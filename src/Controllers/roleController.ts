@@ -175,9 +175,12 @@ export const deleteRole = async (req: Request, res: Response) => {
 
 export const getAllRoles = async (req: Request, res: Response) => {
     try {
-        const { search, startDate, endDate, supplierId, type, role } = req.query;
-        // const limit = Number(req.pagination?.limit) || 10;
-        // const skip = Number(req.pagination?.skip) || 0;
+        const { search, startDate, endDate, supplierId, type, role, page, limit } = req.query;
+
+        const shouldPaginate = page && limit;
+        const pageNum = shouldPaginate ? parseInt(page as string) : 1;
+        const limitNum = shouldPaginate ? parseInt(limit as string) : 0;
+        const skip = shouldPaginate ? (pageNum - 1) * limitNum : 0;
 
         let query: any = {};
 
@@ -475,10 +478,12 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 totalExecutiveFalseCount: { $arrayElemAt: ["$totalExecutiveFalse.count", 0] },
               }
             },
-            { $sort: { "roles.createdAt": -1, "roles._id": -1 } },
-            // { $skip: skip },
-            // { $limit: limit },
+            { $sort: { "roles.createdAt": -1, "roles._id": -1 } }
           ]);
+          if (shouldPaginate) {
+            const paginatedRoles = result[0]?.roles?.slice(skip, skip + limitNum) || [];
+            result[0].roles = paginatedRoles;
+          }
         }
 
           let roles = result[0]?.roles || [];
@@ -542,7 +547,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
             roles = processedRoles;
           }
 
-        return res.status(200).json({
+          const response: any = {
             message: "Roles fetched successfully",
             status: true,
             data: {
@@ -551,8 +556,19 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 totalActiveCandidates,
                 totalExecutiveTrueCount,
                 totalExecutiveFalseCount
-            },
-        });
+            }
+          };
+
+          if (shouldPaginate) {
+            response.meta_data = {
+                page: pageNum,
+                items: total,
+                page_size: limitNum,
+                pages: Math.ceil(total / limitNum)
+            };
+          }
+
+        return res.status(200).json(response);
     } catch (err: any) {
         return res.status(500).json({
             message: err.message,

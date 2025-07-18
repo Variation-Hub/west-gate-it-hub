@@ -492,7 +492,12 @@ export const getAllExpertise = async (req: any, res: Response) => {
 
 export const getAllExpertise2 = async (req: Request, res: Response) => {
     try {
-        const { type, search, supplierId, startDate, endDate, role } = req.query;
+        const { type, search, supplierId, startDate, endDate, role, page, limit } = req.query;
+
+        const shouldPaginate = page && limit;
+        const pageNum = shouldPaginate ? parseInt(page as string) : 1;
+        const limitNum = shouldPaginate ? parseInt(limit as string) : 0;
+        const skip = shouldPaginate ? (pageNum - 1) * limitNum : 0;
 
         const expertiseQuery: any = {};
 
@@ -615,11 +620,31 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             });
         }
 
-        return res.status(200).json({
+        // Apply pagination if requested
+        const totalCount = finalExpertiseList.length;
+        let paginatedList = finalExpertiseList;
+
+        if (shouldPaginate) {
+            paginatedList = finalExpertiseList.slice(skip, skip + limitNum);
+        }
+
+        const response: any = {
             message: "Expertise list fetched successfully",
             status: true,
-            data: finalExpertiseList
-        });
+            data: paginatedList
+        };
+
+        // Add pagination metadata
+        if (shouldPaginate) {
+            response.meta_data = {
+                page: pageNum,
+                items: totalCount,
+                page_size: limitNum,
+                pages: Math.ceil(totalCount / limitNum)
+            };
+        }
+
+        return res.status(200).json(response);
 
     } catch (err: any) {
         return res.status(500).json({
