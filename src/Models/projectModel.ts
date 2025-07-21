@@ -356,7 +356,8 @@ const projectModel = new mongoose.Schema({
     interestedSuppliers: [
         {
             supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
-            attendee: { type: Boolean, default: false }
+            attendee: { type: Boolean, default: false },
+            comment: { type: String, default: "" }
         }
     ],
     resultExpected: {

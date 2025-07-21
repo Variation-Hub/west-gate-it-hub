@@ -152,6 +152,9 @@ export const loginWebUser = async (req: Request, res: Response) => {
             // plan: user.plan
         })
 
+        user.lastLogin = new Date()
+        await user.save()
+
         if (user.role === userRoles.SupplierAdmin) {
             await LoginModel.create({ userId: user._id })
         }
