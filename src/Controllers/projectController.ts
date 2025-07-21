@@ -836,6 +836,7 @@ export const getProjects = async (req: any, res: Response) => {
 
         let filter: any = {}
 
+        let sort: any = { publishDate: -1, createdAt: -1 };
         if (keyword) {
             const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const data = (await taskModel.aggregate([
@@ -907,10 +908,12 @@ export const getProjects = async (req: any, res: Response) => {
 
         if (registerInterest == 'true' || registerInterest) {
             filter.interestedSuppliers = { $exists: true, $not: { $size: 0 } };
+            sort = { register_interest: -1, publishDate: -1, createdAt: -1 };
         }
 
         if (registerInterest == 'false' || registerInterest == false) {
             filter.register_interest = false;
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
         if (foiNotUploaded) {
@@ -1385,7 +1388,7 @@ export const getProjects = async (req: any, res: Response) => {
         let projects: any = await projectModel.find(filter)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ publishDate: -1, createdAt: -1 })
+            .sort(sort)
             .populate('sortListUserId')
             .populate({
                 path: 'selectedUserIds.userId',
@@ -4814,10 +4817,14 @@ export const registerInterest = async (req: any, res: Response) => {
 
 export const updateAttendeeStatus = async (req: any, res: Response) => {
     try {
-        const { projectId, supplierId, attendee } = req.body;
+        const { projectId, supplierId, attendee, comment } = req.body;
 
         if (typeof attendee !== 'boolean') {
             return res.status(400).json({ message: "'attendee' must be true or false", status: false });
+        }
+
+        if (!comment || typeof comment !== 'string' || comment.trim() === '') {
+            return res.status(400).json({ message: "Comment is required", status: false });
         }
 
         const project = await projectModel.findById(projectId);
@@ -4832,6 +4839,7 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         }
 
         supplierEntry.attendee = attendee;
+        supplierEntry.comment = comment.trim();
 
         // Check if any supplier has attendee == false
         const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
@@ -4840,7 +4848,7 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         await project.save();
 
         return res.status(200).json({
-            message: `Attendee flag updated`,
+            message: `Attendee status updated`,
             status: true,
             data: {
                 projectId: project._id,
