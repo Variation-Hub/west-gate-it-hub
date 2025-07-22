@@ -550,7 +550,10 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         }
 
         if (search) {
-            query.name = { $regex: search, $options: "i" };
+            query["$or"] = [
+                { name: { $regex: search, $options: "i" } },
+                { companyName: { $regex: search, $options: "i" } }
+            ];
         }
 
         if (resourceSharing === "true") {
