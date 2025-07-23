@@ -691,10 +691,37 @@ export const getSuppliersByExpertiseCount = async (req: Request, res: Response) 
             .sort({ createdAt: -1 })
             .lean();
 
+        // Get all files for sub-expertise
+        const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
+
+        const enhancedSuppliers = suppliers.map(supplier => {
+            const matchedExpertise = supplier.expertise.find((exp: any) => exp.name === expertiseName);
+
+            const subExpertiseWithFiles = matchedExpertise?.subExpertise?.map((subExp: string) => {
+                const supplierFiles = files.filter(file =>
+                    file.supplierId?._id?.toString() === supplier._id.toString() &&
+                    file.subExpertise?.includes(subExp) &&
+                    !(file.supplierId as any)?.isDeleted
+                );
+
+                return {
+                    name: subExp,
+                    files: supplierFiles
+                };
+            }) || [];
+
+            return {
+                ...supplier,
+                subExpertiseWithFiles,
+                subExpertiseCount: subExpertiseWithFiles.length,
+                totalFilesCount: subExpertiseWithFiles.reduce((total, subExp) => total + subExp.files.length, 0)
+            };
+        });
+
         return res.status(200).json({
             message: "Suppliers fetched successfully",
             status: true,
-            data: suppliers,
+            data: enhancedSuppliers,
             meta_data: {
                 page: parseInt(page as string),
                 items: totalCount,
