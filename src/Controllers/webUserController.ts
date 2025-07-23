@@ -695,26 +695,33 @@ export const getSuppliersByExpertiseCount = async (req: Request, res: Response) 
         const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
 
         const enhancedSuppliers = suppliers.map(supplier => {
-            const matchedExpertise = supplier.expertise.find((exp: any) => exp.name === expertiseName);
+            const enhancedExpertise = supplier.expertise.map((exp: any) => {
+                if (exp.name === expertiseName) {
+                    const subExpertiseWithFiles = exp.subExpertise?.map((subExp: string) => {
+                        const supplierFiles = files.filter(file =>
+                            file.supplierId?._id?.toString() === supplier._id.toString() &&
+                            file.subExpertise?.includes(subExp) &&
+                            !(file.supplierId as any)?.isDeleted
+                        );
 
-            const subExpertiseWithFiles = matchedExpertise?.subExpertise?.map((subExp: string) => {
-                const supplierFiles = files.filter(file =>
-                    file.supplierId?._id?.toString() === supplier._id.toString() &&
-                    file.subExpertise?.includes(subExp) &&
-                    !(file.supplierId as any)?.isDeleted
-                );
+                        return {
+                            name: subExp,
+                            files: supplierFiles
+                        };
+                    }) || [];
 
-                return {
-                    name: subExp,
-                    files: supplierFiles
-                };
-            }) || [];
+                    return {
+                        ...exp,
+                        subExpertiseWithFiles,
+                        totalFilesCount: subExpertiseWithFiles.reduce((total :any, subExp: any) => total + subExp.files.length, 0)
+                    };
+                }
+                return exp;
+            });
 
             return {
                 ...supplier,
-                subExpertiseWithFiles,
-                subExpertiseCount: subExpertiseWithFiles.length,
-                totalFilesCount: subExpertiseWithFiles.reduce((total, subExp) => total + subExp.files.length, 0)
+                expertise: enhancedExpertise
             };
         });
 
