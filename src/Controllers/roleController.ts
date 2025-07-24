@@ -209,7 +209,6 @@ export const getAllRoles = async (req: Request, res: Response) => {
         let result;
 
         if (role === 'admin') {
-            // For admin, get all roles with counts (including zero counts)
             result = await RoleModel.aggregate([
                 { $match: query },
                 {
@@ -229,25 +228,16 @@ export const getAllRoles = async (req: Request, res: Response) => {
                     }
                 },
                 {
-                    $lookup: {
-                        from: "users",
-                        localField: "candidatesAsRole.supplierId",
-                        foreignField: "_id",
-                        as: "suppliersFromRole"
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "users",
-                        localField: "candidatesAsCurrent.supplierId",
-                        foreignField: "_id",
-                        as: "suppliersFromCurrent"
-                    }
-                },
-                {
                     $addFields: {
-                        allCandidates: { $concatArrays: ["$candidatesAsRole", "$candidatesAsCurrent"] },
-                        allSuppliers: { $concatArrays: ["$suppliersFromRole", "$suppliersFromCurrent"] }
+                        allCandidates: { $concatArrays: ["$candidatesAsRole", "$candidatesAsCurrent"] }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "allCandidates.supplierId",
+                        foreignField: "_id",
+                        as: "allSuppliers"
                     }
                 },
                 {
@@ -262,25 +252,24 @@ export const getAllRoles = async (req: Request, res: Response) => {
                                 }
                             }
                         },
-                        totalSuppliersCount: { $size: { $setUnion: ["$allSuppliers._id", []] } },
+                        uniqueSupplierIds: { $setUnion: ["$allCandidates.supplierId", []] }
+                    }
+                },
+                {
+                    $addFields: {
+                        totalSuppliersCount: { $size: "$uniqueSupplierIds" },
                         activeSuppliersCount: {
                             $size: {
-                                $setUnion: [
-                                    {
-                                        $map: {
-                                            input: {
-                                                $filter: {
-                                                    input: "$allSuppliers",
-                                                    as: "supplier",
-                                                    cond: { $eq: ["$$supplier.active", true] }
-                                                }
-                                            },
-                                            as: "activeSupplier",
-                                            in: "$$activeSupplier._id"
-                                        }
-                                    },
-                                    []
-                                ]
+                                $filter: {
+                                    input: "$allSuppliers",
+                                    as: "supplier",
+                                    cond: {
+                                        $and: [
+                                            { $eq: ["$$supplier.active", true] },
+                                            { $in: ["$$supplier._id", "$uniqueSupplierIds"] }
+                                        ]
+                                    }
+                                }
                             }
                         }
                     }
@@ -326,23 +315,19 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 localField: "_id",
                 foreignField: "roleId",
                 as: "cvs",
-              },
-            },
-            {
-              $addFields: {
-                cvs: supplierId ? {
-                  $filter: {
-                    input: "$cvs",
-                    as: "cv",
-                    cond: {
-                      $and: [
-                        { $eq: ["$$cv.supplierId", new mongoose.Types.ObjectId(supplierId as string)] },
-                        { $eq: ["$$cv.currentRole", "$_id"] }
-                      ]
+                ...(supplierId ? {
+                  let: { roleId: "$_id" },
+                  pipeline: [
+                    {
+                      $match: {
+                        $expr: { $eq: ["$roleId", "$$roleId"] },
+                        supplierId: new mongoose.Types.ObjectId(supplierId as string),
+                        currentRole: { $exists: true }
+                      }
                     }
-                  }
-                } : "$cvs"
-              }
+                  ]
+                } : {})
+              },
             },
             {
               $lookup: {
@@ -482,8 +467,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 totalExecutiveTrueCount: { $arrayElemAt: ["$totalExecutiveTrue.count", 0] },
                 totalExecutiveFalseCount: { $arrayElemAt: ["$totalExecutiveFalse.count", 0] },
               }
-            },
-            { $sort: { "roles.createdAt": -1, "roles._id": -1 } }
+            }
           ]);
           if (shouldPaginate) {
             const paginatedRoles = result[0]?.roles?.slice(skip, skip + limitNum) || [];
