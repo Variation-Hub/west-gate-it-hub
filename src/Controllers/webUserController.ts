@@ -557,10 +557,10 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
         const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
 
         let expertiseData = expertiseList.map(exp => {
-            const expIdStr = exp._id.toString();
+            const expName = exp.name;
 
             const suppliersForExp = allSuppliers.filter(user =>
-                user.expertise.some(e => e.itemId === expIdStr)
+                user.expertise.some(e => e.name === expName)
             );
 
             const validSuppliers = suppliersForExp.filter(s => !s.isDeleted && !s.isInHold);
@@ -573,7 +573,7 @@ export const getAllExpertise2 = async (req: Request, res: Response) => {
             validSuppliers
                 .filter(s => s.active)
                 .forEach(user => {
-                    const matchedExp = user.expertise.find(e => e.itemId === expIdStr);
+                    const matchedExp = user.expertise.find(e => e.name === expName);
                     matchedExp?.subExpertise?.forEach(sub => {
                         const supplierFiles = files.filter(file =>
                             file.supplierId?._id?.toString() === user._id.toString() &&
