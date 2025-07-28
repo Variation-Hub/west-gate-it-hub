@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import projectModel from "../Models/projectModel";
 import mongoose, { AnyArray, Mongoose } from "mongoose";
 import foiModel from "../Models/foiModel";
+import mailScreenshotModel from "../Models/mailScreenshotModel";
 import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, taskStatus, userRoles } from "../Util/contant";
 import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
@@ -172,394 +173,231 @@ export const createProject = async (req: any, res: Response) => {
 export const getProject = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
+        const {
+            //includeHistory = 'false',
+            //includeComments = 'false',
+            //includeSelect = 'false',
+            //includeSortlisted = 'false',
+            //includeBasic = 'true'
+        } = req.query;
 
-        let project: any = await projectModel.aggregate([
-            {
-                $match: { _id: new mongoose.Types.ObjectId(id) }
-            },
-            {
-                $lookup: {
-                    from: 'fois',
-                    localField: '_id',
-                    foreignField: 'projectId',
-                    as: 'fois'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'casestudymodels',
-                    localField: 'category',
-                    foreignField: 'category',
-                    as: 'casestudy'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'mailscreenshots',
-                    localField: 'BOSID',
-                    foreignField: 'BOSId',
-                    as: 'mailScreenshots'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'summaryquestions',
-                    localField: '_id',
-                    foreignField: 'projectId',
-                    as: 'summaryQuestion'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$casestudy',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'casestudy.userId',
-                    foreignField: '_id',
-                    as: 'casestudy.userDetails'
-                }
-            },
-            {
-                $unwind: {
-                    path: '$casestudy.userDetails',
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            {
-                $group: {
-                    _id: '$_id',
-                    project: { $first: '$$ROOT' },
-                    casestudy: { $push: '$casestudy' }
-                }
-            },
-            {
-                $replaceRoot: {
-                    newRoot: {
-                        $mergeObjects: ['$project', { casestudy: '$casestudy' }]
-                    }
-                }
-            },
-            {
-                $addFields: {
-                    sortListUserIds: {
-                        $ifNull: ['$sortListUserId', []]
-                    }
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    let: { sortListUserIds: '$sortListUserId', selectedUsers: '$selectedUserIds' },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $in: [
-                                        '$_id',
-                                        {
-                                            $map: {
-                                                input: { $ifNull: ['$$sortListUserIds', []] },
-                                                as: 'id',
-                                                in: { $toObjectId: '$$id' }
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            $addFields: {
-                                isSelected: {
-                                    $in: [
-                                        '$_id',
-                                        {
-                                            $map: {
-                                                input: {
-                                                    $filter: {
-                                                        input: { $ifNull: ['$$selectedUsers', []] },
-                                                        as: 'sel',
-                                                        cond: { $eq: ['$$sel.isSelected', true] }
-                                                    }
-                                                },
-                                                as: 's',
-                                                in: { $toObjectId: '$$s.userId' }
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    as: 'sortlistedUsers'
-                }
-            },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'interestedSuppliers.supplierId',
-                    foreignField: '_id',
-                    as: 'interestedSuppliersUsers'
-                }
-            },
-            {
-                $addFields: {
-                    interestedSuppliers: {
-                        $map: {
-                            input: "$interestedSuppliers",
-                            as: "supplier",
-                            in: {
-                                $mergeObjects: [
-                                    "$$supplier",
-                                    {
-                                        supplierDetails: {
-                                            $arrayElemAt: [
-                                                {
-                                                    $filter: {
-                                                        input: "$interestedSuppliersUsers",
-                                                        as: "user",
-                                                        cond: { $eq: ["$$user._id", "$$supplier.supplierId"] }
-                                                    }
-                                                },
-                                                0
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                $project: {
-                    'applyUserId': 0,
-                    'summaryQuestion.projectId': 0,
-                    'casestudy.userDetails.password': 0
-                }
-            }
-        ]);
+        // Get basic project data first
+        let project: any = await projectModel.findById(id).lean();
 
-        if (project?.length === 0) {
+        if (!project) {
             return res.status(404).json({
                 message: "Project not found",
                 status: false,
                 data: null
-            })
+            });
         }
-        project = project[0];
 
-        if (project?.interestedSuppliers?.length) {
-            project.interestedSuppliers = project.interestedSuppliers.map((supplier: any) => ({
-                _id: supplier.supplierDetails?._id,
-                name: supplier.supplierDetails?.name,
-                attendee: supplier.attendee,
-                supplierId: supplier.supplierId
+        // Always include essential data
+        //if (includeBasic === 'true') {
+        const [fois, mailScreenshots, summaryQuestion] = await Promise.all([
+            foiModel.find({ projectId: project._id }).lean(),
+            mailScreenshotModel.find({ BOSId: project.BOSID }).lean(),
+            summaryQuestionModel.find({ projectId: project._id }).select('-projectId').lean()
+        ]);
+
+        project.fois = fois;
+        project.mailScreenshots = mailScreenshots;
+        project.summaryQuestion = summaryQuestion;
+        //}
+
+        // Process interested suppliers
+        if (project.interestedSuppliers?.length > 0) {
+            const supplierIds = project.interestedSuppliers.map((s: any) => s.supplierId);
+
+            const interestedSuppliersUsers = await userModel.find({
+                _id: { $in: supplierIds }
+            }).lean();
+
+            // Store the full user list separately
+            project.interestedSuppliersUsers = interestedSuppliersUsers;
+
+            // Format interestedSuppliers list
+            project.interestedSuppliers = project.interestedSuppliers.map((supplier: any) => {
+                const userDetails = interestedSuppliersUsers.find(
+                    (user: any) => user._id.toString() === supplier.supplierId.toString()
+                );
+
+                return {
+                    _id: supplier.supplierId,
+                    attendee: supplier.attendee || false,
+                    name: userDetails?.name || null,
+                    supplierId: supplier.supplierId
+                };
+            });
+        }
+
+        // Get case studies only for current user
+        if (project.category?.length > 0) {
+            project.casestudy = await caseStudy.find({
+                verify: true,
+                category: { $in: project.category },
+                userId: req.user.id
+            }).lean();
+        }
+
+        // Conditional heavy processing for select data
+        if (/* includeSelect === 'true' &&*/  project.select?.length > 0) {
+            const supplierIds = project.select.map((item: any) => item.supplierId);
+
+            const [users, caseStudyCounts] = await Promise.all([
+                userModel.find({ _id: { $in: supplierIds } }).lean(),
+                caseStudy.aggregate([
+                    {
+                        $match: {
+                            userId: { $in: supplierIds },
+                            verify: true,
+                            category: { $in: project.category || [] }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$userId",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ])
+            ]);
+
+            project.select = project.select.map((item: any) => ({
+                ...item,
+                supplierDetails: users.find((user: any) => user._id.toString() === item.supplierId.toString()),
+                matchedCaseStudy: caseStudyCounts.find((cs: any) => cs._id.toString() === item.supplierId.toString())?.count || 0
             }));
         }
 
-        if (project?.category?.length) {
-            project.casestudy = await caseStudy.find({
-                verify: true,
-                category: { $in: project.category }
-            });
+        // Conditional processing for sortlisted users
+        if (/* includeSortlisted === 'true' &&*/  project.sortListUserId?.length > 0) {
+            const sortListUserIds = project.sortListUserId.map((id: string) => new mongoose.Types.ObjectId(id));
+
+            const [sortlistedUsers, userCaseStudies] = await Promise.all([
+                userModel.find({ _id: { $in: sortListUserIds } }).lean(),
+                caseStudy.find({
+                    userId: { $in: sortListUserIds },
+                    verify: true,
+                    category: { $in: project.category || [] }
+                }).lean()
+            ]);
+
+            project.sortlistedUsers = sortlistedUsers.map((user: any) => ({
+                ...user,
+                caseStudy: userCaseStudies.filter((cs: any) => cs.userId.toString() === user._id.toString()),
+                isSelected: project.selectedUserIds?.some((sel: any) =>
+                    sel.isSelected && sel.userId === user._id.toString()
+                ) || false
+            }));
         }
 
-        if (project?.select?.length > 0) {
-            const supplierIds = project.select.map((item: any) => item.supplierId);
+        // Conditional processing for history and comments
+        //if (includeHistory === 'true' || includeComments === 'true') {
+        const allUserIds = new Set();
 
-            const users = await userModel.find({
-                _id: { $in: supplierIds }
-            });
+        // Collect user IDs based on what's requested
+        // if (includeHistory === 'true') {
+        project.statusHistory?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        // }
+        // if (includeComments === 'true') {
+        project.statusComment?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        project.bidManagerStatusComment?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        // }
 
-            const updatedSelect = await Promise.all(
-                project.select.map(async (item: any) => {
-                    const matchedCaseStudy = await caseStudy.countDocuments({
-                        userId: item.supplierId,
-                        verify: true,
-                        category: { $in: project.category }
-                    });
+        // Fetch all users in one query
+        const allUsers = allUserIds.size > 0
+            ? await userModel.find({
+                _id: { $in: Array.from(allUserIds).map(id => new mongoose.Types.ObjectId(id as string)) }
+            }).select("name email role mobileNumber companyName").lean()
+            : [];
 
-                    return {
-                        ...item,
-                        supplierDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.supplierId)),
-                        matchedCaseStudy
-                    };
-                })
-            );
+        // Process status history if requested
+        //if (includeHistory === 'true' && project.statusHistory?.length > 0) {
+        project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        project.statusHistory = project.statusHistory.map((item: any) => ({
+            ...item,
+            userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+        }));
+        //}
 
-            project.select = updatedSelect;
+        // Process comments if requested
+        //if (includeComments === 'true') {
+        if (project.statusComment?.length > 0) {
+            project.statusComment = project.statusComment.map((item: any) => ({
+                ...item,
+                userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+            }));
         }
 
-        if (project?.casestudy?.length > 0) {
-            project.casestudy = project.casestudy.filter((casestudy: any) =>
-                casestudy.userId?.toString() === req.user.id
-            );
+        if (project.bidManagerStatusComment?.length > 0) {
+            project.bidManagerStatusComment = project.bidManagerStatusComment.map((item: any) => ({
+                ...item,
+                userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+            }));
         }
+        //}
+        //}
 
-        if (project?.sortlistedUsers?.length > 0) {
-            const updatedSelect = await Promise.all(
-                project.sortlistedUsers.map(async (item: any) => {
-                    const matchedCaseStudy = await caseStudy.find({
-                        userId: item._id,
-                        verify: true,
-                        category: { $in: project.category }
-                    });
-
-                    return {
-                        ...item,
-                        caseStudy: matchedCaseStudy
-                    };
-                })
-            );
-
-            project.sortlistedUsers = updatedSelect;
-        }
-
-        if (project?.statusHistory?.length > 0) {
-            const userIds = project.statusHistory.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            // Sort statusHistory in descending order by date
-            project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-            const updatedStatusHistory = await Promise.all(
-                project.statusHistory.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-
-            project.statusHistory = updatedStatusHistory;
-        }
-
-        if (project?.statusComment?.length > 0) {
-            const userIds = project.statusComment.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            const updatedStatusHistory = await Promise.all(
-                project.statusComment.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-
-            project.statusComment = updatedStatusHistory;
-        }
-        if (project?.bidManagerStatusComment?.length > 0) {
-            const userIds = project.bidManagerStatusComment.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            const updatedStatusHistory = await Promise.all(
-                project.bidManagerStatusComment.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-
-            project.bidManagerStatusComment = updatedStatusHistory;
-        }
-
-        if (project?.dropUser?.length > 0) {
-            const userIds = project.dropUser.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            const updatedStatusHistory = await Promise.all(
-                project.dropUser.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-            project.dropUser = updatedStatusHistory;
-        }
-
-        if (project?.failStatusReason?.length > 0) {
-            const userIds = project.failStatusReason.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            const updatedStatusHistory = await Promise.all(
-                project.failStatusReason.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-
-            project.failStatusReason = updatedStatusHistory;
-        }
-        if (project?.droppedAfterFeasibilityStatusReason?.length > 0) {
-            const userIds = project.droppedAfterFeasibilityStatusReason.map((item: any) => item.userId);
-            const users = await userModel.find({
-                _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
-
-            const updatedStatusHistory = await Promise.all(
-                project.droppedAfterFeasibilityStatusReason.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
-
-            project.droppedAfterFeasibilityStatusReason = updatedStatusHistory;
-        }
         if (project?.nosuppliermatchedStatusReason?.length > 0) {
             const userIds = project.nosuppliermatchedStatusReason.map((item: any) => item.userId);
+
+            // Fetch relevant users
             const users = await userModel.find({
                 _id: { $in: userIds }
-            }).select("name email role mobileNumber companyName");
+            }).select("name email role mobileNumber companyName").lean();
 
-            const updatedStatusHistory = await Promise.all(
-                project.nosuppliermatchedStatusReason.map(async (item: any) => {
-                    return {
-                        ...item,
-                        userDetails: users.find(user => new mongoose.Types.ObjectId(user._id).equals(item.userId)),
-                    };
-                })
-            );
+            // Map and attach userDetails
+            project.nosuppliermatchedStatusReason = project.nosuppliermatchedStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
 
-            project.nosuppliermatchedStatusReason = updatedStatusHistory;
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
         }
-        // const tasks = await taskModel
-        //     .find({
-        //         project: project._id,
-        //         assignTo: { $not: { $size: 0 } }
-        //     })
-        //     .select("project assignTo");
-        // let assignBidmanager: any = [];
-        // let assignFeasibilityUser: any = [];
-        // if (tasks?.length > 0) {
-        //     const userIds = tasks?.flatMap(task => task.assignTo.map(assignTo => assignTo.userId));
-        //     const users = await userModel
-        //         .find({ _id: { $in: userIds } })
-        //         .select('name email role');
 
-        //     assignBidmanager = users.filter(user => user.role === userRoles.ProjectManager);
-        //     assignFeasibilityUser = users.filter(user => user.role === userRoles.FeasibilityUser);
-        // }
+        if (project?.droppedAfterFeasibilityStatusReason?.length > 0) {
+            const userIds = project.droppedAfterFeasibilityStatusReason.map((item: any) => item.userId);
+
+            // Fetch all user details in one query
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName").lean();
+
+            // Add userDetails to each item in the list
+            project.droppedAfterFeasibilityStatusReason = project.droppedAfterFeasibilityStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
+
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
+        }
+        if (project?.failStatusReason?.length > 0) {
+            const userIds = project.failStatusReason.map((item: any) => item.userId);
+
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName").lean();
+
+            project.failStatusReason = project.failStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
+
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
+        }
 
         const bidlatestTask = await taskModel.aggregate([
             {
