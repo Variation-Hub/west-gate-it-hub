@@ -123,12 +123,24 @@ TaskModel.pre('save', async function (next) {
     next();
 });
 
-// Add indexes for better query performance
-TaskModel.index({ "assignTo.userId": 1, "createdAt": -1 });
+// Performance Indexes for optimal query performance
+TaskModel.index({ "assignTo.userId": 1 });
+TaskModel.index({ status: 1 });
+TaskModel.index({ project: 1 });
+TaskModel.index({ dueDate: 1 });
+TaskModel.index({ pickACategory: 1 });
+TaskModel.index({ type: 1 });
+TaskModel.index({ myDay: 1 });
+TaskModel.index({ createdAt: 1 });
+TaskModel.index({ updatedAt: 1 });
+TaskModel.index({ "assignTo.userId": 1, status: 1 });
+TaskModel.index({ project: 1, "assignTo.userId": 1 });
+TaskModel.index({ dueDate: 1, status: 1 });
+TaskModel.index({ task: "text" });
+TaskModel.index({ "subtasks.resources.candidateId": 1 });
+TaskModel.index({ "comments.userId": 1 });
+TaskModel.index({ "assignTo.userId": 1, createdAt: -1 });
 TaskModel.index({ "comments.date": 1 });
 TaskModel.index({ "assignTo.userId": 1, "comments.date": 1 });
-TaskModel.index({ "createdAt": -1 });
-TaskModel.index({ "status": 1, "assignTo.userId": 1 });
-TaskModel.index({ "project": 1, "assignTo.userId": 1 });
 
 export default mongoose.model('Task', TaskModel);

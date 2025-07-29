@@ -500,4 +500,13 @@ userModel.pre('findOneAndUpdate', async function (this: any, next) {
     }
 });
 
+// Performance Indexes
+userModel.index({ role: 1 });
+userModel.index({ active: 1 });
+userModel.index({ email: 1 });
+userModel.index({ role: 1, active: 1 });
+userModel.index({ createdAt: 1 });
+userModel.index({ updatedAt: 1 }); 
+userModel.index({ name: "text", companyName: "text" });
+
 export default mongoose.model('User', userModel);
