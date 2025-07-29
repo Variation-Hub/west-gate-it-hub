@@ -374,6 +374,23 @@ const projectModel = new mongoose.Schema({
     }
 }, { versionKey: false, minimize: false });
 
+// Performance Indexes
+projectModel.index({ status: 1 });
+projectModel.index({ category: 1 });
+projectModel.index({ status: 1, category: 1 });
+projectModel.index({ dueDate: 1 });
+projectModel.index({ publishDate: 1 });
+projectModel.index({ sortListUserId: 1 });
+projectModel.index({ dropUser: 1 });
+projectModel.index({ bidManagerStatus: 1 });
+projectModel.index({ adminStatus: 1 });
+projectModel.index({ status: 1, maxValue: 1 });
+projectModel.index({ createdAt: 1 });
+projectModel.index({ updatedAt: 1 });
+projectModel.index({ projectName: "text" });
+projectModel.index({ selectedUserIds: 1 });
+projectModel.index({ interestedSuppliers: 1 });
+
 projectModel.pre('save', async function (next) {
     this.updatedAt = new Date();
     next();
