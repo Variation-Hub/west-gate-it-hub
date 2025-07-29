@@ -299,14 +299,6 @@ export const getTasks = async (req: any, res: Response) => {
 
         assignTo = assignTo?.split(',');
         let filter: any = {}
-        // if (keyword) {
-        //     filter = {
-        //         $or: [
-        //             { task: { $regex: keyword, $options: 'i' } },
-        //             { 'project.status': { $regex: keyword, $options: 'i' } },
-        //         ]
-        //     };
-        // }
         if (assignTo?.length) {
             filter.$or = [
                 { assignTo: { $elemMatch: { userId: { $in: assignTo } } } },
@@ -329,18 +321,16 @@ export const getTasks = async (req: any, res: Response) => {
             filter.status = status
         }
         if (myDay) {
-            // if (req.user.role === userRoles.Admin) { // for admin role to show all the myday data
-            //     if (assignTo?.length > 0) {
-            //         filter.myDay = {
-            //             $in: assignTo.map((id: string) => new mongoose.Types.ObjectId(id))
-            //         };
-            //     } else {
-            //         filter.myDay = { $ne: [] }
-            //     }
-            // } else {
-            //     filter.myDay = { $in: [req.user.id] }
-            // }
             filter.myDay = { $in: [req.user.id] };
+        }
+
+        if (keyword) {
+            filter.$and = filter.$and || [];
+            filter.$and.push({
+                $or: [
+                    { task: { $regex: keyword, $options: 'i' } },
+                ]
+            });
         }
 
         const sortOptions: any = {};
@@ -353,52 +343,105 @@ export const getTasks = async (req: any, res: Response) => {
             sortOptions.dueDate = -1;
         }
 
-        let allTasks = await taskModel.find(filter)
-            .populate("project", "projectName status bidManagerStatus adminStatus")
-            .sort(sortOptions)
-            .exec();
-
-        let filteredTasks = allTasks;
-        if (keyword) {
-            filteredTasks = allTasks.filter((task: any) =>
-                task.task?.toLowerCase().includes(keyword.toLowerCase()) ||
-                task.project?.status?.toLowerCase().includes(keyword.toLowerCase()) ||
-                task.project?.bidManagerStatus?.toLowerCase().includes(keyword.toLowerCase())
-            );
-        }
-
-        const count = filteredTasks.length;
-
+        // Get pagination parameters
         const limit = req.pagination?.limit as number || 10;
         const skip = req.pagination?.skip as number || 0;
-        let Tasks = filteredTasks.slice(skip, skip + limit);
 
-        let userIds: any = [];
+        const pipeline = [
+            { $match: filter },
+            {
+                $lookup: {
+                    from: 'projects',
+                    localField: 'project',
+                    foreignField: '_id',
+                    as: 'project',
+                    pipeline: [
+                        {
+                            $project: {
+                                projectName: 1,
+                                status: 1,
+                                bidManagerStatus: 1,
+                                adminStatus: 1
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $unwind: {
+                    path: '$project',
+                    preserveNullAndEmptyArrays: true
+                }
+            }
+        ];
+
+        // Add keyword filtering for project fields if needed
+        if (keyword) {
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { task: { $regex: keyword, $options: 'i' } },
+                        { 'project.status': { $regex: keyword, $options: 'i' } },
+                        { 'project.bidManagerStatus': { $regex: keyword, $options: 'i' } }
+                    ]
+                }
+            });
+        }
+
+        // Add sorting
+        pipeline.push({ $sort: sortOptions } as any);
+
+        // Get total count and paginated results in parallel
+        const [countResult, tasksResult] = await Promise.all([
+            taskModel.aggregate([...pipeline, { $count: "total" }]),
+            taskModel.aggregate([
+                ...pipeline,
+                { $skip: skip },
+                { $limit: limit }
+            ])
+        ]);
+
+        const count = countResult[0]?.total || 0;
+        let Tasks = tasksResult;
+
+        // Optimized user details fetching
+        const userIds = new Set();
         Tasks?.forEach((task: any) => {
-            task.assignTo.forEach((obj: any) => {
-                userIds.push(obj.userId)
+            task.assignTo?.forEach((obj: any) => {
+                if (obj.userId) userIds.add(obj.userId.toString());
             });
-            task.comments.forEach((obj: any) => {
-                userIds.push(obj.userId)
+            task.comments?.forEach((obj: any) => {
+                if (obj.userId) userIds.add(obj.userId.toString());
             });
-        })
+        });
 
-        if (userIds.length > 0) {
-            const users = await userModel.find({ _id: { $in: userIds } }, 'name email role')
-            const usersMap = users.reduce((map: any, user: any) => {
-                map[user._id] = user;
+        let usersMap: any = {};
+        if (userIds.size > 0) {
+            const users = await userModel.find({
+                _id: { $in: Array.from(userIds) }
+            }, 'name email role').lean();
+
+            usersMap = users.reduce((map: any, user: any) => {
+                map[user._id.toString()] = user;
                 return map;
             }, {});
+        }
 
-            Tasks.forEach((task: any) => {
+        // Process tasks with user details
+        Tasks = Tasks.map((task: any) => {
+            // Add user details to assignTo
+            if (task.assignTo) {
                 task.assignTo = task.assignTo.map((obj: any) => {
-                    const user = usersMap[obj.userId];
-                    if (user) {
-                        obj.userDetail = user;
+                    const userId = obj.userId?.toString();
+                    if (userId && usersMap[userId]) {
+                        obj.userDetail = usersMap[userId];
                     }
                     return obj;
                 });
+            }
 
+            // Sort and add user details to comments
+            if (task.comments) {
                 task.comments.sort((a: any, b: any) => {
                     if (a.pinnedAt && b.pinnedAt) {
                         return b.pinnedAt - a.pinnedAt;
@@ -413,17 +456,19 @@ export const getTasks = async (req: any, res: Response) => {
 
 
                 task.comments = task.comments.map((obj: any) => {
-                    const user = usersMap[obj.userId];
-                    if (user) {
-                        obj.userDetail = user;
+                    const userId = obj.userId?.toString();
+                    if (userId && usersMap[userId]) {
+                        obj.userDetail = usersMap[userId];
                     }
                     return obj;
                 });
-            });
-        }
+            }
+
+            return task;
+        });
 
         Tasks = Tasks.map((task: any) => {
-            const taskObj = task.toObject();
+            const taskObj = task;
             const createdAt = moment(taskObj.createdAt).startOf('day');
             const today = moment().startOf('day');
             const datewiseComments: any = { pinnedComments: []};
@@ -431,7 +476,7 @@ export const getTasks = async (req: any, res: Response) => {
             let currentDate = createdAt.clone();
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                const commentsForDate = taskObj.comments
+                const commentsForDate = (taskObj.comments || [])
                 .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
                 .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -441,7 +486,7 @@ export const getTasks = async (req: any, res: Response) => {
                 currentDate.add(1, 'day');
             }
 
-            datewiseComments.pinnedComments = taskObj.comments
+            datewiseComments.pinnedComments = (taskObj.comments || [])
                 .filter((comment: any) => comment.pin)
                 .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime());
 
