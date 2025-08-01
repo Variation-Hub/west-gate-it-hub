@@ -502,7 +502,7 @@ export const getTasks = async (req: any, res: Response) => {
 
             const currentUserId = assignTo?.[0];
             if (req?.user?.role === userRoles.Admin) {
-                console.log('Admin view: All tasks and subtasks will be shown');
+               // console.log('Admin view: All tasks and subtasks will be shown');
             } else {
                 if (taskObj.subtasks && taskObj.subtasks.length > 0) {
                     taskObj.subtasks = taskObj.subtasks.filter((subtask: any) =>
