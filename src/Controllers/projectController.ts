@@ -227,8 +227,8 @@ export const getProject = async (req: any, res: Response) => {
                     attendee: supplier.attendee || false,
                     name: userDetails?.name || null,
                     supplierId: supplier.supplierId,
-                    companyName: userDetails?.companyName || null
-                };
+                    companyName: userDetails?.companyName || null,
+                    comment: supplier.comment ? supplier.comment : null             };
             });
         }
 
