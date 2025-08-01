@@ -390,6 +390,8 @@ projectModel.index({ updatedAt: 1 });
 projectModel.index({ projectName: "text" });
 projectModel.index({ selectedUserIds: 1 });
 projectModel.index({ interestedSuppliers: 1 });
+projectModel.index({ categorisation: 1 });
+projectModel.index({ projectType: 1 });
 
 projectModel.pre('save', async function (next) {
     this.updatedAt = new Date();

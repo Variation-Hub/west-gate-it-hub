@@ -3649,7 +3649,7 @@ const updateProjectCountsByUniqueId1 = (data: any): any => {
 async function processData(Data: any[]) {
     for (const data of Data) {
         for (const [key, value] of Object.entries<any[]>(data.projects)) {
-            console.log("Key (Name):", key);
+            //console.log("Key (Name):", key);
 
             for (const project of value) {
                 const bidlatestTask: any[] = await taskModel.aggregate([
@@ -3912,13 +3912,20 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
             createdAtFilter.projectType = { $in: projectTypeArray };
         }
 
-        let Data: any = await projectModel.aggregate([
+        // aggregation pipeline with database-level operations
+        const aggregationPipeline: any[] = [
             {
                 $match: createdAtFilter,
             },
             {
                 $unwind: '$droppedAfterFeasibilityStatusReason',
             },
+            // Add keyword filtering at database level if provided
+            ...(keyword ? [{
+                $match: {
+                    'droppedAfterFeasibilityStatusReason.comment': { $regex: keyword, $options: 'i' }
+                }
+            }] : []),
             {
                 $group: {
                     _id: {
@@ -3936,6 +3943,108 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
                         },
                     },
                 },
+            },
+            // Add project manager lookup in aggregation pipeline
+            {
+                $lookup: {
+                    from: "tasks",
+                    let: { projectIds: "$projects._id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$project", "$$projectIds"] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignToUserId: {
+                                    $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "firstAssignToUserId",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        {
+                            $match: {
+                                "userDetails.role": userRoles.ProjectManager
+                            }
+                        },
+                        {
+                            $sort: { createdAt: -1 }
+                        },
+                        {
+                            $group: {
+                                _id: "$project",
+                                latestTask: { $first: "$$ROOT" }
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                assignBidManager: {
+                                    $let: {
+                                        vars: { user: { $arrayElemAt: ["$latestTask.userDetails", 0] } },
+                                        in: {
+                                            _id: "$$user._id",
+                                            name: "$$user.name",
+                                            email: "$$user.email",
+                                            role: "$$user.role",
+                                            dueDate: "$latestTask.dueDate"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    as: "taskDetails"
+                }
+            },
+            // Attach project manager details efficiently
+            {
+                $addFields: {
+                    projects: {
+                        $map: {
+                            input: "$projects",
+                            as: "project",
+                            in: {
+                                $mergeObjects: [
+                                    "$$project",
+                                    {
+                                        assignBidManager: {
+                                            $let: {
+                                                vars: {
+                                                    taskDetail: {
+                                                        $arrayElemAt: [
+                                                            {
+                                                                $filter: {
+                                                                    input: "$taskDetails",
+                                                                    cond: { $eq: ["$$this._id", "$$project._id"] }
+                                                                }
+                                                            },
+                                                            0
+                                                        ]
+                                                    }
+                                                },
+                                                in: "$$taskDetail.assignBidManager"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
             },
             {
                 $group: {
@@ -3965,9 +4074,11 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
             {
                 $sort: { projectCount: -1 },
             },
-        ]);
+        ];
 
-        await processData(Data);
+        let Data: any = await projectModel.aggregate(aggregationPipeline);
+
+        // Apply keyword filtering if not already done at database level
         let filteredData = []
         if (keyword) {
             filteredData = filterDataByKeyword(Data, keyword);
@@ -3996,7 +4107,8 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
 export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
     try {
         const { startDate, endDate, keyword, categorisation, projectType } = req.query;
-
+        const limit = req.pagination?.limit as number || 10;
+        const skip = req.pagination?.skip as number || 0; 
         let createdAtFilter: any = {
             bidManagerStatus: BidManagerStatus.Nosuppliermatched
         };
@@ -4020,16 +4132,23 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
             createdAtFilter.projectType = { $in: projectTypeArray };
         }
 
-        let Data: any = await projectModel.aggregate([
+        // Optimized aggregation pipeline with database-level operations
+        const aggregationPipeline: any[] = [
             {
                 $match: createdAtFilter,
             },
             {
-                $unwind: '$bidManagerStatusComment', // Unwinding bidManagerStatusComment instead of nosuppliermatchedStatusReason
+                $unwind: '$bidManagerStatusComment',
             },
+            // Add keyword filtering at database level if provided
+            ...(keyword ? [{
+                $match: {
+                    projectName: { $regex: keyword, $options: 'i' }
+                }
+            }] : []),
             {
                 $group: {
-                    _id: '$bidManagerStatusComment.comment', // Grouping by comment
+                    _id: '$bidManagerStatusComment.comment',
                     projectCount: { $sum: 1 },
                     projects: {
                         $push: {
@@ -4037,15 +4156,116 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
                             projectName: '$projectName',
                             status: '$status',
                             bidManagerStatus: '$bidManagerStatus',
-                            bidManagerStatusComment: '$bidManagerStatusComment', // Keeping all details
-                            categorisation: '$categorisation',
+                            bidManagerStatusComment: '$bidManagerStatusComment',
+                            categorisation: '$categorisation'
                         },
                     },
                 },
             },
+            // Add project manager lookup in aggregation pipeline
+            {
+                $lookup: {
+                    from: "tasks",
+                    let: { projectIds: "$projects._id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$project", "$$projectIds"] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignToUserId: {
+                                    $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "firstAssignToUserId",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        {
+                            $match: {
+                                "userDetails.role": userRoles.ProjectManager
+                            }
+                        },
+                        {
+                            $sort: { createdAt: -1 }
+                        },
+                        {
+                            $group: {
+                                _id: "$project",
+                                latestTask: { $first: "$$ROOT" }
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                projectManager: {
+                                    $let: {
+                                        vars: { user: { $arrayElemAt: ["$latestTask.userDetails", 0] } },
+                                        in: {
+                                            _id: "$$user._id",
+                                            name: "$$user.name",
+                                            email: "$$user.email",
+                                            role: "$$user.role"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    as: "taskDetails"
+                }
+            },
+            // Attach project manager details efficiently
+            {
+                $addFields: {
+                    projects: {
+                        $map: {
+                            input: "$projects",
+                            as: "project",
+                            in: {
+                                $mergeObjects: [
+                                    "$$project",
+                                    {
+                                        assignBidManager: {
+                                            $let: {
+                                                vars: {
+                                                    taskDetail: {
+                                                        $arrayElemAt: [
+                                                            {
+                                                                $filter: {
+                                                                    input: "$taskDetails",
+                                                                    cond: { $eq: ["$$this._id", "$$project._id"] }
+                                                                }
+                                                            },
+                                                            0
+                                                        ]
+                                                    }
+                                                },
+                                                in: "$$taskDetail.projectManager"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
             {
                 $project: {
-                    comment: '$_id', // Renaming _id to comment
+                    comment: '$_id',
                     projectCount: 1,
                     projects: 1,
                     _id: 0,
@@ -4054,24 +4274,51 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
             {
                 $sort: { projectCount: -1 },
             },
+        ];
+
+        // Execute parallel queries for count and paginated data
+        const [countResult, paginatedData] = await Promise.all([
+            // Get total count
+            projectModel.aggregate([
+                ...aggregationPipeline,
+                { $count: "total" }
+            ]),
+            // Get paginated data
+            projectModel.aggregate([
+                ...aggregationPipeline,
+                { $skip: skip },
+                { $limit: limit }
+            ])
         ]);
 
-        await processData1(Data);
-        let filteredData = []
-        if (keyword) {
-            filteredData = filterDataByKeyword(Data, keyword);
-        } else {
-            filteredData = Data;
+        // Process unique project counts efficiently
+        let Data = paginatedData;
+        if (Data.length > 0) {
+            Data = Data.map((item: any) => {
+                const uniqueProjectIds = new Set<string>();
+                item.projects.forEach((project: any) => {
+                    uniqueProjectIds.add(project._id.toString());
+                });
+
+                return {
+                    ...item,
+                    projectCount: uniqueProjectIds.size,
+                };
+            });
         }
 
-        if (filteredData.length > 0) {
-            filteredData = updateProjectCountsByUniqueId1(filteredData);
-        }
+        const totalItems = countResult[0]?.total || 0;
 
         return res.status(200).json({
             message: "Gap analysis data fetched successfully",
             status: true,
-            data: filteredData
+            data: Data,
+            meta_data: {
+                page: req.pagination?.page || 1,
+                items: totalItems,
+                page_size: limit,
+                pages: Math.ceil(totalItems / limit)
+            }
         });
     } catch (err: any) {
         return res.status(500).json({

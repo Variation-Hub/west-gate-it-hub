@@ -44,7 +44,7 @@ projectRoutes.get("/dashboard", authorizeRoles(userRoles.SupplierAdmin, userRole
 projectRoutes.patch("/add-status", authorizeRoles(), addProjectStatusForSupplier);
 projectRoutes.get("/gap-analysis", authorizeRoles(), getGapAnalysisData);
 projectRoutes.get("/gap-analysis-dafstatus-reason", authorizeRoles(), getGapAnalysisDataDroppedAfterFeasibilityStatusReason);
-projectRoutes.get("/gap-analysis-nosuppliermatched-reason", authorizeRoles(), getGapAnalysisDatanosuppliermatchedStatusReason);
+projectRoutes.get("/gap-analysis-nosuppliermatched-reason", authorizeRoles(), paginationMiddleware, getGapAnalysisDatanosuppliermatchedStatusReason);
 projectRoutes.patch("/update/approve-reject-admin/:id", authorizeRoles(), approveOrRejectByAdmin);
 
 // ProjectManager routes
