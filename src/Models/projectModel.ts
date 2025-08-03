@@ -315,6 +315,9 @@ const projectModel = new mongoose.Schema({
         enum: ['Fail', 'Dropped after feasibility', 'Nosuppliermatched', "Not Releted"],
         default: null
     },
+    adminStatusComment: {
+        type: mongoose.Schema.Types.Mixed
+    },
     adminStatusDate: {
         type: Date,
         default: null
