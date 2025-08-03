@@ -4332,7 +4332,7 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
 export const approveOrRejectByAdmin = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
-        const { action } = req.body
+        const { action, comment } = req.body
 
         const project: any = await projectModel.findById(id);
         if (!project) {
@@ -4356,6 +4356,18 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
                     date: new Date(),
                     userId: null,
                 })
+            }
+            project.adminStatus = null;
+            project.adminStatusDate = null;
+        } else if (action === feasibilityStatus.reject) {
+            // Add comment to logs when admin rejects
+            if (comment) {
+                project.adminStatusComment = {
+                    action: 'Reject',
+                    comment: comment,
+                    userId: req.user?.id || null,
+                    timestamp: new Date()
+                };
             }
             project.adminStatus = null;
             project.adminStatusDate = null;

@@ -36,11 +36,15 @@ async function handleProjectUpdate(category: string, userId: string) {
 
 export const caseStudyList = async (req: any, res: Response) => {
     try {
-        const userId = req.query?.userId || req.user.id
+        const userId = req.query?.userId
         let { category } = req.query;
         category = category?.split(',');
 
-        let filter: any = { userId: userId }
+        let filter: any = {}
+        if (userId) {
+            filter = { ...filter, userId: userId }
+        }
+
         if (category) {
             filter = { ...filter, category: { $in: category } }
         }
