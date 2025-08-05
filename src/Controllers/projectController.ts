@@ -4915,15 +4915,15 @@ export const registerInterest = async (req: any, res: Response) => {
 
 export const updateAttendeeStatus = async (req: any, res: Response) => {
     try {
-        const { projectId, supplierId, attendee, comment } = req.body;
+        const { projectId, supplierId, attendee, /* comment */ } = req.body;
 
         if (typeof attendee !== 'boolean') {
             return res.status(400).json({ message: "'attendee' must be true or false", status: false });
         }
 
-        if (!comment || typeof comment !== 'string' || comment.trim() === '') {
+        /* if (!comment || typeof comment !== 'string' || comment.trim() === '') {
             return res.status(400).json({ message: "Comment is required", status: false });
-        }
+        } */
 
         const project = await projectModel.findById(projectId);
         if (!project) return res.status(404).json({ message: "Project not found", status: false });
@@ -4937,7 +4937,7 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         }
 
         supplierEntry.attendee = attendee;
-        supplierEntry.comment = comment.trim();
+        //supplierEntry.comment = comment.trim();
 
         // Check if any supplier has attendee == false
         const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
