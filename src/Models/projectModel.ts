@@ -360,7 +360,9 @@ const projectModel = new mongoose.Schema({
         {
             supplierId: { type: mongoose.Schema.Types.ObjectId, ref: 'users' },
             attendee: { type: Boolean, default: false },
-            comment: { type: String, default: "" }
+            comment: { type: String, default: "" },
+            interestedAt: { type: Date, default: Date.now },
+            attendeeUpdatedAt: { type: Date, default: null }
         }
     ],
     resultExpected: {
