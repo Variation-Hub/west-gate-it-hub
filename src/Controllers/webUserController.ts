@@ -194,13 +194,13 @@ export const userForgotPassword = async (req: Request, res: Response) => {
             })
         }
 
-        if (!user?.companyActive) {
-            return res.status(404).json({
-                message: "Company is inactive.",
-                status: false,
-                data: null
-            })
-        }
+        // if (!user?.companyActive) {
+        //     return res.status(404).json({
+        //         message: "Company is inactive.",
+        //         status: false,
+        //         data: null
+        //     })
+        // }
 
         // const newPassword = generatePass();
         // user.password = newPassword;

@@ -297,7 +297,7 @@ const userModel = new mongoose.Schema({
         {
             name: { type: String, default: "" },
             phone: { type: String, default: "" },
-            email: { type: String, default: "" },
+            email: { type: String, default: "", lowercase: true, trim: true },
             role: { type: String, default: "" },
             isPrimary: { type: Boolean, default: false }
         }
