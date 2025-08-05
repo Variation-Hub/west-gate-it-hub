@@ -177,7 +177,7 @@ export const updateUser = async (req: any, res: Response) => {
         if (updateData.active === false) {
             user.inactiveDate = new Date();
 
-            await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
+            //await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
 
             const logEntry = {
                 log: updateData.activeStatus,
@@ -285,7 +285,7 @@ export const publicUpdateUser = async (req: any, res: Response) => {
         if (updateData.active === false) {
             user.inactiveDate = new Date();
 
-            await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
+            //await CandidateCvModel.updateMany({ supplierId: id }, { active: false });
 
             const logEntry = {
                 log: updateData.activeStatus,
@@ -1145,12 +1145,28 @@ export const getUserList = async (req: any, res: Response) => {
 
             const userIds = casestudy.map((caseItem) => caseItem.userId);
 
-            const users = await userModel.find({ _id: { $in: userIds } }).sort({ createdAt: -1 });
+            // Get pagination parameters
+            const limit = req.query?.limit as number;
+            const skip = req.query?.skip as number;
+
+            // Get total count for pagination metadata
+            const count = await userModel.countDocuments({ _id: { $in: userIds } });
+
+            const users = await userModel.find({ _id: { $in: userIds } })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
 
             return res.status(200).json({
                 message: "User list fetch success",
                 status: true,
-                data: users
+                data: users,
+                meta_data: {
+                    page: req.query?.page,
+                    items: count,
+                    page_size: req.query?.limit,
+                    pages: Math.ceil(count / (req.query?.limit as number))
+                }
             });
         }
 
@@ -1186,7 +1202,19 @@ export const getUserList = async (req: any, res: Response) => {
             ];
         }
 
-        let users: any = await userModel.find(filter).select({ password: 0 }).sort({ createdAt: -1 }).lean();
+        // Get pagination parameters
+        const limit = req.query?.limit as number;
+        const skip = req.query?.skip as number;
+
+        // Get total count for pagination metadata
+        const count = await userModel.countDocuments(filter);
+
+        let users: any = await userModel.find(filter)
+            .select({ password: 0 })
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean();
         if (projectCount) {
             const result = await projectModel.aggregate([
                 { $unwind: "$select" },
@@ -1308,7 +1336,13 @@ export const getUserList = async (req: any, res: Response) => {
         return res.status(200).json({
             message: "User list fetch success",
             status: true,
-            data: users
+            data: users,
+            meta_data: {
+                page: req.query?.page,
+                items: count,
+                page_size: req.query?.limit,
+                pages: Math.ceil(count / (req.query?.limit as number))
+            }
         });
     } catch (err: any) {
         return res.status(500).json({

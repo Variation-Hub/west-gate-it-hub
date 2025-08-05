@@ -31,24 +31,24 @@ export const createCandidateCV = async (req: any, res: Response) => {
             if (roleCache.has(cacheKey)) return roleCache.get(cacheKey);
 
             let roleInfo = await findRoleByName(normalized);
-            if (!roleInfo) {
-                const newRole = new RoleModel({ name: normalized, type: 'main', isActive: true, otherRoles: [] });
-                await newRole.save();
-                roleInfo = { roleId: newRole._id, roleName: newRole.name, type: 'main', parentRoleId: newRole._id };
-            }
+            // No longer create new roles - return null if role doesn't exist
 
             roleCache.set(cacheKey, roleInfo);
             return roleInfo;
         };
+
+        const skippedCandidates: any[] = [];
 
         for (const candidate of data) {
             if (!Array.isArray(candidate.roleId)) {
                 throw new Error("roleId must be an array");
             }
 
-      candidate.executive = candidate.ukDayRate && candidate.ukDayRate >= 250;
+            candidate.executive = candidate.ukDayRate && candidate.ukDayRate >= 250;
 
-      const processedRoleIds: mongoose.Types.ObjectId[] = [];
+            const processedRoleIds: mongoose.Types.ObjectId[] = [];
+            let invalidRole = false;
+
             for (let i = 0; i < candidate.roleId.length; i++) {
                 const roleId = candidate.roleId[i];
 
@@ -56,13 +56,22 @@ export const createCandidateCV = async (req: any, res: Response) => {
                     const existingRole = await RoleModel.findById(roleId).lean();
                     if (existingRole) {
                         processedRoleIds.push(existingRole._id);
+                    } else {
+                        invalidRole = true;
                     }
                 } else if (typeof roleId === 'string') {
                     const roleInfo = await getRoleInfo(roleId);
                     if (roleInfo) {
                         processedRoleIds.push(roleInfo.roleId);
+                    } else {
+                        invalidRole = true;
                     }
                 }
+            }
+
+            if (invalidRole) {
+                skippedCandidates.push(candidate);
+                continue;
             }
 
             candidate.roleId = processedRoleIds;
@@ -70,21 +79,24 @@ export const createCandidateCV = async (req: any, res: Response) => {
             const rawCurrentRole = candidate.currentRole;
 
             if (rawCurrentRole) {
-                const trimmedRole =  normalizeName(rawCurrentRole);
+                const trimmedRole = normalizeName(rawCurrentRole);
 
                 if (mongoose.Types.ObjectId.isValid(trimmedRole)) {
                     const existingRole = await RoleModel.findById(trimmedRole).lean();
                     if (existingRole) {
                         candidate.currentRole = existingRole._id;
                     } else {
-                        const newRole = new RoleModel({ name: trimmedRole, otherRoles: [] });
-                        await newRole.save();
-                        candidate.currentRole = newRole._id;
+                        skippedCandidates.push(candidate);
+                        continue;
                     }
                 } else {
                     const roleInfo = await getRoleInfo(trimmedRole);
                     if (roleInfo) {
                         candidate.currentRole = roleInfo.roleId;
+                    } else {
+                        // Skip candidate if currentRole doesn't exist in DB
+                        skippedCandidates.push(candidate);
+                        continue;
                     }
                 }
             } else {
@@ -104,7 +116,8 @@ export const createCandidateCV = async (req: any, res: Response) => {
 
         return res.status(201).json({
             message: "Candidates saved successfully",
-            status: true
+            status: true,
+            skippedCandidates: skippedCandidates
         });
     } catch (error: any) {
         return res.status(500).json({ message: error.message, status: false });
