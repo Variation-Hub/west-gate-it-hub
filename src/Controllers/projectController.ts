@@ -4847,7 +4847,10 @@ export const registerInterest = async (req: any, res: Response) => {
             // Add interest
             project.interestedSuppliers.push({
                 supplierId: userId,
-                attendee: false
+                attendee: false,
+                comment: "",
+                interestedAt: new Date(),
+                attendeeUpdatedAt: null
             });
             project.register_interest = determineRegisterInterest(project.interestedSuppliers);
 
@@ -4915,15 +4918,15 @@ export const registerInterest = async (req: any, res: Response) => {
 
 export const updateAttendeeStatus = async (req: any, res: Response) => {
     try {
-        const { projectId, supplierId, attendee, /* comment */ } = req.body;
+        const { projectId, supplierId, attendee, comment } = req.body;
 
         if (typeof attendee !== 'boolean') {
             return res.status(400).json({ message: "'attendee' must be true or false", status: false });
         }
 
-        /* if (!comment || typeof comment !== 'string' || comment.trim() === '') {
+        if (!comment || typeof comment !== 'string' || comment.trim() === '') {
             return res.status(400).json({ message: "Comment is required", status: false });
-        } */
+        }
 
         const project = await projectModel.findById(projectId);
         if (!project) return res.status(404).json({ message: "Project not found", status: false });
@@ -4937,7 +4940,8 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         }
 
         supplierEntry.attendee = attendee;
-        //supplierEntry.comment = comment.trim();
+        supplierEntry.comment = comment.trim();
+        supplierEntry.attendeeUpdatedAt = new Date();
 
         // Check if any supplier has attendee == false
         const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
@@ -4952,6 +4956,140 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
                 projectId: project._id,
                 register_interest: project.register_interest,
                 interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Delete comment from attendee status
+export const deleteAttendeeComment = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierEntry = project.interestedSuppliers.find(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (!supplierEntry) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        supplierEntry.comment = "";
+        supplierEntry.attendeeUpdatedAt = new Date();
+
+        await project.save();
+
+        return res.status(200).json({
+            message: "Comment deleted successfully",
+            status: true,
+            data: {
+                projectId: project._id,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Remove interested supplier from project
+export const removeInterestedSupplier = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierIndex = project.interestedSuppliers.findIndex(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (supplierIndex === -1) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        // Remove supplier from interestedSuppliers array
+        project.interestedSuppliers.splice(supplierIndex, 1);
+
+        // Update register_interest flag based on remaining suppliers
+        const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
+        project.register_interest = stillPending;
+
+        await project.save();
+
+        return res.status(200).json({
+            message: "Supplier removed from interest list successfully",
+            status: true,
+            data: {
+                projectId: project._id,
+                register_interest: project.register_interest,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Get projects where supplier has shown interest
+export const getProjectsBySupplierInterest = async (req: any, res: Response) => {
+    try {
+        const { supplierId } = req.query;
+        const { limit = 10, skip = 0 } = req.pagination || {};
+
+        if (!supplierId) {
+            return res.status(400).json({ message: "Supplier ID is required", status: false });
+        }
+
+        // Get total count
+        const totalCount = await projectModel.countDocuments({
+            "interestedSuppliers.supplierId": supplierId
+        });
+
+        // Get projects with pagination
+        const projects = await projectModel.find({
+            "interestedSuppliers.supplierId": supplierId
+        })
+        .select('projectName status bidManagerStatus categorisation BOSID clientName maxValue category industry projectType createdAt interestedSuppliers')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
+
+        // Add supplier-specific interest details to each project
+        const projectsWithInterestDetails = projects.map(project => {
+            const supplierInterest = project.interestedSuppliers.find(
+                (entry: any) => entry.supplierId.toString() === supplierId.toString()
+            );
+
+            return {
+                ...project,
+                supplierInterestDetails: {
+                    attendee: supplierInterest?.attendee || false,
+                    comment: supplierInterest?.comment || "",
+                    interestedAt: supplierInterest?.interestedAt || null,
+                    attendeeUpdatedAt: supplierInterest?.attendeeUpdatedAt || null
+                }
+            };
+        });
+
+        return res.status(200).json({
+            message: "Projects fetched successfully",
+            status: true,
+            data: projectsWithInterestDetails,
+            meta_data: {
+                page: Math.floor(skip / limit) + 1,
+                items: totalCount,
+                page_size: limit,
+                pages: Math.ceil(totalCount / limit)
             }
         });
 
