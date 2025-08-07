@@ -50,7 +50,7 @@ export const caseStudyList = async (req: any, res: Response) => {
         }
 
         const count = await caseStudyModel.countDocuments(filter);
-        const CaseStudy = await caseStudyModel.find(filter)
+        const CaseStudy = await caseStudyModel.find(filter).populate('userId', ['_id', 'name', 'role', 'companyName', ])
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1, _id: -1 });
