@@ -541,12 +541,37 @@ export const getProject = async (req: any, res: Response) => {
             ) || false;
         }
 
+        // const projectTasks = await taskModel.aggregate([
+        //     {
+        //         $match: {
+        //             project: id
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "users",
+        //             localField: "assignTo.userId",
+        //             foreignField: "_id",
+        //             as: "userDetails"
+        //         }
+        //     },
+        //     {
+        //         $project: {
+        //             project: 1,
+        //             assignTo: 1,
+        //             dueDate: 1,
+        //             userDetails: 1
+        //         }
+        //     }
+        // ]);
+
         return res.status(200).json({
             message: "project fetch success",
             status: true,
             data: {
                 ...project,
                 matchedCaseStudy: project.casestudy?.length || 0,
+                projectTasks: bidlatestTask, 
                 assignBidmanager,
                 assignFeasibilityUser,
                 isInterested
