@@ -229,30 +229,43 @@ export const getAllRoles = async (req: Request, res: Response) => {
                 },
                 {
                     $addFields: {
-                        allCandidates: { $concatArrays: ["$candidatesAsRole", "$candidatesAsCurrent"] }
+                        allCandidates: {
+                            $setUnion: [
+                                { $map: { input: "$candidatesAsRole", as: "c", in: "$$c._id" } },
+                                { $map: { input: "$candidatesAsCurrent", as: "c", in: "$$c._id" } }
+                            ]
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "allCandidates",
+                        foreignField: "_id",
+                        as: "uniqueCandidates"
                     }
                 },
                 {
                     $lookup: {
                         from: "users",
-                        localField: "allCandidates.supplierId",
+                        localField: "uniqueCandidates.supplierId",
                         foreignField: "_id",
                         as: "allSuppliers"
                     }
                 },
                 {
                     $addFields: {
-                        totalCandidatesCount: { $size: "$allCandidates" },
+                        totalCandidatesCount: { $size: "$uniqueCandidates" },
                         activeCandidatesCount: {
                             $size: {
                                 $filter: {
-                                    input: "$allCandidates",
+                                    input: "$uniqueCandidates",
                                     as: "candidate",
                                     cond: { $eq: ["$$candidate.active", true] }
                                 }
                             }
                         },
-                        uniqueSupplierIds: { $setUnion: ["$allCandidates.supplierId", []] }
+                        uniqueSupplierIds: { $setUnion: ["$uniqueCandidates.supplierId", []] }
                     }
                 },
                 {
@@ -482,6 +495,103 @@ export const getAllRoles = async (req: Request, res: Response) => {
           const totalExecutiveFalseCount = result[0]?.totalExecutiveFalseCount || 0;
 
           if (role === 'admin') {
+            const allSubRoles = await RoleModel.aggregate([
+                { $match: { type: 'sub', isActive: true } },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "_id",
+                        foreignField: "roleId",
+                        as: "candidatesAsRole"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "_id",
+                        foreignField: "currentRole",
+                        as: "candidatesAsCurrent"
+                    }
+                },
+                {
+                    $addFields: {
+                        allCandidates: {
+                            $setUnion: [
+                                { $map: { input: "$candidatesAsRole", as: "c", in: "$$c._id" } },
+                                { $map: { input: "$candidatesAsCurrent", as: "c", in: "$$c._id" } }
+                            ]
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "candidatecvs",
+                        localField: "allCandidates",
+                        foreignField: "_id",
+                        as: "uniqueCandidates"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "uniqueCandidates.supplierId",
+                        foreignField: "_id",
+                        as: "allSuppliers"
+                    }
+                },
+                {
+                    $addFields: {
+                        totalCandidatesCount: { $size: "$uniqueCandidates" },
+                        activeCandidatesCount: {
+                            $size: {
+                                $filter: {
+                                    input: "$uniqueCandidates",
+                                    as: "candidate",
+                                    cond: { $eq: ["$$candidate.active", true] }
+                                }
+                            }
+                        },
+                        uniqueSupplierIds: { $setUnion: ["$uniqueCandidates.supplierId", []] }
+                    }
+                },
+                {
+                    $addFields: {
+                        totalSuppliersCount: { $size: "$uniqueSupplierIds" },
+                        activeSuppliersCount: {
+                            $size: {
+                                $filter: {
+                                    input: "$allSuppliers",
+                                    as: "supplier",
+                                    cond: {
+                                        $and: [
+                                            { $eq: ["$$supplier.active", true] },
+                                            { $in: ["$$supplier._id", "$uniqueSupplierIds"] }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        type: 1,
+                        totalCandidatesCount: 1,
+                        activeCandidatesCount: 1,
+                        totalSuppliersCount: 1,
+                        activeSuppliersCount: 1
+                    }
+                }
+            ]);
+
+            // Create a map for quick lookup of sub-role counts
+            const subRoleMap = new Map();
+            allSubRoles.forEach(subRole => {
+                subRoleMap.set(subRole.name, subRole);
+            });
+
             const processedRoles = [];
             const processedRoleNames = new Set();
 
@@ -491,7 +601,7 @@ export const getAllRoles = async (req: Request, res: Response) => {
 
                 if (roleItem.otherRoles && roleItem.otherRoles.length > 0) {
                   for (const otherRoleName of roleItem.otherRoles) {
-                    const subRole = roles.find((r: any) => r.name === otherRoleName && r.type === 'sub');
+                    const subRole = subRoleMap.get(otherRoleName);
                     if (subRole) {
                       otherRolesWithCounts.push({
                         id: subRole._id,
@@ -527,9 +637,9 @@ export const getAllRoles = async (req: Request, res: Response) => {
             }
 
             // Add sub roles that are not part of any main role
-            for (const roleItem of roles) {
-              if (roleItem.type === 'sub' && !processedRoleNames.has(roleItem.name)) {
-                processedRoles.push(roleItem);
+            for (const subRole of allSubRoles) {
+              if (!processedRoleNames.has(subRole.name)) {
+                processedRoles.push(subRole);
               }
             }
 
@@ -599,7 +709,7 @@ export const getlistByRole = async (req: Request, res: Response) => {
 
         const candidates = await CandidateCvModel.find(matchStage)
             .populate("roleId", ["name", "type", "parentRoleId", "otherRoles"])
-            .populate("supplierId", "name")
+            .populate("supplierId", ["name", "companyName"])
             .populate("currentRole", ["name", "type", "parentRoleId"])
             .sort({ active: -1, createdAt: -1 });
 
