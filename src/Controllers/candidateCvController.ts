@@ -1009,8 +1009,7 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         const userId = req.body.userId || req.query.userId || null;
         const anonymousUserId = req.query.anonymousUserId || null;
         const { search } = req.query;
-        console.log(filterId, anonymousUserId)
-        // Get the saved filter
+
         const filterQuery: any = { _id: filterId, active: true };
 
         if (userId) {
@@ -1018,9 +1017,8 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         } else if (anonymousUserId) {
             filterQuery.anonymousUserId = anonymousUserId;
         }
-        console.log(filterQuery)
+
         const filter = await CandidateFilter.findOne(filterQuery);
-        console.log(filter)
 
         if (!filter) {
             return res.status(404).json({
@@ -1031,8 +1029,8 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
         
         const matchingRoles = await RoleModel.find({
             $or: [
-                { name: { $regex: filter.jobTitle, $options: "i" }, isActive: true },
-                { otherRoles: { $elemMatch: { $regex: filter.jobTitle, $options: "i" } }, isActive: true }
+                { name: filter.jobTitle, isActive: true },
+                { otherRoles: filter.jobTitle, isActive: true }
             ]
         }).select('_id name type parentRoleId otherRoles').lean();
 
@@ -1068,25 +1066,23 @@ export const getCandidatesByFilterId = async (req: any, res: Response) => {
             );
         }
 
-        const regex = new RegExp(filter.jobTitle, "i");
         roleMatchConditions.push(
-            { "roleData.name": { $regex: regex } },
-            { "roleData.otherRoles": { $elemMatch: { $regex: regex } } },
-            { "currentRoleData.name": { $regex: regex } },
-            { "currentRoleData.otherRoles": { $elemMatch: { $regex: regex } } },
-            { "technicalSkills": { $regex: regex } }
+            { "roleData.name": filter.jobTitle },
+            { "roleData.otherRoles": filter.jobTitle },
+            { "currentRoleData.name": filter.jobTitle },
+            { "currentRoleData.otherRoles": filter.jobTitle },
+            { "technicalSkills": filter.jobTitle }
         );
 
         // Add related roles matching if we found related roles
         if (uniqueRoles.length > 0) {
             uniqueRoles.forEach((relatedRole: string) => {
-                const relatedRegex = new RegExp(relatedRole, "i");
                 roleMatchConditions.push(
-                    { "roleData.name": { $regex: relatedRegex } },
-                    { "roleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
-                    { "currentRoleData.name": { $regex: relatedRegex } },
-                    { "currentRoleData.otherRoles": { $elemMatch: { $regex: relatedRegex } } },
-                    { "technicalSkills": { $regex: relatedRegex } }
+                    { "roleData.name": relatedRole },
+                    { "roleData.otherRoles": relatedRole },
+                    { "currentRoleData.name": relatedRole },
+                    { "currentRoleData.otherRoles": relatedRole },
+                    { "technicalSkills": relatedRole }
                 );
             });
         }
