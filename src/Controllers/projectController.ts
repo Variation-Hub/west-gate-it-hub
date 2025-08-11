@@ -4969,8 +4969,8 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         supplierEntry.attendeeUpdatedAt = new Date();
 
         // Check if any supplier has attendee == false
-        const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
-        project.register_interest = stillPending;
+        // const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
+        // project.register_interest = stillPending;
 
         await project.save();
 
@@ -5044,8 +5044,9 @@ export const removeInterestedSupplier = async (req: any, res: Response) => {
         project.interestedSuppliers.splice(supplierIndex, 1);
 
         // Update register_interest flag based on remaining suppliers
-        const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
+        const stillPending = project.interestedSuppliers.length > 0;
         project.register_interest = stillPending;
+
 
         await project.save();
 
