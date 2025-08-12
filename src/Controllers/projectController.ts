@@ -686,7 +686,7 @@ export const exportProjectsToCSV = async (req: any, res: any) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest, attended } = req.query as any
 
         category = category?.split(',');
         industry = industry?.split(',');
@@ -778,6 +778,14 @@ export const getProjects = async (req: any, res: Response) => {
         if (registerInterest == 'false' || registerInterest == false) {
             filter.register_interest = false;
             sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
+        }
+
+        if(attended == 'true') {
+            filter.interestedSuppliers = { $elemMatch: { attendee: true } };
+        }
+
+        if(attended == 'false') {
+            filter.interestedSuppliers = { $elemMatch: { attendee: false } };
         }
 
         if (foiNotUploaded) {
@@ -1713,14 +1721,27 @@ export const getProjects = async (req: any, res: Response) => {
             { $count: 'totalInterestedCount' }
         ]);
 
-
         const totalInterestedCount = result[0]?.totalInterestedCount || 0;
+
+        // get total project count of attendee and non attendee
+        const attendeeCount = await projectModel.countDocuments({
+            ...filter,
+            interestedSuppliers: { $elemMatch: { attendee: true } }
+        });
+
+        const nonAttendeeCount = await projectModel.countDocuments({
+            ...filter,
+            interestedSuppliers: { $elemMatch: { attendee: false } }
+        });
+
         return res.status(200).json({
             message: "projects fetch success",
             status: true,
             data: {
                 data: projects,
                 totalInterestedCount,
+                attendeeCount,
+                nonAttendeeCount,
                 meta_data: {
                     page: req.pagination?.page,
                     items: count,
