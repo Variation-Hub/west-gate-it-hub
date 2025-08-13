@@ -3,6 +3,7 @@ import caseStudyModel from "../Models/caseStudy"
 import { uploadToBackblazeB2 } from "../Util/aws"
 import projectModel from "../Models/projectModel";
 import userModel from "../Models/userModel";
+import mongoose from "mongoose";
 
 async function handleProjectUpdate(category: string, userId: string) {
     try {
@@ -36,35 +37,112 @@ async function handleProjectUpdate(category: string, userId: string) {
 
 export const caseStudyList = async (req: any, res: Response) => {
     try {
-        const userId = req.query?.userId
-        let { category } = req.query;
-        category = category?.split(',');
+        const { userId } = req.query as { userId?: string };
+        let { category, search } = req.query as { category?: string; search?: string };
 
-        let filter: any = {}
-        if (userId) {
-            filter = { ...filter, userId: userId }
+        const limit = Number(req.pagination?.limit) || 10;
+        const skip = Number(req.pagination?.skip) || 0;
+        const page = Number(req.pagination?.page) || 1;
+
+        const match: any = {};
+
+        if (userId && mongoose.Types.ObjectId.isValid(userId)) {
+            match.userId = new mongoose.Types.ObjectId(userId);
         }
 
-        if (category) {
-            filter = { ...filter, category: { $in: category } }
+        const categories = typeof category === "string"
+            ? category.split(",").map(s => s.trim()).filter(Boolean)
+            : [];
+
+        if (categories.length) {
+            match.category = { $in: categories };
         }
 
-        const count = await caseStudyModel.countDocuments(filter);
-        const CaseStudy = await caseStudyModel.find(filter).populate('userId', ['_id', 'name', 'role', 'companyName', ])
-            .limit(req.pagination?.limit as number)
-            .skip(req.pagination?.skip as number)
-            .sort({ createdAt: -1, _id: -1 });
+        // pipeline
+        const pipeline: any[] = [
+            { $match: match },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "user"
+                }
+            },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+        ];
+
+        if (search && String(search).trim() !== "") {
+            const rx = new RegExp(String(search).trim(), "i");
+            pipeline.push({
+                $match: {
+                    $or: [
+                        { name: rx },                     
+                        { "user.companyName": rx }        
+                    ]
+                }
+            });
+        }
+
+        pipeline.push(
+            { $sort: { createdAt: -1, _id: -1 } },
+            {
+                $facet: {
+                    data: [
+                        { $skip: skip },
+                        { $limit: limit },
+                        {
+                            $project: {
+                                _id: 1,
+                                name: 1,
+                                resourcesUsed: 1,
+                                contractValue: 1,
+                                maintenance: 1,
+                                contractDuration: 1,
+                                technologies: 1,
+                                description: 1,
+                                type: 1,
+                                industry: 1,
+                                date: 1,
+                                verify: 1,
+                                subCategory: 1,
+                                cost: 1,
+                                lessonsLearned: 1,
+                                resultAchieved: 1,
+                                solutionProvided: 1,
+                                problem: 1,
+                                link: 1,
+                                clientName: 1,
+                                category: 1,
+                                createdAt: 1,
+                                userId: {
+                                    _id: "$user._id",
+                                    name: "$user.name",
+                                    role: "$user.role",
+                                    companyName: "$user.companyName",
+                                }
+                            }
+                        }
+                    ],
+                    meta: [{ $count: "total" }]
+                }
+            }
+        );
+
+        const aggResult = await caseStudyModel.aggregate(pipeline);
+        const data = aggResult[0]?.data || [];
+        const total = aggResult[0]?.meta?.[0]?.total || 0;
 
         return res.status(200).json({
             message: "CaseStudy successfully fetched",
             status: true,
             data: {
-                data: CaseStudy,
+                data,
                 meta_data: {
-                    page: req.pagination?.page,
-                    items: count,
-                    page_size: req.pagination?.limit,
-                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                    page,
+                    items: total,
+                    page_size: limit,
+                    pages: Math.ceil(total / limit)
                 }
             }
         });
@@ -75,7 +153,7 @@ export const caseStudyList = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+};
 
 const updateSupplierStatus = async (userId: any, isInHold: boolean, active: boolean) => {
     await userModel.updateOne(
