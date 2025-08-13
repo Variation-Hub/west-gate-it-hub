@@ -64,12 +64,24 @@ export const caseStudyList = async (req: any, res: Response) => {
             {
                 $lookup: {
                     from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
+                    let: { userId: "$userId" },
+                    pipeline: [
+                        { $match: { $expr: { $eq: ["$_id", "$$userId"] } } },
+                        { $match: { active: true } },
+                        {
+                            $project: {
+                                _id: 1,
+                                name: 1,
+                                role: 1,
+                                companyName: 1
+                            }
+                        }
+                    ],
                     as: "user"
                 }
             },
-            { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+            { $unwind: { path: "$user", preserveNullAndEmptyArrays: false } }
+
         ];
 
         if (search && String(search).trim() !== "") {
@@ -77,8 +89,8 @@ export const caseStudyList = async (req: any, res: Response) => {
             pipeline.push({
                 $match: {
                     $or: [
-                        { name: rx },                     
-                        { "user.companyName": rx }        
+                        { name: rx },
+                        { "user.companyName": rx }
                     ]
                 }
             });

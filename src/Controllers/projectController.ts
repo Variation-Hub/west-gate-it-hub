@@ -523,12 +523,13 @@ export const getProject = async (req: any, res: Response) => {
         if (project?.selectedUserIds?.length) {
             const userIds = project.selectedUserIds.map((u: any) => u.userId);
 
-            const users = await userModel.find({ _id: { $in: userIds } }).select("name");
+            const users = await userModel.find({ _id: { $in: userIds } });
             project.selectedUserIds = project.selectedUserIds.map((sel: any) => {
                 const user = users.find(u => u._id.toString() === sel.userId.toString());
                 return {
                     ...sel,
-                    name: user?.name || null
+                    name: user?.name || null,
+                    companyName: user?.companyName || null
                 };
             });
         }
@@ -781,11 +782,13 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if(attended == 'true') {
-            filter.interestedSuppliers = { $elemMatch: { attendee: true } };
+            filter.register_interest = true;
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
         if(attended == 'false') {
-            filter.interestedSuppliers = { $elemMatch: { attendee: false } };
+            filter.register_interest = false;
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
         if (foiNotUploaded) {
@@ -1726,13 +1729,11 @@ export const getProjects = async (req: any, res: Response) => {
         // get total project count of attendee and non attendee
         const attendeeCount = await projectModel.countDocuments({
             ...filter,
-            interestedSuppliers: { $elemMatch: { attendee: true } }
-        });
+            register_interest: true });
 
         const nonAttendeeCount = await projectModel.countDocuments({
             ...filter,
-            interestedSuppliers: { $elemMatch: { attendee: false } }
-        });
+            register_interest: false });
 
         return res.status(200).json({
             message: "projects fetch success",
@@ -4990,8 +4991,8 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         supplierEntry.attendeeUpdatedAt = new Date();
 
         // Check if any supplier has attendee == false
-        // const stillPending = project.interestedSuppliers.some((entry: any) => !entry.attendee);
-        // project.register_interest = stillPending;
+        const stillPending = project.interestedSuppliers.some((entry: any) => entry.attendee === false);
+        project.register_interest = stillPending;
 
         await project.save();
 
@@ -5065,7 +5066,7 @@ export const removeInterestedSupplier = async (req: any, res: Response) => {
         project.interestedSuppliers.splice(supplierIndex, 1);
 
         // Update register_interest flag based on remaining suppliers
-        const stillPending = project.interestedSuppliers.length > 0;
+        const stillPending = project.interestedSuppliers.some((entry: any) => entry.attendee === false);
         project.register_interest = stillPending;
 
 
