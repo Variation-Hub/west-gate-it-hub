@@ -38,7 +38,7 @@ async function handleProjectUpdate(category: string, userId: string) {
 export const caseStudyList = async (req: any, res: Response) => {
     try {
         const { userId } = req.query as { userId?: string };
-        let { category, search } = req.query as { category?: string; search?: string };
+        let { category, search, activeOnly } = req.query as { category?: string; search?: string; activeOnly?: string };
 
         const limit = Number(req.pagination?.limit) || 10;
         const skip = Number(req.pagination?.skip) || 0;
@@ -58,6 +58,8 @@ export const caseStudyList = async (req: any, res: Response) => {
             match.category = { $in: categories };
         }
 
+       const shouldFilterActiveOnly = activeOnly === 'true';
+
         // pipeline
         const pipeline: any[] = [
             { $match: match },
@@ -67,13 +69,15 @@ export const caseStudyList = async (req: any, res: Response) => {
                     let: { userId: "$userId" },
                     pipeline: [
                         { $match: { $expr: { $eq: ["$_id", "$$userId"] } } },
-                        { $match: { active: true } },
+                        // Only filter by active status if activeOnly is true
+                        ...(shouldFilterActiveOnly ? [{ $match: { active: true } }] : []),
                         {
                             $project: {
                                 _id: 1,
                                 name: 1,
                                 role: 1,
-                                companyName: 1
+                                companyName: 1,
+                                active: 1
                             }
                         }
                     ],
@@ -132,6 +136,7 @@ export const caseStudyList = async (req: any, res: Response) => {
                                     name: "$user.name",
                                     role: "$user.role",
                                     companyName: "$user.companyName",
+                                    active: "$user.active"
                                 }
                             }
                         }
