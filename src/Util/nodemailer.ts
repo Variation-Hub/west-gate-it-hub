@@ -663,7 +663,8 @@ export async function resetSupplierPassword(receiverEmail: string) {
 // Mail 1 - Shortlist notification
 export async function sendShortlistMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
     try {
-        const projectLink = `https://supplier.westgateithub.com/#/project-details/${projectData._id}`;
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
 
         const template = `<!DOCTYPE html>
 <html lang="en">
@@ -747,7 +748,8 @@ export async function sendShortlistMail(receiverEmail: string, supplierName: str
 // Mail 2 - Comment on shortlist
 export async function sendShortlistCommentMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
     try {
-        const projectLink = `https://supplier.westgateithub.com/#/project-details/${projectData._id}`;
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
 
         const template = `<!DOCTYPE html>
 <html lang="en">
@@ -829,7 +831,8 @@ export async function sendShortlistCommentMail(receiverEmail: string, supplierNa
 // Mail 3 - Comment on registered interest
 export async function sendRegisteredInterestCommentMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
     try {
-        const projectLink = `https://supplier.westgateithub.com/#/project-details/${projectData._id}`;
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
 
         const template = `<!DOCTYPE html>
 <html lang="en">
