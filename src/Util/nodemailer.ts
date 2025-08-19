@@ -659,3 +659,254 @@ export async function resetSupplierPassword(receiverEmail: string) {
         console.log(`Facing error while sending mail to supplier admin ${receiverEmail} : `, error);
     }
 }
+
+// Mail 1 - Shortlist notification
+export async function sendShortlistMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
+    try {
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
+
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Required: You've Been Shortlisted</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; }
+        .email-container { max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { background-color: #0078d4; color: white; text-align: center; padding: 20px; font-size: 20px; }
+        .content { padding: 20px; line-height: 1.6; }
+        .project-details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .bid-manager { background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; font-size: 0.9em; color: #555; padding: 20px; border-top: 1px solid #ddd; }
+        .important { color: #d73527; font-weight: bold; }
+        ul { padding-left: 20px; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            Action Required: You've Been Shortlisted for a New Project
+        </div>
+        <div class="content">
+            <p>Dear ${supplierName},</p>
+            <p><strong>THIS IS A SYSTEM GENERATED EMAIL - DO NOT REPLY</strong></p>
+
+            <p>We're pleased to inform you that your organisation has been <strong>shortlisted</strong> for the following project:</p>
+
+            <div class="project-details">
+                <ul>
+                    <li><strong>Project Name:</strong> ${projectData.projectName}</li>
+                    <li><strong>Client:</strong> ${projectData.clientName || 'N/A'}</li>
+                    <li><strong>Due Date:</strong> ${projectData.dueDate ? new Date(projectData.dueDate).toLocaleDateString() : 'N/A'}</li>
+                    <li><strong>Project Link:</strong> <a href="${projectLink}">${projectLink}</a></li>
+                </ul>
+            </div>
+
+            <p>To proceed, please log in to the supplier portal and navigate to the "Shortlisting" section. There, you can view the project details, swipe down to see the eligibility criteria, and use the Confirm or Decline button to submit your response.</p>
+
+            <p class="important">Important: Confirmation must be submitted by 2 working days. If we do not receive your response by then, the project will be reassigned to other suppliers.</p>
+
+            <div class="bid-manager">
+                <strong>Assigned Bid Manager:</strong>
+                <ul>
+                    <li><strong>Name:</strong> ${bidManagerData?.name || 'N/A'}</li>
+                    <li><strong>Email:</strong> ${bidManagerData?.email || 'N/A'}</li>
+                    <li><strong>Contact Number:</strong> ${bidManagerData?.mobileNumber || 'N/A'}</li>
+                </ul>
+            </div>
+
+            <p>If eligible and you confirm participation, our bid manager will be in touch to schedule a handover call and guide you through the submission process.</p>
+
+            <p>We look forward to your response.</p>
+
+            <p>Best regards,<br>Team WestGate</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 WestGate IT Hub. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Action Required: You've Been Shortlisted for a New Project",
+            text: `You've been shortlisted for project: ${projectData.projectName}. Please check the supplier portal.`,
+            html: template,
+        });
+
+        console.log("Shortlist mail sent successfully");
+    } catch (error) {
+        console.log(`Error sending shortlist mail: `, error);
+    }
+}
+
+// Mail 2 - Comment on shortlist
+export async function sendShortlistCommentMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
+    try {
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
+
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Available: Shortlisted Project Status</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; }
+        .email-container { max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { background-color: #0078d4; color: white; text-align: center; padding: 20px; font-size: 20px; }
+        .content { padding: 20px; line-height: 1.6; }
+        .project-details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .bid-manager { background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; font-size: 0.9em; color: #555; padding: 20px; border-top: 1px solid #ddd; }
+        .important { color: #d73527; font-weight: bold; }
+        ul { padding-left: 20px; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            Update Available: Shortlisted Project Status
+        </div>
+        <div class="content">
+            <p>Dear ${supplierName},</p>
+            <p><strong>THIS IS A SYSTEM-GENERATED EMAIL – DO NOT REPLY</strong></p>
+
+            <p>There's a new update on the project you are shortlisted:</p>
+
+            <div class="project-details">
+                <ul>
+                    <li><strong>Project Name:</strong> ${projectData.projectName}</li>
+                    <li><strong>Client:</strong> ${projectData.clientName || 'N/A'}</li>
+                    <li><strong>Due Date:</strong> ${projectData.dueDate ? new Date(projectData.dueDate).toLocaleDateString() : 'N/A'}</li>
+                    <li><strong>Project Link:</strong> <a href="${projectLink}">${projectLink}</a></li>
+                </ul>
+            </div>
+
+            <p>Please log in to the supplier portal and go to the "Registered Interest" section under "Projects." Open the project to review the latest update from our team.</p>
+
+            <p class="important">Important: Please check the update and respond within 1 working day. If we do not receive your response in time, your participation in this project may be affected.</p>
+
+            <div class="bid-manager">
+                <strong>Assigned Bid Manager:</strong>
+                <ul>
+                    <li><strong>Name:</strong> ${bidManagerData?.name || 'N/A'}</li>
+                    <li><strong>Email:</strong> ${bidManagerData?.email || 'N/A'}</li>
+                    <li><strong>Contact Number:</strong> ${bidManagerData?.mobileNumber || 'N/A'}</li>
+                </ul>
+            </div>
+
+            <p>Once you respond, the bid manager will review your reply and follow up if needed.</p>
+
+            <p>Best regards,<br>Team WestGate</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 WestGate IT Hub. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail, 
+            subject: "Update Available: Shortlisted Project Status",
+            text: `There's a new update on the project you are shortlisted: ${projectData.projectName}. Please check the supplier portal.`,
+            html: template,
+        });
+
+        console.log("Shortlist comment mail sent successfully");
+    } catch (error) {
+        console.log(`Error sending shortlist comment mail: `, error);
+    }
+}
+
+// Mail 3 - Comment on registered interest
+export async function sendRegisteredInterestCommentMail(receiverEmail: string, supplierName: string, projectData: any, bidManagerData: any) {
+    try {
+        const supplierBaseUrl = process.env.SUPPLIER_URL || 'https://supplier.westgateithub.com/';
+        const projectLink = `${supplierBaseUrl}#/supplier-admin/projects-details?id=${projectData._id}&type=2`;
+
+        const template = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Required: Comment on Registered Interest Project</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; color: #333; margin: 0; padding: 0; }
+        .email-container { max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }
+        .header { background-color: #0078d4; color: white; text-align: center; padding: 20px; font-size: 20px; }
+        .content { padding: 20px; line-height: 1.6; }
+        .project-details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .bid-manager { background-color: #e8f4fd; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        .footer { text-align: center; font-size: 0.9em; color: #555; padding: 20px; border-top: 1px solid #ddd; }
+        .important { color: #d73527; font-weight: bold; }
+        ul { padding-left: 20px; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            Action Required: You've Received a Comment on the Project you Registered Interest
+        </div>
+        <div class="content">
+            <p>Dear ${supplierName},</p>
+            <p><strong>THIS IS A SYSTEM GENERATED EMAIL - DO NOT REPLY</strong></p>
+
+            <p>You've received a comment for the following project you previously registered interest in:</p>
+
+            <div class="project-details">
+                <ul>
+                    <li><strong>Project Name:</strong> ${projectData.projectName}</li>
+                    <li><strong>Client:</strong> ${projectData.clientName || 'N/A'}</li>
+                    <li><strong>Due Date:</strong> ${projectData.dueDate ? new Date(projectData.dueDate).toLocaleDateString() : 'N/A'}</li>
+                    <li><strong>Project Link:</strong> <a href="${projectLink}">${projectLink}</a></li>
+                </ul>
+            </div>
+
+            <p>To view the comment, please log in to the supplier portal and navigate to the "Registered Interest" section under "Projects". Open the project, scroll down to the comments area, and review the latest note from our team.</p>
+
+            <p class="important">Important: Please respond to the comment within 2 working days. If we do not receive your update in time, your participation in this project may be affected.</p>
+
+            <div class="bid-manager">
+                <strong>Assigned Bid Manager:</strong>
+                <ul>
+                    <li><strong>Name:</strong> ${bidManagerData?.name || 'N/A'}</li>
+                    <li><strong>Email:</strong> ${bidManagerData?.email || 'N/A'}</li>
+                    <li><strong>Contact Number:</strong> ${bidManagerData?.mobileNumber || 'N/A'}</li>
+                </ul>
+            </div>
+
+            <p>Once you respond, our bid manager will review your reply and follow up if further action is needed.</p>
+
+            <p>Best regards,<br>Team WestGate</p>
+        </div>
+        <div class="footer">
+            <p>© 2025 WestGate IT Hub. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: receiverEmail,
+            subject: "Action Required: You've Received a Comment on the Project you Registered Interest",
+            text: `You've received a comment for the project you registered interest in: ${projectData.projectName}. Please check the supplier portal.`,
+            html: template,
+        });
+
+        console.log("Registered interest comment mail sent successfully");
+    } catch (error) {
+        console.log(`Error sending registered interest comment mail: `, error);
+    }
+}

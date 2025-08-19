@@ -8,7 +8,7 @@ import caseStudy from "../Models/caseStudy";
 import userModel from "../Models/userModel";
 import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
 import summaryQuestionModel from "../Models/summaryQuestionModel";
-import { mailForFeasibleTimeline, mailForNewProject } from "../Util/nodemailer";
+import { mailForFeasibleTimeline, mailForNewProject, sendShortlistMail, sendShortlistCommentMail, sendRegisteredInterestCommentMail } from "../Util/nodemailer";
 import { addReviewQuestion } from "./summaryQuestionController";
 import taskModel from "../Models/taskModel";
 import { format } from "fast-csv";
@@ -2114,6 +2114,59 @@ export const sortList = async (req: any, res: Response) => {
         }
         const logs = [];
 
+        // Get bid manager data
+        let bidManagerData = null;
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+            bidManagerData = bidlatestTask[0].userDetails;
+        }
+
         for (const userId of userIds) {
             if (!project.sortListUserId.includes(userId)) {
                 project.sortListUserId.push(userId);
@@ -2132,6 +2185,13 @@ export const sortList = async (req: any, res: Response) => {
                 };
                 logs.push(logEntry);
 
+                // Send shortlist email (Mail 1)
+                console.log(user)
+                if (user && user.email) {
+                    sendShortlistMail(user.email, user.name, project, bidManagerData)
+                        .then(() => console.log(`Shortlist email sent to ${user.email}`))
+                        .catch(err => console.log(`Error sending shortlist email to ${user.email}:`, err));
+                }
             }
         }
         project.logs = [...(logs || []), ...(project.logs || [])];
@@ -2822,6 +2882,60 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
         if (dropUser) {
             let { userId, reason } = dropUser
             userId = new mongoose.Types.ObjectId(userId)
+
+            // Get bid manager data for email using task-based approach
+            let bidManagerData = null;
+            const bidlatestTask = await taskModel.aggregate([
+                {
+                    $match: {
+                        project: project._id,
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: {
+                            $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                {
+                    $match: {
+                        "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $limit: 1
+                },
+                {
+                    $project: {
+                        project: 1,
+                        assignTo: 1,
+                        dueDate: 1,
+                        userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                    }
+                }
+            ]);
+
+            if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+                bidManagerData = bidlatestTask[0].userDetails;
+            }
+
             if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
                 // project.dropUser.push({ userId, reason });
                 project.dropUser = [{ userId, reason: [{ comment: reason, date: new Date() }] }, ...(project.dropUser || [])]
@@ -2833,10 +2947,25 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                     type: "timeBased"
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
+
+                // Send shortlist comment email - when comment is added to shortlisted supplier
+                if (user && user.email && project.sortListUserId.includes(userId.toString())) {
+                    sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
+                        .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
+                        .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
+                }
             } else {
                 const existingDropUser = project.dropUser.find((dropUser: any) => dropUser.userId.equals(userId));
                 if (existingDropUser) {
                     existingDropUser.reason.unshift({ comment: reason, date: new Date() });
+
+                    // Send shortlist comment email
+                    const user: any = await userModel.findById(userId);
+                    if (user && user.email && project.sortListUserId.includes(userId.toString())) {
+                        sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
+                            .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
+                            .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
+                    }
                 }
                 project.markModified('dropUser');
             }
@@ -4995,6 +5124,66 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         project.register_interest = stillPending;
 
         await project.save();
+
+        // Send registered interest comment email
+        const supplier = await userModel.findById(supplierId).select('name email');
+        let bidManagerData = null;
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+            bidManagerData = bidlatestTask[0].userDetails;
+        }
+
+        if (supplier && supplier.email) {
+            sendRegisteredInterestCommentMail(supplier.email, supplier.companyName, project, bidManagerData)
+                .then(() => console.log(`Registered interest comment email sent to ${supplier.email}`))
+                .catch(err => console.log(`Error sending registered interest comment email to ${supplier.email}:`, err));
+        }
 
         return res.status(200).json({
             message: `Attendee status updated`,
