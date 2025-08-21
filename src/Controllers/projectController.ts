@@ -1726,12 +1726,11 @@ export const getProjects = async (req: any, res: Response) => {
 
         const totalInterestedCount = result[0]?.totalInterestedCount || 0;
 
-        // get total project count of attendee and non attendee
-        const attendeeCount = await projectModel.countDocuments({
+        const nonAttendeeCount = await projectModel.countDocuments({
             ...filter,
             register_interest: true });
 
-        const nonAttendeeCount = await projectModel.countDocuments({
+        const attendeeCount = await projectModel.countDocuments({
             ...filter,
             register_interest: false });
 
@@ -5005,7 +5004,9 @@ export const registerInterest = async (req: any, res: Response) => {
             if (suppliers.length === 0) {
                 return false;
             }
-            if (suppliers.length === 1 && suppliers[0]?.attendee === true) {
+            // agar sabhi suppliers ka attendee true hai
+            const allAttendee = suppliers.every(s => s?.attendee === true);
+            if (allAttendee) {
                 return false;
             }
             return true;
