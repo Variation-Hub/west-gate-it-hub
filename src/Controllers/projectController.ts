@@ -2101,6 +2101,7 @@ export const deleteProjectMultiple = async (req: Request, res: Response) => {
 export const sortList = async (req: any, res: Response) => {
     try {
         const { userIds, projectId } = req.body;
+        const { isMailSend } = req.query;
 
         const project = await projectModel.findById(projectId);
 
@@ -2186,7 +2187,7 @@ export const sortList = async (req: any, res: Response) => {
 
                 // Send shortlist email (Mail 1)
                 console.log(user)
-                if (user && user.email) {
+                if (user && user.email && isMailSend === 'true') {
                     sendShortlistMail(user.email, user.name, project, bidManagerData)
                         .then(() => console.log(`Shortlist email sent to ${user.email}`))
                         .catch(err => console.log(`Error sending shortlist email to ${user.email}:`, err));
@@ -2825,6 +2826,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
     try {
         const id = req.params.id;
         const { select, finalizedId, dropUser } = req.body
+        const { isMailSend } = req.query;
 
         const project = await projectModel.findById(id);
 
@@ -2948,7 +2950,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                 project.logs = [logEntry, ...(project.logs || [])];
 
                 // Send shortlist comment email - when comment is added to shortlisted supplier
-                if (user && user.email && project.sortListUserId.includes(userId.toString())) {
+                if (user && user.email && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
                     sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
                         .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
                         .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
@@ -2960,7 +2962,7 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
 
                     // Send shortlist comment email
                     const user: any = await userModel.findById(userId);
-                    if (user && user.email && project.sortListUserId.includes(userId.toString())) {
+                    if (user && user.email && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
                         sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
                             .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
                             .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
@@ -5096,6 +5098,7 @@ export const registerInterest = async (req: any, res: Response) => {
 export const updateAttendeeStatus = async (req: any, res: Response) => {
     try {
         const { projectId, supplierId, attendee, comment } = req.body;
+        const { isMailSend } = req.query;
 
         if (typeof attendee !== 'boolean') {
             return res.status(400).json({ message: "'attendee' must be true or false", status: false });
@@ -5180,7 +5183,7 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
             bidManagerData = bidlatestTask[0].userDetails;
         }
 
-        if (supplier && supplier.email) {
+        if (supplier && supplier.email && isMailSend === 'true') {
             sendRegisteredInterestCommentMail(supplier.email, supplier.companyName, project, bidManagerData)
                 .then(() => console.log(`Registered interest comment email sent to ${supplier.email}`))
                 .catch(err => console.log(`Error sending registered interest comment email to ${supplier.email}:`, err));
