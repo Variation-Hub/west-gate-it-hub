@@ -2187,12 +2187,17 @@ export const sortList = async (req: any, res: Response) => {
                 };
                 logs.push(logEntry);
 
-                // Send shortlist email (Mail 1)
-                console.log(user)
-                if (user && user.email && isMailSend === 'true') {
-                    sendShortlistMail(user.email, user.name, project, bidManagerData)
-                        .then(() => console.log(`Shortlist email sent to ${user.email}`))
-                        .catch(err => console.log(`Error sending shortlist email to ${user.email}:`, err));
+                // Send shortlist email (Mail 1) to all POC emails
+                if (user && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                    user.pocDetails.forEach((poc: any) => {
+                        if (poc.email) {
+                            sendShortlistMail(poc.email, user.name, project, bidManagerData)
+                                .then(() => console.log(`Shortlist email sent to POC ${poc.email}`))
+                                .catch(err => console.log(`Error sending shortlist email to POC ${poc.email}:`, err));
+                        }
+                    });
+                } else if (user && isMailSend === 'true') {
+                    console.log(`No POC details found for user ${user.name}`);
                 }
             }
         }
@@ -2951,23 +2956,35 @@ export const updateProjectForProjectManager = async (req: any, res: Response) =>
                 };
                 project.logs = [logEntry, ...(project.logs || [])];
 
-                // Send shortlist comment email - when comment is added to shortlisted supplier
-                if (user && user.email && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
-                    sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
-                        .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
-                        .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
+                // Send shortlist comment email to all POC emails - when comment is added to shortlisted supplier
+                if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                    user.pocDetails.forEach((poc: any) => {
+                        if (poc.email) {
+                            sendShortlistCommentMail(poc.email, user.name, project, bidManagerData)
+                                .then(() => console.log(`Shortlist comment email sent to POC ${poc.email}`))
+                                .catch(err => console.log(`Error sending shortlist comment email to POC ${poc.email}:`, err));
+                        }
+                    });
+                } else if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
+                    console.log(`No POC details found for user ${user.name}`);
                 }
             } else {
                 const existingDropUser = project.dropUser.find((dropUser: any) => dropUser.userId.equals(userId));
                 if (existingDropUser) {
                     existingDropUser.reason.unshift({ comment: reason, date: new Date() });
 
-                    // Send shortlist comment email
+                    // Send shortlist comment email to all POC emails
                     const user: any = await userModel.findById(userId);
-                    if (user && user.email && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
-                        sendShortlistCommentMail(user.email, user.name, project, bidManagerData)
-                            .then(() => console.log(`Shortlist comment email sent to ${user.email}`))
-                            .catch(err => console.log(`Error sending shortlist comment email to ${user.email}:`, err));
+                    if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                        user.pocDetails.forEach((poc: any) => {
+                            if (poc.email) {
+                                sendShortlistCommentMail(poc.email, user.name, project, bidManagerData)
+                                    .then(() => console.log(`Shortlist comment email sent to POC ${poc.email}`))
+                                    .catch(err => console.log(`Error sending shortlist comment email to POC ${poc.email}:`, err));
+                            }
+                        });
+                    } else if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
+                        console.log(`No POC details found for user ${user.name}`);
                     }
                 }
                 project.markModified('dropUser');
@@ -5132,7 +5149,7 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
         await project.save();
 
         // Send registered interest comment email
-        const supplier = await userModel.findById(supplierId).select('name email');
+        const supplier = await userModel.findById(supplierId).select('name email companyName pocDetails');
         let bidManagerData = null;
         const bidlatestTask = await taskModel.aggregate([
             {
@@ -5185,10 +5202,16 @@ export const updateAttendeeStatus = async (req: any, res: Response) => {
             bidManagerData = bidlatestTask[0].userDetails;
         }
 
-        if (supplier && supplier.email && isMailSend === 'true') {
-            sendRegisteredInterestCommentMail(supplier.email, supplier.companyName, project, bidManagerData)
-                .then(() => console.log(`Registered interest comment email sent to ${supplier.email}`))
-                .catch(err => console.log(`Error sending registered interest comment email to ${supplier.email}:`, err));
+        if (supplier && isMailSend === 'true' && supplier.pocDetails && supplier.pocDetails.length > 0) {
+            supplier.pocDetails.forEach((poc: any) => {
+                if (poc.email) {
+                    sendRegisteredInterestCommentMail(poc.email, supplier.name || 'Supplier', project, bidManagerData)
+                        .then(() => console.log(`Registered interest comment email sent to POC ${poc.email}`))
+                        .catch(err => console.log(`Error sending registered interest comment email to POC ${poc.email}:`, err));
+                }
+            });
+        } else if (supplier && isMailSend === 'true') {
+            console.log(`No POC details found for supplier ${supplier.name}`);
         }
 
         return res.status(200).json({
