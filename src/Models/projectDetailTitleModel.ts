@@ -29,6 +29,24 @@ const ProjectDetailTitleModel = new mongoose.Schema({
         enum: ['Text', 'Image'],
         default: 'Text',
     },
+    supplierResponses: [
+        {
+            supplierId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            status: {
+                type: String,
+                enum: ['approved', 'rejected'],
+                default: 'pending'
+            },
+            respondedAt: {
+                type: Date,
+                default: null
+            }
+        }
+    ],
     createdAt: {
         type: Date,
         default: Date.now
