@@ -229,7 +229,8 @@ export const getProject = async (req: any, res: Response) => {
                     supplierId: supplier.supplierId,
                     companyName: userDetails?.companyName || null,
                     comment: supplier.comment ? supplier.comment : null,
-                    attendeeUpdatedAt: supplier.attendeeUpdatedAt
+                    attendeeUpdatedAt: supplier.attendeeUpdatedAt || null,
+                    interestedAt: supplier.interestedAt || null
                 };
             });
         }
@@ -544,6 +545,11 @@ export const getProject = async (req: any, res: Response) => {
             ) || false;
         }
 
+        // if logged in user sortlisted then isSortisted=true
+        const isSortlisted = project.sortListUserId?.some(
+            (userId: any) => userId?.toString() === req.user._id.toString()
+        ) || false;
+
         // const projectTasks = await taskModel.aggregate([
         //     {
         //         $match: {
@@ -577,7 +583,8 @@ export const getProject = async (req: any, res: Response) => {
                 projectTasks: bidlatestTask, 
                 assignBidmanager,
                 assignFeasibilityUser,
-                isInterested
+                isInterested,
+                isSortlisted
             }
         });
     } catch (err: any) {

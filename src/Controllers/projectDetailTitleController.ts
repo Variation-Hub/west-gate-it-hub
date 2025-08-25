@@ -92,10 +92,11 @@ export const deleteProjectDetailsTitle = async (req: any, res: Response) => {
     }
 }
 
-export const updateProjectDetailsTitle = async (req: Request, res: Response) => {
+export const updateProjectDetailsTitle = async (req: any, res: Response) => {
     try {
         const id = req.params.id;
         const obj = req.body;
+        const userId = req.user._id;
 
         const existing = await projectDetailTitleModel.findById(id);
 
@@ -111,9 +112,22 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
             obj.images = [...existing.images, ...obj.images];
         }
 
+        let updateQuery: any = { $set: obj };
+
+        if (obj.status) {
+            updateQuery.$push = {
+                supplierResponses: {
+                    supplierId: userId,
+                    status: obj.status,
+                    respondedAt: new Date()
+                }
+            };
+            delete updateQuery.$set.status;
+        }
+
         const updatedProjectDetailTitle = await projectDetailTitleModel.findByIdAndUpdate(
             id,
-            { $set: obj },
+            updateQuery,
             { new: true, runValidators: true }
         );
 
@@ -129,7 +143,8 @@ export const updateProjectDetailsTitle = async (req: Request, res: Response) => 
             data: null
         });
     }
-}
+};
+
 
 export const deleteProjectDetailsTitleImage = async (req: Request, res: Response) => {
     try {
