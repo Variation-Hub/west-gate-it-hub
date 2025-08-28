@@ -1,5 +1,5 @@
 import * as express from 'express';
-import { selectUserForProject, addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile, exportProjectsToCSV, deleteDocument, removeFromSortList, registerInterest, updateAttendeeStatus, getInterestedSuppliers, deleteAttendeeComment, removeInterestedSupplier, getProjectsBySupplierInterest } from '../Controllers/projectController';
+import { selectUserForProject, addProjectStatusForSupplier, addProjectToMylist, applyProject, appointBidManagerToProject, appointUserToProject, approveOrRejectByAdmin, approveOrRejectFeasibilityStatus, createProject, deleteFiles, deleteProject, deleteProjectBidStatusComment, deleteProjectFailStatusReason, deleteProjectMultiple, deleteProjectStatusComment, deleteProjectdroppedAfterFeasibilityStatusReason, deleteProjectnosuppliermatchedStatusReason, getDashboardDataProjectCoOrdinator, getDashboardDataProjectManager, getDashboardDataSupplierAdmin, getDashboardDataUKWriter, getGapAnalysisData, getGapAnalysisDataDroppedAfterFeasibilityStatusReason, getGapAnalysisDatanosuppliermatchedStatusReason, getLatestProject, getProject, getProjectCountAndValueBasedOnStatus, getProjectLogs, getProjectSelectUser, getProjects, getSelectedUserDataUKWriter, getSupplierAdminList, mailSend, newProjectAddMail, sortList, updateProject, updateProjectForFeasibility, updateProjectForProjectManager, uploadFile, exportProjectsToCSV, deleteDocument, removeFromSortList, registerInterest, updateAttendeeStatus, getInterestedSuppliers, deleteAttendeeComment, removeInterestedSupplier, getProjectsBySupplierInterest, deleteMinimalRequirement, addOrUpdateMinimalRequirement, getMinimalRequirement, addOrUpdateSupplierResponse } from '../Controllers/projectController';
 import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 import { authorizeRoles, authorizeRolesWithoutError } from '../Controllers/Middleware/verifyToken';
 import { userRoles } from '../Util/contant';
@@ -77,5 +77,10 @@ projectRoutes.get("/export-csv", exportProjectsToCSV);
 // Get interested suppliers for a project
 projectRoutes.get("/interested-suppliers/:projectId", paginationMiddleware, authorizeRoles(), getInterestedSuppliers);
 
+//minimal-requirment
+projectRoutes.get("/:id/minimal-requirement", authorizeRoles(), paginationMiddleware, getMinimalRequirement);
+projectRoutes.post("/create/:id/minimal-requirement", authorizeRoles(), addOrUpdateMinimalRequirement)
+projectRoutes.delete("/delete/:id/minimal-requirement", authorizeRoles(), deleteMinimalRequirement);
+projectRoutes.post("/:id/minimal-requirement/respond", authorizeRoles(), addOrUpdateSupplierResponse);
 export default projectRoutes;
 
