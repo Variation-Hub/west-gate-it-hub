@@ -369,6 +369,34 @@ const projectModel = new mongoose.Schema({
         type: Date,
         default: null
     },
+    minimalRequirement: {
+        text: String,
+        description: String,
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true
+        },
+        createdAt: { type: Date, default: Date.now },
+    },
+    supplierResponses: [
+        {
+            supplierId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+                required: true
+            },
+            status: {
+                type: String,
+                enum: ['approved', 'rejected'],
+                default: 'pending'
+            },
+            respondedAt: {
+                type: Date,
+                default: null
+            }
+        }
+    ],
     createdAt: {
         type: Date,
         default: getCurrentISTTime

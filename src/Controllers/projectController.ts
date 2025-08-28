@@ -5488,3 +5488,116 @@ export const getInterestedSuppliers = async (req: any, res: Response) => {
         });
     }
 };
+
+// POST /projects/:id/minimal-requirement
+export const addOrUpdateMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const { text, description } = req.body;
+        const projectId = req.params.id;
+        const userId = req.user._id; // supplier admin
+
+        const project = await projectModel.findByIdAndUpdate(
+            projectId,
+            {
+                $set: {
+                    "minimalRequirement.text": text,
+                    "minimalRequirement.description": description
+                },
+                $setOnInsert: {
+                    "minimalRequirement.createdBy": userId,
+                    "minimalRequirement.createdAt": new Date()
+                }
+            },
+            { new: true, upsert: false }
+        );
+
+        return res.status(200).json({
+            message: "Requiment created successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// GET /projects/:id/minimal-requirement
+export const getMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const project = await projectModel.findById(req.params.id)
+            .select("minimalRequirement supplierResponses")
+            .populate("minimalRequirement.createdBy supplierResponses.supplierId", "name email");
+
+        return res.status(200).json({
+            message: "Data fetched successfully",
+            status: true,
+            data: project,
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// DELETE /projects/:id/minimal-requirement
+export const deleteMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+
+        const project = await projectModel.findByIdAndUpdate(
+            projectId,
+            { $unset: { minimalRequirement: "" }, $set: { supplierResponses: [] } },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Minimal requirement deleted",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// POST /projects/:id/minimal-requirement/respond
+export const addOrUpdateSupplierResponse = async (req: any, res: Response) => {
+    try {
+        const { status } = req.body; // "approved" or "rejected"
+        const projectId = req.params.id;
+        const supplierId = req.user._id; // supplier role
+
+        const project = await projectModel.findOneAndUpdate(
+            { _id: projectId, "supplierResponses.supplierId": supplierId },
+            {
+                $set: {
+                    "supplierResponses.$.status": status,
+                    "supplierResponses.$.respondedAt": new Date()
+                }
+            },
+            { new: true }
+        );
+
+        // if no existing response, push a new one
+        if (!project) {
+            await projectModel.findByIdAndUpdate(
+                projectId,
+                {
+                    $push: {
+                        supplierResponses: {
+                            supplierId,
+                            status,
+                            respondedAt: new Date()
+                        }
+                    }
+                },
+                { new: true }
+            );
+        }
+
+        return res.status(200).json({
+            message: "Supplier's response added successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
