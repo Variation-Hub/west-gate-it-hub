@@ -374,8 +374,7 @@ const projectModel = new mongoose.Schema({
         description: String,
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true
+            ref: 'User'
         },
         createdAt: { type: Date, default: Date.now },
     },
