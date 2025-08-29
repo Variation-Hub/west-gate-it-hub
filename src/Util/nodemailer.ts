@@ -22,7 +22,6 @@ export const fromMail = "ayush@westgateithub.in"
 
 export async function emailHelper(reciverEmail: string, password: string) {
     try {
-
         const template = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html dir="ltr" xmlns="http://www.w3.org/1999/xhtml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en"><head><meta charset="UTF-8"><meta content="width=device-width, initial-scale=1" name="viewport"><meta name="x-apple-disable-message-reformatting"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta content="telephone=no" name="format-detection"><title>New Template</title> <!--[if (mso 16)]><style type="text/css">     a {text-decoration: none;}     </style><![endif]--> <!--[if gte mso 9]><style>sup { font-size: 100% !important; }</style><![endif]--> <!--[if gte mso 9]><xml> <o:OfficeDocumentSettings> <o:AllowPNG></o:AllowPNG> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSettings> </xml>
         <![endif]--> <!--[if mso]><style type="text/css">      ul {   margin: 0 !important;   }   ol {   margin: 0 !important;   }   li {   margin-left: 47px !important;   }  </style>
         <![endif] --><style type="text/css">.rollover:hover .rollover-first { max-height:0px!important; display:none!important; } .rollover:hover .rollover-second { max-height:none!important; display:block!important; } .rollover span { font-size:0px; } u + .body img ~ div div { display:none; } #outlook a { padding:0; } span.MsoHyperlink,span.MsoHyperlinkFollowed { color:inherit; mso-style-priority:99; } a.es-button { mso-style-priority:100!important; text-decoration:none!important; } a[x-apple-data-detectors] { color:inherit!important; text-decoration:none!important; font-size:inherit!important; font-family:inherit!important; font-weight:inherit!important; line-height:inherit!important; } .es-desk-hidden { display:none; float:left; overflow:hidden; width:0; max-height:0; line-height:0; mso-hide:all; } .es-button-border:hover > a.es-button { color:#ffffff!important; }
@@ -302,6 +301,24 @@ export const transporterTest = nodemailer.createTransport({
         pass: "Abhishek23*",        // app password or mailbox password
     }
 });
+
+export async function sendMailForSupportChat(reciverEmail: string, html: string, subject: string) {
+    try {
+        await transporterTest.sendMail({
+            from: "no-reply@westgateithub.in",
+            to: reciverEmail,
+            subject: subject ? subject :"WestGate IT Hub Support Chat",
+            text: `WestGate IT Hub Support Chat`, // plain text body
+            html: html ? html : '<p>WestGate IT Hub Support Chat</p>'
+        });
+        console.log("sendMailForSupportChat successfully");``
+
+    } catch (err) {
+        console.log(err)
+    }
+
+}
+
 
 // Function to be used for the send mail to new register supplier for reset password 
 export async function sendRegisterMailToSupplier(receiverEmail: string) {

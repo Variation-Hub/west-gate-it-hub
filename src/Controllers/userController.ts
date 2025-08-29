@@ -506,7 +506,8 @@ export const fetchSuplierUser = async (req: any, res: Response) => {
         const supplierId = req.query?.userId || req.user.id;
         const count = await userModel.countDocuments(
             { role: userRoles.SupplierUser, supplierId },
-            { password: 0, categoryList: 0, supplierId: 0 })
+            // { password: 0, categoryList: 0, supplierId: 0, "avatar.url": 0, "avatar.public_id": 0 }
+        )
 
         const user = await userModel.find(
             { role: userRoles.SupplierUser, supplierId },

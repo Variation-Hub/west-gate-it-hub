@@ -23,6 +23,7 @@ import formDataRoute from './formDataRoutes';
 import poundRateRoute from './poundRateRoute';
 import tagRoute from './tagRoute';
 import cartRoute from './cartRoute';
+import supportChatRoute from './supportChatRoute';
 
 const Routes = express.Router();
 
@@ -50,5 +51,6 @@ Routes.use("/search-ui/formdata", formDataRoute);
 Routes.use("/pound-rate", poundRateRoute);
 Routes.use("/tags", tagRoute);
 Routes.use("/cart", cartRoute);
+Routes.use("/support-chat", supportChatRoute);
 
 export default Routes;
