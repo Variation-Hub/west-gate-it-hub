@@ -309,7 +309,7 @@ export const getTasks = async (req: any, res: Response) => {
             filter.pickACategory = pickACategory
         }
         if (project) {
-            filter.project = project
+            filter.project = new mongoose.Types.ObjectId(project);
         }
         if (type) {
             filter.type = type
