@@ -52,6 +52,10 @@ const masterListSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  supplierId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User"
   }
 },{ versionKey: false, minimize: false });
 
