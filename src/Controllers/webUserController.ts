@@ -870,13 +870,14 @@ export const updateSupplierExpertise = async (req: any, res: Response) => {
                     name: exp.name,
                     type: exp.type,
                     isSystem: false,
+                    supplierId: supplier._id
                 });
             }
             else {
                 if (exp.type.endsWith('-other')) {
                     await masterList.updateOne(
                         { _id: existsInMasterList._id },
-                        { $set: { type: exp.type, isSystem: false } }
+                        { $set: { type: exp.type, isSystem: false, supplierId: supplier._id } }
                     );
                 }
             }
@@ -937,6 +938,27 @@ export const getAlldata = async (req: any, res: Response) => {
                 { $match: queryObj },
                 { $sort: { createdAt: -1 } },
                 {
+                    $lookup: {
+                        from: "users",
+                        localField: "supplierId",
+                        foreignField: "_id",
+                        as: "supplierId",
+                        pipeline: [
+                            {
+                                $project: {
+                                    _id: 1,
+                                    name: 1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    $addFields: {
+                        supplierId: { $arrayElemAt: ["$supplierId", 0] }
+                    }
+                },
+                {
                     $group: {
                         _id: "$type",
                         items: { $push: "$$ROOT" }
@@ -987,6 +1009,7 @@ export const getAlldata = async (req: any, res: Response) => {
         }
 
         const data = await masterList.find(queryObj)
+            .populate('supplierId', 'name')
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
@@ -1132,7 +1155,8 @@ export const getUnapprovedExpertise = async (req: Request, res: Response) => {
         }
 
         const expertiseList = await masterList.find(query)
-            .select('_id name type tags isMandatory createdAt')
+            .select('_id name type tags isMandatory createdAt supplierId')
+            .populate('supplierId', 'name')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -1203,6 +1227,11 @@ export const addCustomItem = async (req: any, res: Response) => {
             isSystem: false,
             isMandatory: isMandatory ? isMandatory : false
         };
+
+        // attach supplier info if available from auth context
+        if (req.user?._id) {
+            itemData.supplierId = req.user._id;
+        }
 
         if (tags && Array.isArray(tags)) {
             itemData.tags = tags.map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0);
