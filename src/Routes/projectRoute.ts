@@ -9,7 +9,7 @@ import { mailForNewProject } from '../Util/nodemailer';
 const projectRoutes = express.Router();
 
 projectRoutes.post("/create", authorizeRoles(), createProject);
-projectRoutes.get("/list", paginationMiddleware, authorizeRolesWithoutError(), getProjects);
+projectRoutes.get("/list", paginationMiddleware, authorizeRoles(), getProjects);
 projectRoutes.get("/list/latest", getLatestProject);
 projectRoutes.get("/get/:id", authorizeRoles(), getProject);
 projectRoutes.patch("/update/:id", authorizeRoles(), updateProject);
