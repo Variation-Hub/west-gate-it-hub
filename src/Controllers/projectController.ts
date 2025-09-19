@@ -182,7 +182,9 @@ export const getProject = async (req: any, res: Response) => {
         } = req.query;
 
         // Get basic project data first
-        let project: any = await projectModel.findById(id).lean();
+        let project: any = await projectModel.findById(id)
+        .populate("adminStatusComment.userId", "name email")
+        .lean();
 
         if (!project) {
             return res.status(404).json({
@@ -4594,6 +4596,37 @@ export const approveOrRejectByAdmin = async (req: any, res: Response) => {
         });
     }
 }
+
+export const deleteAdminStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+
+        const project = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null
+            });
+        }
+
+        // Remove the comment
+        project.adminStatusComment = null;
+        await project.save();
+
+        return res.status(200).json({
+            message: "Admin status comment deleted successfully",
+            status: true,
+            data: project
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
 
 export const deleteProjectStatusComment = async (req: any, res: Response) => {
     try {
