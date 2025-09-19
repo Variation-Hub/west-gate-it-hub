@@ -316,7 +316,13 @@ const projectModel = new mongoose.Schema({
         default: null
     },
     adminStatusComment: {
-        type: mongoose.Schema.Types.Mixed
+        action: String,
+        comment: String,
+        userId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        timestamp: Date
     },
     adminStatusDate: {
         type: Date,
@@ -376,7 +382,11 @@ const projectModel = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },
-        createdAt: { type: Date },
+        createdAt: {
+            type: Date,
+            required: false,
+            default: undefined
+        }
     },
     supplierResponses: [
         {
