@@ -469,24 +469,47 @@ export const getTasks = async (req: any, res: Response) => {
 
         Tasks = Tasks.map((task: any) => {
             const taskObj = task;
+            const comments = taskObj.comments || [];
             const createdAt = moment(taskObj.createdAt).startOf('day');
             const today = moment().startOf('day');
-            const datewiseComments: any = { pinnedComments: []};
-
-            let currentDate = createdAt.clone();
+            const yesterday = today.clone().subtract(1, 'day');
+            const datewiseComments: any = { pinnedComments: [] };
+        
+            // Find earliest between createdAt & first comment date
+            const earliestCommentDate = comments.length > 0
+                ? moment.min(comments.map((c: any) => moment(c.date).startOf('day')))
+                : createdAt;
+        
+            let currentDate = moment.min(createdAt, earliestCommentDate).clone();
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                const commentsForDate = (taskObj.comments || [])
-                .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
-                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-                if (commentsForDate.length > 0 || (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7)) {
-                    datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
+                const commentsForDate = comments
+                    .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
+                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+                if (
+                    commentsForDate.length > 0 ||
+                    (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7) ||
+                    currentDate.isSame(yesterday, 'day')
+                ) {
+                    datewiseComments[dateStr] =
+                        commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
                 }
                 currentDate.add(1, 'day');
             }
-
-            datewiseComments.pinnedComments = (taskObj.comments || [])
+        
+            // yesterday is included if today has comments
+            const todayHasComments = comments.some((c: any) => moment(c.date).isSame(today, 'day'));
+            if (todayHasComments && !datewiseComments[yesterday.format('YYYY-MM-DD')]) {
+                const yComments = comments
+                    .filter((c: any) => moment(c.date).isSame(yesterday, 'day') && !c.pin)
+                    .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+                datewiseComments[yesterday.format('YYYY-MM-DD')] =
+                    yComments.length > 0 ? yComments : "No comments available for this date";
+            }
+        
+            datewiseComments.pinnedComments = comments
                 .filter((comment: any) => comment.pin)
                 .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime());
 

@@ -996,7 +996,7 @@ export const getProjects = async (req: any, res: Response) => {
             filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
         }
 
-        if (req.user?.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
+        if ((req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.ProcessManagerAdmin) && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
             delete filter.dueDate;
             const date = new Date();
             filter.$and = [
@@ -1011,7 +1011,7 @@ export const getProjects = async (req: any, res: Response) => {
             // statusNotInclude.push(projectStatus.DocumentsNotFound)
         }
 
-        if (req.user?.role === userRoles.ProjectManager && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
+        if ((req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.ProcessManagerAdmin) && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
             status.push(projectStatus.DocumentsNotFound)
         }
 
@@ -1156,7 +1156,8 @@ export const getProjects = async (req: any, res: Response) => {
             if (
                 req.user?.role === userRoles.FeasibilityAdmin ||
                 req.user?.role === userRoles.FeasibilityUser ||
-                req.user?.role === userRoles.ProjectManager
+                req.user?.role === userRoles.ProjectManager ||
+                req.user?.role === userRoles.ProcessManagerAdmin
             ) {
                 pipeline.push({
                     $match: {
@@ -1319,7 +1320,7 @@ export const getProjects = async (req: any, res: Response) => {
                 }))
         }
 
-        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin) {
+        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin || req.user?.role === userRoles.ProcessManagerAdmin) {
             projects = await Promise.all(
                 projects.map(async (project: any) => {
                     const result = await caseStudy.aggregate([
@@ -1387,7 +1388,7 @@ export const getProjects = async (req: any, res: Response) => {
                     },
                     {
                         $match: {
-                            "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                            "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either ProjectManager or ProcessManagerAdmin
                         }
                     },
                     {
@@ -1514,7 +1515,7 @@ export const getProjects = async (req: any, res: Response) => {
                     },
                     {
                         $match: {
-                            "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                            "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either
                         }
                     },
                     {
