@@ -710,9 +710,11 @@ export const getProjects = async (req: any, res: Response) => {
         clientType = clientType?.split(',');
         supplierId = supplierId?.split(',');
 
-        let filter: any = {}
+        let filter: any = {
+            BOSID: { $regex: /^MN_\d+/, $options: 'i' }
+        }
 
-        let sort: any = { publishDate: -1, createdAt: -1 };
+        let sort: any = { BOSID: 1, publishDate: -1, createdAt: -1 };
         if (keyword) {
             const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const data = (await taskModel.aggregate([
@@ -1276,6 +1278,7 @@ export const getProjects = async (req: any, res: Response) => {
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort(sort)
+            .select('BOSID')
             .populate('sortListUserId')
             .populate({
                 path: 'selectedUserIds.userId',
