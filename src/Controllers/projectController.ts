@@ -3696,7 +3696,7 @@ export const getProjectLogs = async (req: any, res: Response) => {
         }
 
         let logs: any = [];
-        if (req.user?.role === userRoles.Admin || req.user?.role === userRoles.ProcessManagerAdmin || req.user?.role === userRoles.FeasibilityAdmin) {
+        if (req.user?.role === userRoles.Admin || req.user?.role === userRoles.FeasibilityAdmin) {
             logs = project.logs;
         } else if (req.user?.role === userRoles.FeasibilityUser) {
             const isUserAppointed = project.appointedUserId.some((userId: any) => userId.equals(req.user._id));
