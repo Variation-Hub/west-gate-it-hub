@@ -1008,16 +1008,76 @@ export const getAlldata = async (req: any, res: Response) => {
             });
         }
 
+        const files = await FileModel.find({}).populate("supplierId", "name isDeleted");
+        const allSuppliers = await userModel.find(
+            { "expertise.name": { $exists: true } },
+            { expertise: 1, active: 1, isInHold: 1, isDeleted: 1, companyName: 1 }
+        ).lean();
+
         const data = await masterList.find(queryObj)
             .populate('supplierId', 'name')
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort({ createdAt: -1 });
 
+        let expertiseData = data.map((exp: any) => {
+            const expName = exp.name;
+
+            const suppliersForExp = allSuppliers.filter((user: any) =>
+                user.expertise.some((e: any) => e.name === expName)
+            );
+
+            const validSuppliers = suppliersForExp.filter((s: any) => !s.isDeleted && !s.isInHold);
+
+            const totalSupplierCount = validSuppliers.length;
+            const activeSupplierCount = validSuppliers.filter((s: any) => s.active).length;
+
+            const subExpertiseMap = new Map<string, { supplierName: string, files: any[] }[]>();
+
+            validSuppliers
+                .filter((s: any) => s.active)
+                .forEach((user: any) => {
+                    const matchedExp = user.expertise.find((e: any) => e.name === expName);
+                    matchedExp?.subExpertise?.forEach((sub: any) => {
+                        const supplierFiles = files.filter((file: any) =>
+                            file.supplierId?._id?.toString() === user._id.toString() &&
+                            file.subExpertise?.includes(sub) &&
+                            !(file.supplierId as any)?.isDeleted
+                        );
+
+                        if (!subExpertiseMap.has(sub)) {
+                            subExpertiseMap.set(sub, []);
+                        }
+
+                        subExpertiseMap.get(sub)?.push({
+                            supplierName: user.companyName || "Unknown",
+                            files: supplierFiles
+                        });
+                    });
+                });
+
+            const subExpertiseList = Array.from(subExpertiseMap.entries()).map(([name, suppliers]) => ({
+                name,
+                suppliers
+            }));
+
+            return {
+                _id: exp._id,
+                name: exp.name,
+                type: exp.type,
+                isSystem: exp.isSystem,
+                tags: exp.tags,
+                isMandatory: exp.isMandatory,
+                totalSupplierCount,
+                activeSupplierCount,
+                subExpertise: subExpertiseList,
+                subExpertiseCount: subExpertiseList.length
+            };
+        });
         return res.status(200).json({
             message: "Data successfully fetched",
             status: true,
-            data: data,
+            data: expertiseData,
             // meta_data: {
             //     page: req.pagination?.page,
             //     items: count,
