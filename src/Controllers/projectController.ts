@@ -711,7 +711,6 @@ export const getProjects = async (req: any, res: Response) => {
         supplierId = supplierId?.split(',');
 
         let filter: any = {
-            BOSID: { $regex: /^MN_\d+/, $options: 'i' }
         }
 
         let sort: any = { BOSID: 1, publishDate: -1, createdAt: -1 };
@@ -1278,7 +1277,6 @@ export const getProjects = async (req: any, res: Response) => {
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
             .sort(sort)
-            .select('BOSID')
             .populate('sortListUserId')
             .populate({
                 path: 'selectedUserIds.userId',
