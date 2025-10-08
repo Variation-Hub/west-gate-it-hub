@@ -710,11 +710,9 @@ export const getProjects = async (req: any, res: Response) => {
         clientType = clientType?.split(',');
         supplierId = supplierId?.split(',');
 
-        let filter: any = {
-            BOSID: { $regex: /^MN_\d+/, $options: 'i' }
-        }
+        let filter: any = { }
 
-        let sort: any = { BOSID: 1, publishDate: -1, createdAt: -1 };
+        let sort: any = { publishDate: -1, createdAt: -1 };
         if (keyword) {
             const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const data = (await taskModel.aggregate([
