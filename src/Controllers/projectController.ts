@@ -1329,6 +1329,7 @@ export const getProjects = async (req: any, res: Response) => {
                     const categories = Array.isArray(project.category)
                         ? project.category : project.category ? [project.category] : [];
 
+
                     const result = await caseStudy.aggregate([
                         { $match: { category: { $in: categories } } },
                         { $group: { _id: "$userId" } },
