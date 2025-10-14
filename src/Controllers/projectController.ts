@@ -433,7 +433,7 @@ export const getProject = async (req: any, res: Response) => {
             },
             {
                 $match: {
-                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                    "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either ProjectManager or ProcessManagerAdmin
                 }
             },
             {
