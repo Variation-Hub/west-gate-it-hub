@@ -110,11 +110,11 @@ export const createTask = async (req: any, res: Response) => {
                         as: "userDetails"
                     }
                 },
-                {
-                    $match: {
-                        "userDetails.role": user.role // Check if the role matches
-                    }
-                },
+                // {
+                //     $match: {
+                //         "userDetails.role": user.role // Check if the role matches
+                //     }
+                // },
                 {
                     $sort: { createdAt: -1 }
                 },
