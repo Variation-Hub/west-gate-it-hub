@@ -429,7 +429,22 @@ export const getTasks = async (req: any, res: Response) => {
 
         // Process tasks with user details
         Tasks = Tasks.map((task: any) => {
-            // Add user details to assignTo
+            // --- Convert comment dates to IST ---
+            (task.comments || []).forEach((c: any) => {
+                if (c.date) {
+                    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in ms
+                    c.date = new Date(c.date.getTime() + istOffset);
+                }
+                if (c.pinnedAt) {
+                    const istOffset = 5.5 * 60 * 60 * 1000;
+                    c.pinnedAt = new Date(c.pinnedAt.getTime() + istOffset);
+                }
+            });
+
+            if (task.comments) {
+                task.comments.sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
+            }
+
             if (task.assignTo) {
                 task.assignTo = task.assignTo.map((obj: any) => {
                     const userId = obj.userId?.toString();
@@ -440,82 +455,55 @@ export const getTasks = async (req: any, res: Response) => {
                 });
             }
 
-            // Sort and add user details to comments
             if (task.comments) {
-                task.comments.sort((a: any, b: any) => {
-                    if (a.pinnedAt && b.pinnedAt) {
-                        return b.pinnedAt - a.pinnedAt;
-                    } else if (a.pinnedAt) {
-                        return -1;
-                    } else if (b.pinnedAt) {
-                        return 1;
-                    } else {
-                        return b.date - a.date;
-                    }
-                });
-
-
-                task.comments = task.comments.map((obj: any) => {
-                    const userId = obj.userId?.toString();
+                task.comments = task.comments.map((c: any) => {
+                    const userId = c.userId?.toString();
                     if (userId && usersMap[userId]) {
-                        obj.userDetail = usersMap[userId];
+                        c.userDetail = usersMap[userId];
                     }
-                    return obj;
+                    return c;
                 });
             }
 
-            return task;
-        });
-
-        Tasks = Tasks.map((task: any) => {
-            const taskObj = task;
-            const createdAt = moment(taskObj.createdAt).startOf('day');
+            const datewiseComments: any = { pinnedComments: [] };
+            const createdAt = moment(task.createdAt).startOf('day');
             const today = moment().startOf('day');
-            const datewiseComments: any = { pinnedComments: []};
-
             let currentDate = createdAt.clone();
+
+            // Group comments by date (YYYY-MM-DD)
+            const commentsByDate: Record<string, any[]> = {};
+            (task.comments || []).forEach((c: any) => {
+                const dateKey = c.date.toISOString().split('T')[0];
+                if (!commentsByDate[dateKey]) commentsByDate[dateKey] = [];
+                commentsByDate[dateKey].push(c);
+            });
+
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                const commentsForDate = (taskObj.comments || [])
-                .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
-                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                const commentsForDate = commentsByDate[dateStr]; // Get the comments for the day
+                const isWeekend = currentDate.isoWeekday() === 6 || currentDate.isoWeekday() === 7;
 
-                if (commentsForDate.length > 0 || (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7)) {
-                    datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
+                if (commentsForDate || !isWeekend) {
+                    datewiseComments[dateStr] = commentsForDate || "No comments available for this date";
                 }
                 currentDate.add(1, 'day');
             }
 
-            datewiseComments.pinnedComments = (taskObj.comments || [])
-                .filter((comment: any) => comment.pin)
-                .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime());
+            // datewiseComments sort
+            task.datewiseComments = Object.fromEntries(
+                Object.entries(datewiseComments)
+                    .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA))) // sort keys descending
+            );
 
-            // Sort datewiseComments in descending order (pinned remains on top)
-            taskObj.datewiseComments = {
-                pinnedComments: datewiseComments.pinnedComments,
-                ...Object.fromEntries(
-                    Object.entries(datewiseComments)
-                        .filter(([key]) => key !== "pinnedComments")
-                        .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
-                )
-            };
+            // pinned comments sort
+            task.datewiseComments.pinnedComments = (task.comments || [])
+                .filter((c: any) => c.pin)
+                .sort((a: any, b: any) => (b.pinnedAt?.getTime() || 0) - (a.pinnedAt?.getTime() || 0));
 
-            const currentUserId = assignTo?.[0];
-            if (req?.user?.role === userRoles.Admin) {
-               // console.log('Admin view: All tasks and subtasks will be shown');
-            } else {
-                if (taskObj.subtasks && taskObj.subtasks.length > 0) {
-                    taskObj.subtasks = taskObj.subtasks.filter((subtask: any) =>
-                        subtask.resources?.some((r: any) => r.candidateId.toString() === currentUserId)
-                    );
-                }
+            //task.datewiseComments = datewiseComments;
 
-            }
-
-            return taskObj; // Return the modified object
+            return task;
         });
-
-
 
         return res.status(200).json({
             message: "Tasks fetch success",
