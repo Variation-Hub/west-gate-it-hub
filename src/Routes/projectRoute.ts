@@ -54,7 +54,7 @@ projectRoutes.delete("/delete/approve-reject-admin/:id", authorizeRoles(), delet
 // ProjectManager routes
 projectRoutes.get("/project-manager/dashboard", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getDashboardDataProjectManager);
 projectRoutes.get("/supplier-admin/list/:projectId", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), getSupplierAdminList);
-projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager, userRoles.Admin), updateProjectForProjectManager);
+projectRoutes.patch("/update/project-manager/:id", authorizeRoles(userRoles.ProjectManager, userRoles.Admin, userRoles.ProcessManagerAdmin), updateProjectForProjectManager);
 projectRoutes.patch("/update/appoint-bidmanager/:id", authorizeRoles(), appointBidManagerToProject);
 projectRoutes.patch("/update/my-list/:id", authorizeRoles(), addProjectToMylist);
 
