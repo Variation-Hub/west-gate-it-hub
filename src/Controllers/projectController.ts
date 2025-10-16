@@ -698,7 +698,7 @@ export const exportProjectsToCSV = async (req: any, res: any) => {
 
 export const getProjects = async (req: any, res: Response) => {
     try {
-        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest, attended } = req.query as any
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest, attended, queryRaised } = req.query as any
 
         category = category?.split(',');
         industry = industry?.split(',');
@@ -763,6 +763,10 @@ export const getProjects = async (req: any, res: Response) => {
                     { _id: data }
                 ]
             };
+        }
+
+        if (queryRaised === 'false') {
+            filter.status = { $ne: 'queryraised' };
         }
 
         if (category) {
