@@ -766,7 +766,7 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if (queryRaised === 'false') {
-            filter.status = { $ne: 'queryraised' };
+            filter.bidManagerStatus = { $ne: 'Query Raised' };
         }
 
         if (category) {
