@@ -1181,11 +1181,56 @@ export const getTask = async (req: any, res: Response) => {
             });
         }
 
-        return res.send({
+        // Collect all userIds from assignTo and comments
+        const userIds = new Set();
+        task.assignTo?.forEach((obj: any) => {
+            if (obj.userId) userIds.add(obj.userId.toString());
+        });
+        task.comments?.forEach((obj: any) => {
+            if (obj.userId) userIds.add(obj.userId.toString());
+        });
+
+        // Fetch user details
+        let usersMap: any = {};
+        if (userIds.size > 0) {
+            const users = await userModel.find(
+                { _id: { $in: Array.from(userIds) } },
+                "name email role"
+            ).lean();
+
+            usersMap = users.reduce((map: any, user: any) => {
+                map[user._id.toString()] = user;
+                return map;
+            }, {});
+        }
+
+        // Add user details into assignTo
+        if (task.assignTo) {
+            task.assignTo = task.assignTo.map((obj: any) => {
+                const userId = obj.userId?.toString();
+                if (userId && usersMap[userId]) {
+                    obj.userDetail = usersMap[userId];
+                }
+                return obj;
+            });
+        }
+
+        // Add user details into comments
+        if (task.comments) {
+            task.comments = task.comments.map((c: any) => {
+                const userId = c.userId?.toString();
+                if (userId && usersMap[userId]) {
+                    c.userDetail = usersMap[userId];
+                }
+                return c;
+            });
+        }
+
+        return res.status(200).json({
             message: "Task fetched successfully",
             status: true,
             data: task
-        })
+        });
     } catch (error: any) {
         return res.status(500).json({
             message: error.message,
@@ -1193,7 +1238,8 @@ export const getTask = async (req: any, res: Response) => {
             data: null
         });
     }
-}
+};
+
 
 
 
