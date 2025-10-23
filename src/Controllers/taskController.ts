@@ -145,7 +145,7 @@ export const createTask = async (req: any, res: Response) => {
                 );
 
                 const user: any = await userModel.findById(assignTo[0])
-                if (user.role === userRoles.ProjectManager) {
+                if (user.role === userRoles.ProjectManager || user.role === userRoles.ProcessManagerAdmin ) {
                     await projectModel.findByIdAndUpdate(req.body?.project, { bidManagerStatus: BidManagerStatus.Awaiting })
                 } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
                     await projectModel.findByIdAndUpdate(req.body?.project, { status: projectStatus.Awaiting })

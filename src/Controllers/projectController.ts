@@ -3420,7 +3420,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "Not Releted": 0
                         },
                         BidStatusCount: {
-                            "Shortlisted": 0,
+                            //"Shortlisted": 0,
                             "Awaiting": 0,
                             "Query Raised": 0,
                             "Go-NoGoStage1": 0,
@@ -3434,7 +3434,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                             "Nosuppliermatched": 0,
                         },
                         BidStatusValue: {
-                            "Shortlisted": 0,
+                            //"Shortlisted": 0,
                             "Awaiting": 0,
                             "Query Raised": 0,
                             "Go-NoGoStage1": 0,
@@ -3473,7 +3473,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Not Releted": 0
             },
             BidStatusCount: {
-                "Shortlisted": 0,
+                //"Shortlisted": 0,
                 "Awaiting": 0,
                 "Query Raised": 0,
                 "Go-NoGoStage1": 0,
@@ -3487,7 +3487,7 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                 "Nosuppliermatched": 0,
             },
             BidStatusValue: {
-                "Shortlisted": 0,
+                //"Shortlisted": 0,
                 "Awaiting": 0,
                 "Query Raised": 0,
                 "Go-NoGoStage1": 0,
@@ -3515,10 +3515,10 @@ export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Respon
                     data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
                 }
 
-                if (project.sortListUserId.length > 0) {
-                    data.BidStatusCount['Shortlisted']++
-                    data.BidStatusValue.Shortlisted += project.maxValue
-                }
+                // if (project.sortListUserId.length > 0) {
+                //     data.BidStatusCount['Shortlisted']++
+                //     data.BidStatusValue.Shortlisted += project.maxValue
+                // }
             }
 
         })
