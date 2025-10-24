@@ -172,10 +172,12 @@ export const createTask = async (req: any, res: Response) => {
         const task = await taskModel.create({ ...req.body, createdBy: req.user._id })
         if (task?.project && task?.assignTo?.length === 1 && Array.isArray(assignTo) && assignTo.length > 0) {
             const user: any = await userModel.findById(assignTo[0])
-            if (user && user.role === userRoles.ProjectManager) {
-                await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.Awaiting })
-            } else if (user && (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser)) {
-                await projectModel.findByIdAndUpdate(task.project, { status: projectStatus.Awaiting })
+            if (user) {
+                if (user.role === userRoles.ProjectManager || user.role === userRoles.ProcessManagerAdmin) {
+                    await projectModel.findByIdAndUpdate(task.project, { bidManagerStatus: BidManagerStatus.Awaiting })
+                } else if (user.role === userRoles.FeasibilityAdmin || user.role === userRoles.FeasibilityUser) {
+                    await projectModel.findByIdAndUpdate(task.project, { status: projectStatus.Awaiting })
+                }
             }
         }
         return res.status(200).json({
