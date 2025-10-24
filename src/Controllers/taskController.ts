@@ -6,6 +6,32 @@ import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
 import moment from 'moment';
 
+// Helper function to convert UTC date to IST
+const convertUTCToIST = (utcDate: Date): Date => {
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    return new Date(utcDate.getTime() + istOffset);
+};
+
+// Helper function to convert IST date to UTC for comparison
+const convertISTToUTC = (istDate: Date): Date => {
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    return new Date(istDate.getTime() - istOffset);
+};
+
+// Helper function to normalize date for timezone-aware comparison
+const normalizeDateForComparison = (date: any): Date => {
+    if (!date) return new Date();
+    
+    const dateObj = new Date(date);
+    
+    // If the date is already in UTC (from MongoDB), convert to IST for consistent comparison
+    if (dateObj.getTimezoneOffset() === 0) {
+        return convertUTCToIST(dateObj);
+    }
+    
+    return dateObj;
+};
+
 // Helper function to get date string in YYYY-MM-DD format using Asia/Calcutta timezone
 function getDateString(date: Date): string {
     // Convert to Asia/Calcutta timezone and get YYYY-MM-DD format
@@ -317,8 +343,9 @@ export const getTasks = async (req: any, res: Response) => {
             filter.type = type
         }
         if (status === 'DueDate passed') {
-            const date = new Date();
-            filter.dueDate = { $lt: date }
+            // Use IST timezone for due date comparison
+            const istNow = convertUTCToIST(new Date());
+            filter.dueDate = { $lt: istNow }
         } else if (status && status !== 'DueDate passed') {
             filter.status = status
         }
@@ -431,15 +458,13 @@ export const getTasks = async (req: any, res: Response) => {
 
         // Process tasks with user details
         Tasks = Tasks.map((task: any) => {
-            // --- Convert comment dates to IST ---
+            // --- Convert comment dates to IST using utility function ---
             (task.comments || []).forEach((c: any) => {
                 if (c.date) {
-                    const istOffset = 5.5 * 60 * 60 * 1000; // 5 hours 30 minutes in ms
-                    c.date = new Date(c.date.getTime() + istOffset);
+                    c.date = convertUTCToIST(new Date(c.date));
                 }
                 if (c.pinnedAt) {
-                    const istOffset = 5.5 * 60 * 60 * 1000;
-                    c.pinnedAt = new Date(c.pinnedAt.getTime() + istOffset);
+                    c.pinnedAt = convertUTCToIST(new Date(c.pinnedAt));
                 }
             });
 
@@ -580,11 +605,20 @@ export const addCommentToTask = async (req: any, res: Response) => {
         const today = moment(date || new Date()).startOf('day');
         const todayStr = today.format('YYYY-MM-DD');
 
+        // Convert IST date to UTC for MongoDB query
+        const istStartOfDay = new Date(date || new Date());
+        istStartOfDay.setHours(0, 0, 0, 0);
+        const utcStartOfDay = convertISTToUTC(istStartOfDay);
+        
+        const istEndOfDay = new Date(date || new Date());
+        istEndOfDay.setHours(23, 59, 59, 999);
+        const utcEndOfDay = convertISTToUTC(istEndOfDay);
+
         const allTasks = await taskModel.find({
             "comments.userId": userId,
             "comments.date": {
-                $gte: today.toDate(),
-                $lte: moment(date || new Date()).endOf('day').toDate()
+                $gte: utcStartOfDay,
+                $lte: utcEndOfDay
             }
         });
 
@@ -730,11 +764,20 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             const commentDate = moment(commentToUpdate.date).startOf('day');
             const commentDateStr = commentDate.format('YYYY-MM-DD');
 
+            // Convert IST date to UTC for MongoDB query
+            const istStartOfDay = new Date(commentToUpdate.date);
+            istStartOfDay.setHours(0, 0, 0, 0);
+            const utcStartOfDay = convertISTToUTC(istStartOfDay);
+            
+            const istEndOfDay = new Date(commentToUpdate.date);
+            istEndOfDay.setHours(23, 59, 59, 999);
+            const utcEndOfDay = convertISTToUTC(istEndOfDay);
+
             const allTasks = await taskModel.find({
                 "comments.userId": userId,
                 "comments.date": {
-                    $gte: commentDate.toDate(),
-                    $lte: moment(commentDate).endOf('day').toDate()
+                    $gte: utcStartOfDay,
+                    $lte: utcEndOfDay
                 }
             });
 
@@ -1252,9 +1295,9 @@ export const getTaskGraphData = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Start date and end date are required", status: false, data: null });
         }
 
-        // Parse dates and convert to Asia/Calcutta timezone for consistent handling
-        const parsedStartDate = new Date(startDate + 'T00:00:00+05:30'); // Asia/Calcutta timezone
-        const parsedEndDate = new Date(endDate + 'T23:59:59+05:30'); // Asia/Calcutta timezone
+        // Parse dates and convert to IST timezone for consistent handling
+        const parsedStartDate = convertISTToUTC(new Date(startDate + 'T00:00:00+05:30')); // Convert IST to UTC for MongoDB
+        const parsedEndDate = convertISTToUTC(new Date(endDate + 'T23:59:59+05:30')); // Convert IST to UTC for MongoDB
 
         if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
             return res.status(400).json({ message: "Invalid date format", status: false, data: null });

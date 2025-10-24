@@ -3686,10 +3686,38 @@ export const approveOrRejectFeasibilityStatus = async (req: any, res: Response) 
     }
 }
 
+// Helper function to convert UTC date to IST
+const convertUTCToIST = (utcDate: Date): Date => {
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    return new Date(utcDate.getTime() + istOffset);
+};
+
+// Helper function to convert IST date to UTC for comparison
+const convertISTToUTC = (istDate: Date): Date => {
+    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+    return new Date(istDate.getTime() - istOffset);
+};
+
+// Helper function to normalize date for timezone-aware comparison
+const normalizeDateForComparison = (date: any): Date => {
+    if (!date) return new Date();
+    
+    const dateObj = new Date(date);
+    
+    // If the date is already in UTC (from MongoDB), convert to IST for consistent comparison
+    if (dateObj.getTimezoneOffset() === 0) {
+        return convertUTCToIST(dateObj);
+    }
+    
+    return dateObj;
+};
+
 export const getProjectLogs = async (req: any, res: Response) => {
     try {
         const projectId = req.params.id;
         const logType = req.query.type;
+        const startDate = req.query.startDate;
+        const endDate = req.query.endDate;
 
         const project: any = await projectModel.findById(projectId);
         if (!project) {
@@ -3720,8 +3748,46 @@ export const getProjectLogs = async (req: any, res: Response) => {
             logs = logs.filter((log: any) => log.type === logType);
         }
 
+        // Apply date filtering with timezone conversion
+        if (startDate || endDate) {
+            logs = logs.filter((log: any) => {
+                const logDate = normalizeDateForComparison(log.date);
+                
+                if (startDate && endDate) {
+                    const start = normalizeDateForComparison(new Date(startDate));
+                    const end = normalizeDateForComparison(new Date(endDate));
+                    
+                    // Set time to start of day for startDate and end of day for endDate
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(23, 59, 59, 999);
+                    
+                    return logDate >= start && logDate <= end;
+                } else if (startDate) {
+                    const start = normalizeDateForComparison(new Date(startDate));
+                    start.setHours(0, 0, 0, 0);
+                    return logDate >= start;
+                } else if (endDate) {
+                    const end = normalizeDateForComparison(new Date(endDate));
+                    end.setHours(23, 59, 59, 999);
+                    return logDate <= end;
+                }
+                
+                return true;
+            });
+        }
+
+        // Sort logs with timezone-aware date comparison
         const formattedLogs = logs
-            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .sort((a: any, b: any) => {
+                const dateA = normalizeDateForComparison(a.date);
+                const dateB = normalizeDateForComparison(b.date);
+                return dateB.getTime() - dateA.getTime();
+            })
+            .map((log: any) => ({
+                ...log,
+                // Convert the date to IST for frontend consumption
+                date: convertUTCToIST(new Date(log.date)).toISOString()
+            }));
 
         return res.status(200).json({
             message: "Project Logs fatch successfully",
