@@ -6,32 +6,6 @@ import projectModel from "../Models/projectModel"
 import mongoose from "mongoose"
 import moment from 'moment';
 
-// Helper function to convert UTC date to IST
-const convertUTCToIST = (utcDate: Date): Date => {
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    return new Date(utcDate.getTime() + istOffset);
-};
-
-// Helper function to convert IST date to UTC for comparison
-const convertISTToUTC = (istDate: Date): Date => {
-    const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-    return new Date(istDate.getTime() - istOffset);
-};
-
-// Helper function to normalize date for timezone-aware comparison
-const normalizeDateForComparison = (date: any): Date => {
-    if (!date) return new Date();
-    
-    const dateObj = new Date(date);
-    
-    // If the date is already in UTC (from MongoDB), convert to IST for consistent comparison
-    if (dateObj.getTimezoneOffset() === 0) {
-        return convertUTCToIST(dateObj);
-    }
-    
-    return dateObj;
-};
-
 // Helper function to get date string in YYYY-MM-DD format using Asia/Calcutta timezone
 function getDateString(date: Date): string {
     // Convert to Asia/Calcutta timezone and get YYYY-MM-DD format
@@ -343,9 +317,8 @@ export const getTasks = async (req: any, res: Response) => {
             filter.type = type
         }
         if (status === 'DueDate passed') {
-            // Use IST timezone for due date comparison
-            const istNow = convertUTCToIST(new Date());
-            filter.dueDate = { $lt: istNow }
+            const date = new Date();
+            filter.dueDate = { $lt: date }
         } else if (status && status !== 'DueDate passed') {
             filter.status = status
         }
@@ -458,20 +431,7 @@ export const getTasks = async (req: any, res: Response) => {
 
         // Process tasks with user details
         Tasks = Tasks.map((task: any) => {
-            // --- Convert comment dates to IST using utility function ---
-            (task.comments || []).forEach((c: any) => {
-                if (c.date) {
-                    c.date = convertUTCToIST(new Date(c.date));
-                }
-                if (c.pinnedAt) {
-                    c.pinnedAt = convertUTCToIST(new Date(c.pinnedAt));
-                }
-            });
-
-            if (task.comments) {
-                task.comments.sort((a: any, b: any) => b.date.getTime() - a.date.getTime());
-            }
-
+            // Add user details to assignTo
             if (task.assignTo) {
                 task.assignTo = task.assignTo.map((obj: any) => {
                     const userId = obj.userId?.toString();
@@ -482,55 +442,82 @@ export const getTasks = async (req: any, res: Response) => {
                 });
             }
 
+            // Sort and add user details to comments
             if (task.comments) {
-                task.comments = task.comments.map((c: any) => {
-                    const userId = c.userId?.toString();
-                    if (userId && usersMap[userId]) {
-                        c.userDetail = usersMap[userId];
+                task.comments.sort((a: any, b: any) => {
+                    if (a.pinnedAt && b.pinnedAt) {
+                        return b.pinnedAt - a.pinnedAt;
+                    } else if (a.pinnedAt) {
+                        return -1;
+                    } else if (b.pinnedAt) {
+                        return 1;
+                    } else {
+                        return b.date - a.date;
                     }
-                    return c;
+                });
+
+
+                task.comments = task.comments.map((obj: any) => {
+                    const userId = obj.userId?.toString();
+                    if (userId && usersMap[userId]) {
+                        obj.userDetail = usersMap[userId];
+                    }
+                    return obj;
                 });
             }
 
-            const datewiseComments: any = { pinnedComments: [] };
-            const createdAt = moment(task.createdAt).startOf('day');
+            return task;
+        });
+
+        Tasks = Tasks.map((task: any) => {
+            const taskObj = task;
+            const createdAt = moment(taskObj.createdAt).startOf('day');
             const today = moment().startOf('day');
+            const datewiseComments: any = { pinnedComments: []};
+
             let currentDate = createdAt.clone();
-
-            // Group comments by date (YYYY-MM-DD)
-            const commentsByDate: Record<string, any[]> = {};
-            (task.comments || []).forEach((c: any) => {
-                const dateKey = c.date.toISOString().split('T')[0];
-                if (!commentsByDate[dateKey]) commentsByDate[dateKey] = [];
-                commentsByDate[dateKey].push(c);
-            });
-
             while (currentDate.isSameOrBefore(today, 'day')) {
                 const dateStr = currentDate.format('YYYY-MM-DD');
-                const commentsForDate = commentsByDate[dateStr]; // Get the comments for the day
-                const isWeekend = currentDate.isoWeekday() === 6 || currentDate.isoWeekday() === 7;
+                const commentsForDate = (taskObj.comments || [])
+                .filter((comment: any) => moment(comment.date).isSame(currentDate, 'day') && !comment.pin)
+                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-                if (commentsForDate || !isWeekend) {
-                    datewiseComments[dateStr] = commentsForDate || "No comments available for this date";
+                if (commentsForDate.length > 0 || (currentDate.isoWeekday() !== 6 && currentDate.isoWeekday() !== 7)) {
+                    datewiseComments[dateStr] = commentsForDate.length > 0 ? commentsForDate : "No comments available for this date";
                 }
                 currentDate.add(1, 'day');
             }
 
-            // datewiseComments sort
-            task.datewiseComments = Object.fromEntries(
-                Object.entries(datewiseComments)
-                    .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA))) // sort keys descending
-            );
+            datewiseComments.pinnedComments = (taskObj.comments || [])
+                .filter((comment: any) => comment.pin)
+                .sort((a: any, b: any) => new Date(b.pinnedAt).getTime() - new Date(a.pinnedAt).getTime());
 
-            // pinned comments sort
-            task.datewiseComments.pinnedComments = (task.comments || [])
-                .filter((c: any) => c.pin)
-                .sort((a: any, b: any) => (b.pinnedAt?.getTime() || 0) - (a.pinnedAt?.getTime() || 0));
+            // Sort datewiseComments in descending order (pinned remains on top)
+            taskObj.datewiseComments = {
+                pinnedComments: datewiseComments.pinnedComments,
+                ...Object.fromEntries(
+                    Object.entries(datewiseComments)
+                        .filter(([key]) => key !== "pinnedComments")
+                        .sort(([dateA], [dateB]) => moment(dateB).diff(moment(dateA)))
+                )
+            };
 
-            //task.datewiseComments = datewiseComments;
+            const currentUserId = assignTo?.[0];
+            if (req?.user?.role === userRoles.Admin) {
+               // console.log('Admin view: All tasks and subtasks will be shown');
+            } else {
+                if (taskObj.subtasks && taskObj.subtasks.length > 0) {
+                    taskObj.subtasks = taskObj.subtasks.filter((subtask: any) =>
+                        subtask.resources?.some((r: any) => r.candidateId.toString() === currentUserId)
+                    );
+                }
 
-            return task;
+            }
+
+            return taskObj; // Return the modified object
         });
+
+
 
         return res.status(200).json({
             message: "Tasks fetch success",
@@ -605,20 +592,11 @@ export const addCommentToTask = async (req: any, res: Response) => {
         const today = moment(date || new Date()).startOf('day');
         const todayStr = today.format('YYYY-MM-DD');
 
-        // Convert IST date to UTC for MongoDB query
-        const istStartOfDay = new Date(date || new Date());
-        istStartOfDay.setHours(0, 0, 0, 0);
-        const utcStartOfDay = convertISTToUTC(istStartOfDay);
-        
-        const istEndOfDay = new Date(date || new Date());
-        istEndOfDay.setHours(23, 59, 59, 999);
-        const utcEndOfDay = convertISTToUTC(istEndOfDay);
-
         const allTasks = await taskModel.find({
             "comments.userId": userId,
             "comments.date": {
-                $gte: utcStartOfDay,
-                $lte: utcEndOfDay
+                $gte: today.toDate(),
+                $lte: moment(date || new Date()).endOf('day').toDate()
             }
         });
 
@@ -764,20 +742,11 @@ export const updateCommentToTask = async (req: any, res: Response) => {
             const commentDate = moment(commentToUpdate.date).startOf('day');
             const commentDateStr = commentDate.format('YYYY-MM-DD');
 
-            // Convert IST date to UTC for MongoDB query
-            const istStartOfDay = new Date(commentToUpdate.date);
-            istStartOfDay.setHours(0, 0, 0, 0);
-            const utcStartOfDay = convertISTToUTC(istStartOfDay);
-            
-            const istEndOfDay = new Date(commentToUpdate.date);
-            istEndOfDay.setHours(23, 59, 59, 999);
-            const utcEndOfDay = convertISTToUTC(istEndOfDay);
-
             const allTasks = await taskModel.find({
                 "comments.userId": userId,
                 "comments.date": {
-                    $gte: utcStartOfDay,
-                    $lte: utcEndOfDay
+                    $gte: commentDate.toDate(),
+                    $lte: moment(commentDate).endOf('day').toDate()
                 }
             });
 
@@ -1261,16 +1230,14 @@ export const getTask = async (req: any, res: Response) => {
         }
 
         // Add user details into comments
-        if (task.comments && Array.isArray(task.comments)) {
-            task.comments = task.comments
-                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) // sort by date desc
-                .map((c: any) => {
-                    const userId = c.userId?.toString();
-                    if (userId && usersMap[userId]) {
-                        c.userDetail = usersMap[userId];
-                    }
-                    return c;
-                });
+        if (task.comments) {
+            task.comments = task.comments.map((c: any) => {
+                const userId = c.userId?.toString();
+                if (userId && usersMap[userId]) {
+                    c.userDetail = usersMap[userId];
+                }
+                return c;
+            });
         }
 
         return res.status(200).json({
@@ -1297,9 +1264,9 @@ export const getTaskGraphData = async (req: any, res: Response) => {
             return res.status(400).json({ message: "Start date and end date are required", status: false, data: null });
         }
 
-        // Parse dates and convert to IST timezone for consistent handling
-        const parsedStartDate = convertISTToUTC(new Date(startDate + 'T00:00:00+05:30')); // Convert IST to UTC for MongoDB
-        const parsedEndDate = convertISTToUTC(new Date(endDate + 'T23:59:59+05:30')); // Convert IST to UTC for MongoDB
+        // Parse dates and convert to Asia/Calcutta timezone for consistent handling
+        const parsedStartDate = new Date(startDate + 'T00:00:00+05:30'); // Asia/Calcutta timezone
+        const parsedEndDate = new Date(endDate + 'T23:59:59+05:30'); // Asia/Calcutta timezone
 
         if (isNaN(parsedStartDate.getTime()) || isNaN(parsedEndDate.getTime())) {
             return res.status(400).json({ message: "Invalid date format", status: false, data: null });
