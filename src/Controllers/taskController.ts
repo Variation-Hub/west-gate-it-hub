@@ -1310,7 +1310,11 @@ export const getTaskGraphData = async (req: any, res: Response) => {
             userModel.find(userIdArray.length ? { _id: { $in: userIdArray } } : {}).select("name email role")
         ]);
 
-        const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate, status, userIdArray);
+        const allOngoingTasks = await taskModel.find({ status: "Ongoing" })
+            .populate('assignTo.userId')
+            .lean();
+
+        const graphData = processGraphData(tasks, users, parsedStartDate, parsedEndDate, status, userIdArray, allOngoingTasks);
 
         // Get date strings for the response
         const startDateStr = getDateString(parsedStartDate);
@@ -1333,7 +1337,7 @@ export const getTaskGraphData = async (req: any, res: Response) => {
     }
 };
 
-function processGraphData(tasks: any[], users: any[], start: Date, end: Date, statusFilter?: string, selectedUserIds?: string[]) {
+function processGraphData(tasks: any[], users: any[], start: Date, end: Date, statusFilter?: string, selectedUserIds?: string[], allOngoingTasks?: any[]) {
     const result = {
         byUser: {} as any,
         byDate: {} as any,
@@ -2021,6 +2025,35 @@ function processGraphData(tasks: any[], users: any[], start: Date, end: Date, st
 
     correctSummary.totalWorkingHours = +(correctSummary.totalWorkingMinutes / 60).toFixed(2);
     correctSummary.totalWorkingHoursFormatted = formatMinutesToHoursAndMinutes(correctSummary.totalWorkingMinutes);
+
+    // Add overall ongoingTasks count user-wise
+    if (allOngoingTasks) {
+        for (const task of allOngoingTasks) {
+            for (const assignee of task.assignTo || []) {
+                const userId = assignee.userId?._id?.toString() || assignee.userId?.toString();
+                if (!userId) continue;
+
+                let userEntry: any = processedByUser.find(
+                    (u: any) => u.user.id?.toString() === userId
+                );
+
+                if (!userEntry) {
+                    userEntry = {
+                        user: getUserInfo(userId),
+                        tasks: [],
+                        completedTasks: 0,
+                        pendingTasks: 0,
+                        pendingTasksWithAutoComments: 0,
+                        totalHours: 0,
+                        ongoingTasks: 0,
+                    };
+                    processedByUser.push(userEntry);
+                }
+
+                userEntry.ongoingTasks = (userEntry.ongoingTasks || 0) + 1;
+            }
+        }
+    }
 
     return {
         byUser: processedByUser,
