@@ -1230,14 +1230,16 @@ export const getTask = async (req: any, res: Response) => {
         }
 
         // Add user details into comments
-        if (task.comments) {
-            task.comments = task.comments.map((c: any) => {
-                const userId = c.userId?.toString();
-                if (userId && usersMap[userId]) {
-                    c.userDetail = usersMap[userId];
-                }
-                return c;
-            });
+        if (task.comments && Array.isArray(task.comments)) {
+            task.comments = task.comments
+                .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()) // sort by date desc
+                .map((c: any) => {
+                    const userId = c.userId?.toString();
+                    if (userId && usersMap[userId]) {
+                        c.userDetail = usersMap[userId];
+                    }
+                    return c;
+                });
         }
 
         return res.status(200).json({
