@@ -1739,8 +1739,7 @@ export const getProjects = async (req: any, res: Response) => {
         // Get total interested count
         const result = await projectModel.aggregate([
             { $match: filter },
-            { $unwind: '$interestedSuppliers' },
-            { $match: { 'interestedSuppliers.attendee': false } },
+            { $match: { 'interestedSuppliers': { $exists: true, $not: { $size: 0 } } } },
             { $count: 'totalInterestedCount' }
         ]);
 
