@@ -5356,22 +5356,35 @@ export const removeInterestedSupplier = async (req: any, res: Response) => {
 // Get projects where supplier has shown interest
 export const getProjectsBySupplierInterest = async (req: any, res: Response) => {
     try {
-        const { supplierId } = req.query;
+        const { supplierId, keyword } = req.query;
         const { limit = 10, skip = 0 } = req.pagination || {};
 
         if (!supplierId) {
             return res.status(400).json({ message: "Supplier ID is required", status: false });
         }
 
-        // Get total count
-        const totalCount = await projectModel.countDocuments({
+        let filter: any = {
             "interestedSuppliers.supplierId": supplierId
-        });
+        };
+
+        if (keyword) {
+            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            const regex = { $regex: safeKeyword, $options: "i" };
+
+            filter.$or = [
+                { projectName: regex },
+                { clientName: regex },
+                { BOSID: regex },
+                { website: regex },
+                { noticeReference: regex }
+            ];
+        }
+        // Get total count
+        const totalCount = await projectModel.countDocuments(filter);
 
         // Get projects with pagination
-        const projects = await projectModel.find({
-            "interestedSuppliers.supplierId": supplierId
-        })
+        const projects = await projectModel.find(filter)
         .select('projectName status bidManagerStatus categorisation BOSID clientName maxValue category industry projectType createdAt interestedSuppliers')
         .skip(skip)
         .limit(limit)
