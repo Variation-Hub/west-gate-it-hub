@@ -5655,3 +5655,37 @@ export const addOrUpdateSupplierResponse = async (req: any, res: Response) => {
     }
 };
 
+export const searchProjectsByName = async (req: Request, res: Response) => {
+  try {
+    const { keyword } = req.query;
+
+    if (!keyword || typeof keyword !== "string") {
+      return res.status(400).json({
+        status: false,
+        message: "Please provide a keyword to search",
+      });
+    }
+
+    // Escape special regex characters
+    const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Search by projectName using case-insensitive regex
+    const projects = await projectModel
+      .find({ projectName: { $regex: safeKeyword, $options: "i" } })
+      .select("projectName BOSID createdAt publishDate")
+      .sort({ createdAt: -1 }) // newest first
+      .limit(20) // optional limit for performance
+      .lean();
+
+    return res.status(200).json({
+      status: true,
+      message: "Projects fetched successfully",
+      data: projects,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      status: false,
+      message: err.message,
+    });
+  }
+};
