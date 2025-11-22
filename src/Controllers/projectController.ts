@@ -797,12 +797,12 @@ export const getProjects = async (req: any, res: Response) => {
         }
 
         if(attended == 'true') {
-            filter.register_interest = true;
+            filter.register_interest = false;
             sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
         if(attended == 'false') {
-            filter.register_interest = false;
+            filter.register_interest = true;
             sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
