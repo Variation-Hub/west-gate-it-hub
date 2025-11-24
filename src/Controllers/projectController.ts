@@ -4001,7 +4001,7 @@ export const getGapAnalysisData = async (req: any, res: Response) => {
         if (startDate && endDate) {
             createdAtFilter = {
                 ...createdAtFilter,
-                createdAt: {
+                publishDate: {
                     $gte: new Date(startDate),
                     $lte: new Date(endDate)
                 },
@@ -4109,7 +4109,7 @@ export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req:
         if (startDate && endDate) {
             createdAtFilter = {
                 ...createdAtFilter,
-                createdAt: {
+                publishDate: {
                     $gte: new Date(startDate),
                     $lte: new Date(endDate)
                 },
@@ -4329,7 +4329,7 @@ export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, 
         if (startDate && endDate) {
             createdAtFilter = {
                 ...createdAtFilter,
-                createdAt: {
+                publishDate: {
                     $gte: new Date(startDate),
                     $lte: new Date(endDate)
                 },
