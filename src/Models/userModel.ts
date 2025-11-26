@@ -76,6 +76,11 @@ const userModel = new mongoose.Schema({
     supplierId: {
         type: mongoose.Schema.Types.ObjectId,
     },
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
     location: {
         type: String,
         default: "",
@@ -107,6 +112,11 @@ const userModel = new mongoose.Schema({
     active: {
         type: Boolean,
         default: true
+    },
+    activeAt: {
+        type: Date,
+        required: function (this: any) { return this.active === true },
+        default: null
     },
     activeStatus: {
         type: [mongoose.Schema.Types.Mixed],

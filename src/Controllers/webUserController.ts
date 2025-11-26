@@ -40,7 +40,7 @@ const sendMail = async (data: any) => {
 
 }
 
-export const registerWebUser = async (req: Request, res: Response) => {
+export const registerWebUser = async (req: any, res: Response) => {
     try {
         const { companyName } = req.body
         const user = await userModel.findOne({ companyName })
@@ -68,6 +68,7 @@ export const registerWebUser = async (req: Request, res: Response) => {
         req.body.active = false
         req.body.isInHold = true
         req.body.name = companyName
+        req.body.createdBy = req.user._id
         const newUser: any = await userModel.create(req.body)
 
         await sendMail(req.body);

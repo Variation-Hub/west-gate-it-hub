@@ -199,6 +199,7 @@ export const updateUser = async (req: any, res: Response) => {
         }
 
         if (updateData.active === true) {
+            user.activeAt = new Date();
             if (user.subcontractingSupplier) {
                 let countCaseStudy = await caseStudy.find({ userId: id })
 
@@ -615,7 +616,8 @@ export const fetchSuplierAdmin = async (req: any, res: Response) => {
         let user = await userModel.find(query)
             .limit(req.pagination?.limit as number)
             .skip(req.pagination?.skip as number)
-            .sort({ active: -1, createdAt: -1 });
+            .sort({ active: -1, createdAt: -1 })
+            .populate({ path: 'createdBy', select: 'name' });
 
         //console.log("user", user)
 
@@ -1029,7 +1031,7 @@ export const getUserDetails = async (req: any, res: Response) => {
 
         const userID = req.user.id;
 
-        const user = await userModel.findById(userID).select({ password: 0 });;
+        const user = await userModel.findById(userID).select({ password: 0 }).populate({ path: 'createdBy', select: 'name' });;
 
         if (!user) {
             return res.status(404).json({
@@ -1058,7 +1060,7 @@ export const getSupplierDetails = async (req: any, res: Response) => {
         const userID = req.params.id;
         const { expertise } = req.query;
         const loggedInUser = req.user;
-        const user = await userModel.findById(userID).select({ password: 0 });;
+        const user = await userModel.findById(userID).select({ password: 0 }).populate({ path: 'createdBy', select: 'name' });
 
         if (!user) {
             return res.status(404).json({
