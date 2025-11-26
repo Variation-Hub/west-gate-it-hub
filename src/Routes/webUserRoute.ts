@@ -6,7 +6,7 @@ import { paginationMiddleware } from '../Controllers/Middleware/pagination';
 
 const webUserRoutes = express.Router();
 
-webUserRoutes.post("/register", registerWebUser);
+webUserRoutes.post("/register", authorizeRoles(), registerWebUser);
 webUserRoutes.post("/login", loginWebUser);
 webUserRoutes.post("/register/mail-send", registerSendMail);
 webUserRoutes.get("/get", authorizeRoles(), getWebUser);
