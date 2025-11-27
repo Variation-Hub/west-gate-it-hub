@@ -78,8 +78,7 @@ const userModel = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+        ref: 'User'
     },
     location: {
         type: String,
@@ -115,7 +114,6 @@ const userModel = new mongoose.Schema({
     },
     activeAt: {
         type: Date,
-        required: function (this: any) { return this.active === true },
         default: null
     },
     activeStatus: {
