@@ -1,0 +1,5693 @@
+import { Request, Response } from "express";
+import projectModel from "../Models/projectModel";
+import mongoose, { AnyArray, Mongoose } from "mongoose";
+import foiModel from "../Models/foiModel";
+import mailScreenshotModel from "../Models/mailScreenshotModel";
+import { adminStatus, BidManagerStatus, feasibilityStatus, projectStatus, projectStatus1, taskStatus, userRoles } from "../Util/contant";
+import caseStudy from "../Models/caseStudy";
+import userModel from "../Models/userModel";
+import { deleteFromBackblazeB2, uploadMultipleFilesBackblazeB2, uploadToBackblazeB2 } from "../Util/aws";
+import summaryQuestionModel from "../Models/summaryQuestionModel";
+import { mailForFeasibleTimeline, mailForNewProject, sendShortlistMail, sendShortlistCommentMail, sendRegisteredInterestCommentMail } from "../Util/nodemailer";
+import { addReviewQuestion } from "./summaryQuestionController";
+import taskModel from "../Models/taskModel";
+import { format } from "fast-csv";
+
+async function getCategoryWithUserIds() {
+    try {
+        const result = await caseStudy.aggregate([
+            {
+                $group: {
+                    _id: "$category",
+                    userIds: { $addToSet: "$userId" }
+                }
+            },
+            {
+                $project: {
+                    category: "$_id",
+                    userIds: 1,
+                    _id: 0
+                }
+            }
+        ]);
+
+        return result;
+    } catch (error) {
+        throw error;
+    }
+}
+
+export const createProject = async (req: any, res: Response) => {
+    try {
+        const { data } = req.body;
+
+        if (!Array.isArray(data) || data.length === 0) {
+            return res.status(400).json({
+                message: "No data provided or invalid format.",
+                status: false,
+                data: null
+            });
+        }
+
+        if (data?.length == 1) {
+            const existingProject = await projectModel.findOne({ BOSID: data?.[0]?.BOSID });
+            if (existingProject) {
+                return res.status(400).json({
+                    message: `${data?.[0]?.BOSID} BossId already exist.`,
+                    status: false,
+                    data: null
+                });
+            }
+        }
+
+        const insertedProjects = [];
+        const updatedProjects = [];
+        const casestudyData = await getCategoryWithUserIds();
+
+        const allowedProjectTypes = ["Product", "Development/Service", "StaffAugmentation"];
+
+        for (const project of data) {
+            try {
+                // Validate projectType
+                project.projectType = Array.isArray(project.projectType)
+                    ? project.projectType
+                        .map((type: string) => type.replace(/^,|,$/g, "").trim())
+                        .filter((type: string) => allowedProjectTypes.includes(type))
+                    : [];
+
+                // If no valid projectType, set it to [""]
+                if (project.projectType.length === 0) {
+                    project.projectType = [""];
+                }
+
+                project.expiredData = (() => {
+                    const matchedCategory = casestudyData.find(data =>
+                        data.category === project.category
+                        // project.category.some((category: string) => category === data.category)
+                    );
+                    if (matchedCategory) {
+                        return matchedCategory.userIds.map((userId: string) => ({
+                            supplierId: userId,
+                            date: new Date(new Date().getTime() + 48 * 60 * 60 * 1000)
+                        }));
+                    }
+                    return [];
+                })();
+
+                const newStatusHistory = [{
+                    status: projectStatus.Awaiting,
+                    date: new Date(),
+                    userId: req.user.id,
+                }];
+
+                const loginUser: any = await userModel.findById(req.user._id);
+
+                const logEntry = {
+                    log: `${loginUser.name} was created project on ${new Date().toLocaleString("en-GB", { timeZone: "Asia/Kolkata", hour12: false })}`,
+                    userId: req.user._id,
+                    date: new Date(),
+                    type: "projectBased"
+                };
+                const existingProject = await projectModel.findOne({ BOSID: project.BOSID });
+
+                if (existingProject) {
+                    const { statusHistory, logs, ...projectWithoutArrays } = project;
+                    // Update existing record
+                    const updatedProject = await projectModel.findOneAndUpdate(
+                        { BOSID: project.BOSID },
+                        { $set: projectWithoutArrays },
+                        { new: true }
+                    );
+
+                    // Add bidManagerStatus entry to statusHistory if it's updated
+                    if (project.bidManagerStatus && project.bidManagerStatus !== existingProject.bidManagerStatus) {
+                        await projectModel.findOneAndUpdate(
+                            { BOSID: project.BOSID },
+                            {
+                                $push: {
+                                    statusHistory: {
+                                        bidManagerStatus: project.bidManagerStatus,
+                                        date: new Date(),
+                                        userId: req.user.id
+                                    }
+                                }
+                            }
+                        );
+                    }
+
+                    updatedProjects.push(updatedProject);
+                } else {
+
+                    project.statusHistory = newStatusHistory;
+                    project['logs'] = [logEntry];
+
+                    // Insert new record
+                    const newProject = await projectModel.create(project);
+                    insertedProjects.push(newProject);
+                }
+            } catch (err: any) {
+                return res.status(500).json({
+                    message: err.message,
+                    status: false,
+                    data: null
+                });
+            }
+        }
+
+        return res.status(200).json({
+            message: "Projects processed successfully",
+            status: true,
+            inserted: insertedProjects,
+            updated: updatedProjects
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+
+export const getProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const {
+            //includeHistory = 'false',
+            //includeComments = 'false',
+            //includeSelect = 'false',
+            //includeSortlisted = 'false',
+            //includeBasic = 'true'
+        } = req.query;
+
+        // Get basic project data first
+        let project: any = await projectModel.findById(id)
+        .populate("adminStatusComment.userId", "name email")
+        .lean();
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        // Always include essential data
+        //if (includeBasic === 'true') {
+        const [fois, mailScreenshots, summaryQuestion] = await Promise.all([
+            foiModel.find({ projectId: project._id }).lean(),
+            mailScreenshotModel.find({ BOSId: project.BOSID }).lean(),
+            summaryQuestionModel.find({ projectId: project._id }).select('-projectId').lean()
+        ]);
+
+        project.fois = fois;
+        project.mailScreenshots = mailScreenshots;
+        project.summaryQuestion = summaryQuestion;
+        //}
+
+        // Process interested suppliers
+        if (project.interestedSuppliers?.length > 0) {
+            const supplierIds = project.interestedSuppliers.map((s: any) => s.supplierId);
+
+            const interestedSuppliersUsers = await userModel.find({
+                _id: { $in: supplierIds }
+            }).lean();
+
+            // Store the full user list separately
+            project.interestedSuppliersUsers = interestedSuppliersUsers;
+
+            // Format interestedSuppliers list
+            project.interestedSuppliers = project.interestedSuppliers.map((supplier: any) => {
+                const userDetails = interestedSuppliersUsers.find(
+                    (user: any) => user._id.toString() === supplier.supplierId.toString()
+                );
+
+                return {
+                    _id: supplier.supplierId,
+                    attendee: supplier.attendee || false,
+                    name: userDetails?.name || null,
+                    supplierId: supplier.supplierId,
+                    companyName: userDetails?.companyName || null,
+                    comment: supplier.comment ? supplier.comment : null,
+                    attendeeUpdatedAt: supplier.attendeeUpdatedAt || null,
+                    interestedAt: supplier.interestedAt || null
+                };
+            });
+        }
+
+        // Get case studies only for current user
+        if (project.category?.length > 0) {
+            project.casestudy = await caseStudy.find({
+                verify: true,
+                category: { $in: project.category },
+                userId: req.user.id
+            }).lean();
+        }
+
+        // Conditional heavy processing for select data
+        if (/* includeSelect === 'true' &&*/  project.select?.length > 0) {
+            const supplierIds = project.select.map((item: any) => item.supplierId);
+
+            const [users, caseStudyCounts] = await Promise.all([
+                userModel.find({ _id: { $in: supplierIds } }).lean(),
+                caseStudy.aggregate([
+                    {
+                        $match: {
+                            userId: { $in: supplierIds },
+                            verify: true,
+                            category: { $in: project.category || [] }
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$userId",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ])
+            ]);
+
+            project.select = project.select.map((item: any) => ({
+                ...item,
+                supplierDetails: users.find((user: any) => user._id.toString() === item.supplierId.toString()),
+                matchedCaseStudy: caseStudyCounts.find((cs: any) => cs._id.toString() === item.supplierId.toString())?.count || 0
+            }));
+        }
+
+        // Conditional processing for sortlisted users
+        if (/* includeSortlisted === 'true' &&*/  project.sortListUserId?.length > 0) {
+            const sortListUserIds = project.sortListUserId.map((id: string) => new mongoose.Types.ObjectId(id));
+
+            const [sortlistedUsers, userCaseStudies] = await Promise.all([
+                userModel.find({ _id: { $in: sortListUserIds } }).lean(),
+                caseStudy.find({
+                    userId: { $in: sortListUserIds },
+                    verify: true,
+                    category: { $in: project.category || [] }
+                }).lean()
+            ]);
+
+            project.sortlistedUsers = sortlistedUsers.map((user: any) => ({
+                ...user,
+                caseStudy: userCaseStudies.filter((cs: any) => cs.userId.toString() === user._id.toString()),
+                isSelected: project.selectedUserIds?.some((sel: any) =>
+                    sel.isSelected && sel.userId === user._id.toString()
+                ) || false
+            }));
+        }
+
+        // Conditional processing for history and comments
+        //if (includeHistory === 'true' || includeComments === 'true') {
+        const allUserIds = new Set();
+
+        // Collect user IDs based on what's requested
+        // if (includeHistory === 'true') {
+        project.statusHistory?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        // }
+        // if (includeComments === 'true') {
+        project.statusComment?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        project.bidManagerStatusComment?.forEach((item: any) => allUserIds.add(item.userId?.toString()));
+        // }
+
+        // Fetch all users in one query
+        const allUsers = allUserIds.size > 0
+            ? await userModel.find({
+                _id: { $in: Array.from(allUserIds).map(id => new mongoose.Types.ObjectId(id as string)) }
+            }).select("name email role mobileNumber companyName").lean()
+            : [];
+
+        // Process status history if requested
+        //if (includeHistory === 'true' && project.statusHistory?.length > 0) {
+        project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        project.statusHistory = project.statusHistory.map((item: any) => ({
+            ...item,
+            userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+        }));
+        //}
+
+        // Process comments if requested
+        //if (includeComments === 'true') {
+        if (project.statusComment?.length > 0) {
+            project.statusComment = project.statusComment.map((item: any) => ({
+                ...item,
+                userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+            }));
+        }
+
+        if (project.bidManagerStatusComment?.length > 0) {
+            project.bidManagerStatusComment = project.bidManagerStatusComment.map((item: any) => ({
+                ...item,
+                userDetails: allUsers.find((user: any) => user._id.toString() === item.userId?.toString())
+            }));
+        }
+        //}
+        //}
+
+        if (project?.nosuppliermatchedStatusReason?.length > 0) {
+            const userIds = project.nosuppliermatchedStatusReason.map((item: any) => item.userId);
+
+            // Fetch relevant users
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName").lean();
+
+            // Map and attach userDetails
+            project.nosuppliermatchedStatusReason = project.nosuppliermatchedStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
+
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
+        }
+
+        if (project?.droppedAfterFeasibilityStatusReason?.length > 0) {
+            const userIds = project.droppedAfterFeasibilityStatusReason.map((item: any) => item.userId);
+
+            // Fetch all user details in one query
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName").lean();
+
+            // Add userDetails to each item in the list
+            project.droppedAfterFeasibilityStatusReason = project.droppedAfterFeasibilityStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
+
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
+        }
+        if (project?.failStatusReason?.length > 0) {
+            const userIds = project.failStatusReason.map((item: any) => item.userId);
+
+            const users = await userModel.find({
+                _id: { $in: userIds }
+            }).select("name email role mobileNumber companyName").lean();
+
+            project.failStatusReason = project.failStatusReason.map((item: any) => {
+                const userDetails = users.find(user =>
+                    new mongoose.Types.ObjectId(user._id).equals(item.userId)
+                );
+
+                return {
+                    ...item,
+                    userDetails: userDetails || null
+                };
+            });
+        }
+
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either ProjectManager or ProcessManagerAdmin
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        const feasibilitylatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.FeasibilityUser // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+        let assignBidmanager: any = [];
+        let assignFeasibilityUser: any = [];
+        if (bidlatestTask?.length > 0) {
+
+            assignBidmanager = [
+                {
+                    _id: bidlatestTask[0].userDetails._id,
+                    name: bidlatestTask[0].userDetails.name,
+                    email: bidlatestTask[0].userDetails.email,
+                    role: bidlatestTask[0].userDetails.role,
+                    dueDate: bidlatestTask[0].dueDate
+                }
+            ];
+        }
+        if (feasibilitylatestTask?.length > 0) {
+
+            assignFeasibilityUser = [
+                {
+                    _id: feasibilitylatestTask[0].userDetails._id,
+                    name: feasibilitylatestTask[0].userDetails.name,
+                    email: feasibilitylatestTask[0].userDetails.email,
+                    role: feasibilitylatestTask[0].userDetails.role,
+                    dueDate: feasibilitylatestTask[0].dueDate
+                }
+            ];
+        }
+
+        if (project?.selectedUserIds?.length) {
+            const userIds = project.selectedUserIds.map((u: any) => u.userId);
+
+            const users = await userModel.find({ _id: { $in: userIds } });
+            project.selectedUserIds = project.selectedUserIds.map((sel: any) => {
+                const user = users.find(u => u._id.toString() === sel.userId.toString());
+                return {
+                    ...sel,
+                    name: user?.name || null,
+                    companyName: user?.companyName || null
+                };
+            });
+        }
+
+        // Check if current user has registered interest
+        let isInterested = false;
+        if (req.user && req.user.role === 'SupplierAdmin') {
+            isInterested = project.interestedSuppliers?.some(
+                (supplier: any) => supplier.supplierId?.toString() === req.user._id.toString()
+            ) || false;
+        }
+
+        // if logged in user sortlisted then isSortisted=true
+        const isSortlisted = project.sortListUserId?.some(
+            (userId: any) => userId?.toString() === req.user._id.toString()
+        ) || false;
+
+        // const projectTasks = await taskModel.aggregate([
+        //     {
+        //         $match: {
+        //             project: id
+        //         }
+        //     },
+        //     {
+        //         $lookup: {
+        //             from: "users",
+        //             localField: "assignTo.userId",
+        //             foreignField: "_id",
+        //             as: "userDetails"
+        //         }
+        //     },
+        //     {
+        //         $project: {
+        //             project: 1,
+        //             assignTo: 1,
+        //             dueDate: 1,
+        //             userDetails: 1
+        //         }
+        //     }
+        // ]);
+
+        return res.status(200).json({
+            message: "project fetch success",
+            status: true,
+            data: {
+                ...project,
+                matchedCaseStudy: project.casestudy?.length || 0,
+                projectTasks: bidlatestTask, 
+                assignBidmanager,
+                assignFeasibilityUser,
+                isInterested,
+                isSortlisted
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getProjectSelectUser = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.projectId;
+        const { supplierId } = req.query
+
+        const project = await projectModel.findById(new mongoose.Types.ObjectId(id));
+
+        if (!project) {
+            return res.status(500).json({
+                message: "project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        let filteredUsers = project.select.filter(user => user.supplierId.equals(new mongoose.Types.ObjectId(supplierId as string)));
+        if (filteredUsers.length < 1) {
+            return res.status(404).json({
+                message: "supplier user not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const user = await userModel.findById(filteredUsers[0].supplierId).select({ name: 1 });
+        filteredUsers[0].supplierId = user
+
+        return res.status(200).json({
+            message: "data fetch success",
+            status: true,
+            data: filteredUsers[0]
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const exportProjectsToCSV = async (req: any, res: any) => {
+    try {
+        // Fetch projects from MongoDB
+        const projects = await projectModel.find().lean();
+
+        if (!projects.length) {
+            return res.status(404).json({ message: "No projects found." });
+        }
+
+        // Set response headers for direct file download
+        res.setHeader("Content-Disposition", "attachment; filename=projects.csv");
+        res.setHeader("Content-Type", "text/csv");
+
+        // Create CSV stream
+        const csvStream = format({ headers: true });
+
+        // Pipe CSV data directly to response (no frontend modifications needed)
+        csvStream.pipe(res);
+
+        // Add project data to CSV
+        projects.forEach(project => {
+            csvStream.write({
+                projectName: project?.projectName,
+                BOSID: project?.BOSID,
+                publishDate: project?.publishDate,
+                category: project?.category.join(", "),
+                industry: project?.industry.join(", "),
+                status: project?.status,
+                dueDate: project?.dueDate,
+                clientName: project?.clientName,
+                minValue: project?.minValue,
+                maxValue: project?.maxValue,
+                website: project?.website,
+                link: project?.link,
+                CPVCodes: project?.CPVCodes,
+                noticeReference: project?.noticeReference,
+                projectType: project?.projectType,
+                mailID: project?.mailID,
+                clientType: project?.clientType,
+                categorisation: project?.categorisation,
+                description: project?.description,
+                linkToPortal: project?.linkToPortal,
+                documentsLink: project?.documentsLink,
+                chatGptLink: project?.chatGptLink,
+                loginID: project?.loginID,
+                password: project?.password
+            });
+        });
+
+        csvStream.end(); // End CSV stream
+
+    } catch (error) {
+        console.error("Error exporting CSV:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+export const getProjects = async (req: any, res: Response) => {
+    try {
+        let { keyword, category, industry, projectType, foiNotUploaded, sortlist, applied, match, valueRange, website, createdDate, publishDate, status, bidManagerStatus, dueDate, UKWriten, supplierId, clientType, publishDateRange, SubmissionDueDateRange, selectedSupplier, expired, supplierStatus, workInProgress, appointed, feasibilityReview, notAppointed, notAppointedToBidManager, BidManagerAppointed, myList, adminReview, statusNotInclude, startCreatedDate, endCreatedDate, categorisation, notRelatedDashboard, assignBidManagerId, registerInterest, attended, queryRaised } = req.query as any
+
+        category = category?.split(',');
+        industry = industry?.split(',');
+        projectType = projectType?.split(',');
+        website = website?.split(',');
+        status = status?.split(',');
+        statusNotInclude = statusNotInclude?.split(',');
+        bidManagerStatus = bidManagerStatus?.split(',');
+        clientType = clientType?.split(',');
+        supplierId = supplierId?.split(',');
+
+        let filter: any = { }
+
+        let sort: any = { publishDate: -1, createdAt: -1 };
+        if (keyword) {
+            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const data = (await taskModel.aggregate([
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: { $toObjectId: "$firstAssignTo.userId" }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "user"
+                    }
+                },
+                {
+                    $match: {
+                        "user.name": { $regex: safeKeyword, $options: "i" }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        projects: { $addToSet: "$project" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        projects: 1
+                    }
+                }
+            ]))?.[0]?.projects || [];
+
+            filter = {
+                $or: [
+                    { BOSID: { $regex: safeKeyword, $options: 'i' } },
+                    { clientName: { $regex: safeKeyword, $options: 'i' } },
+                    { website: { $regex: safeKeyword, $options: 'i' } },
+                    { projectName: { $regex: safeKeyword, $options: 'i' } },
+                    { noticeReference: { $regex: safeKeyword, $options: 'i' } },
+                    { _id: data }
+                ]
+            };
+        }
+
+        if (queryRaised === 'false') {
+            filter.bidManagerStatus = { $ne: 'Query Raised' };
+        }
+
+        if (category) {
+            filter.category = { $in: category };
+        }
+
+        if (industry) {
+            filter.industry = { $in: industry };
+        }
+
+        if (projectType) {
+            filter.projectType = { $in: projectType };
+        }
+
+        if (clientType) {
+            filter.clientType = { $in: clientType };
+        }
+
+
+        if (registerInterest == 'true' || registerInterest) {
+            filter.interestedSuppliers = { $exists: true, $not: { $size: 0 } };
+            sort = { register_interest: -1, publishDate: -1, createdAt: -1 };
+        }
+
+        if (registerInterest == 'false' || registerInterest == false) {
+            filter.register_interest = false;
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
+        }
+
+        if(attended == 'true') {
+            filter.register_interest = false;
+            filter.interestedSuppliers = { $exists: true, $not: { $size: 0 } };
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
+        }
+
+        if(attended == 'false') {
+            filter.register_interest = true;
+            sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
+        }
+
+        if (foiNotUploaded) {
+            const projectId = (await foiModel.find()).map(foi => foi.projectId)
+            if (Object.keys(filter).length > 0) {
+                filter = {
+                    $and: [
+                        filter,
+                        { _id: { $nin: projectId } }
+                    ]
+                };
+            } else {
+                filter = { _id: { $nin: projectId } };
+            }
+        }
+
+        if (sortlist) {
+            if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.Admin || req.user?.role === userRoles.ProcessManagerAdmin) {
+                filter.sortListUserId = { $ne: [] }
+                filter.myList = { $ne: req.user.id }
+            } else {
+                filter.sortListUserId = req.user.id;
+                //filter.selectedUserId = req.user.id;
+            }
+        }
+
+        if (applied) {
+            filter.applyUserId = req.user.id;
+        }
+
+        let categorygroup
+        if (match) {
+            if (req?.user?.role === userRoles.ProjectManager) {
+                categorygroup = (await caseStudy.aggregate([
+                    {
+                        $match: {
+                            // userId: new mongoose.Types.ObjectId(req.user.id),
+                            verify: true
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$category",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ]))
+            } else {
+                categorygroup = (await caseStudy.aggregate([
+                    {
+                        $match: {
+                            userId: new mongoose.Types.ObjectId(req.user.id),
+                            verify: true
+                        }
+                    },
+                    {
+                        $group: {
+                            _id: "$category",
+                            count: { $sum: 1 }
+                        }
+                    }
+                ]))
+            }
+
+            let filters: any[] = [];
+            if (categorygroup.length > 0) {
+                if (match === "perfect") {
+                    filters = categorygroup.map(item => {
+                        const category = item._id;
+                        const count = item.count;
+                        return {
+                            $and: [
+                                { category },
+                                { caseStudyRequired: { $lte: count } }
+                            ]
+                        };
+                    });
+                } else if (match === "partial") {
+                    filters = categorygroup.map(item => {
+                        const category = item._id;
+                        const count = item.count;
+
+                        return {
+                            $and: [
+                                { category: category },
+                                // { caseStudyRequired: { $gt: count } }
+                            ]
+                        };
+                    });
+                }
+
+                if (Object.keys(filter).length > 0) {
+                    filter = {
+                        $and: [
+                            filter,
+                            { $or: filters }
+                        ]
+                    };
+                } else {
+                    filter = { $or: filters };
+                }
+            } else {
+                return res.status(200).json({
+                    message: "projects fetch success",
+                    status: true,
+                    data: {
+                        data: [],
+                        meta_data: {
+                            page: req.pagination?.page,
+                            items: 0,
+                            page_size: req.pagination?.limit,
+                            pages: Math.ceil(0 / (req.pagination?.limit as number))
+                        }
+                    }
+                });
+            }
+        }
+
+        if (valueRange) {
+            const [startValue, endValue] = valueRange.split('-').map(Number);
+
+            filter.minValue = { $gte: startValue };
+            filter.maxValue = { $lte: endValue };
+        }
+
+        if (website) {
+            filter.website = { $in: website }
+        }
+
+        if (createdDate) {
+            const date = new Date(createdDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.createdAt = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (startCreatedDate && endCreatedDate) {
+            const start = new Date(startCreatedDate);
+            const end = new Date(endCreatedDate);
+
+            end.setHours(23, 59, 59, 999);
+            filter.publishDate = {
+                $gte: start,
+                $lte: end
+            }
+        }
+
+        if (publishDate) {
+            const date = new Date(publishDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.publishDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (dueDate) {
+            const date = new Date(dueDate);
+
+            const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+
+            filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC }
+        }
+
+        if (!expired) {
+            const date = new Date();
+            filter.dueDate = { $gte: date }
+        }
+
+        if (publishDateRange) {
+            const [startDate, endDate] = publishDateRange.split(',').map((date: string) => date.trim());
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const startOfDayUTC = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+
+            filter.publishDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+        }
+
+        if (SubmissionDueDateRange) {
+            const [startDate, endDate] = SubmissionDueDateRange.split(',').map((date: string) => date.trim());
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            const startOfDayUTC = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+            const endOfDayUTC = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate(), 23, 59, 59, 999));
+
+            filter.dueDate = { $gte: startOfDayUTC, $lte: endOfDayUTC };
+        }
+
+        if ((req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.ProcessManagerAdmin) && bidManagerStatus?.[0] === BidManagerStatus.Awaiting && expired === "true") {
+            delete filter.dueDate;
+            const date = new Date();
+            filter.$and = [
+                {
+                    $or: [
+                        { dueDate: { $gte: date } }, // Allow projects with future due dates
+                        { status: { $ne: projectStatus.DocumentsNotFound } } // Exclude `DocumentsNotFound` for past due dates
+                    ]
+                }
+            ];
+
+            // statusNotInclude.push(projectStatus.DocumentsNotFound)
+        }
+
+        if ((req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.ProcessManagerAdmin) && bidManagerStatus?.[0] === BidManagerStatus.DroppedAfterFeasibility && bidManagerStatus?.[1] === BidManagerStatus.Awarded && bidManagerStatus?.[2] === BidManagerStatus.NotAwarded && bidManagerStatus?.[3] === BidManagerStatus.Nosuppliermatched && expired === "true") {
+            status.push(projectStatus.DocumentsNotFound)
+        }
+
+        if (status && statusNotInclude) {
+            filter.status = { $in: status, $nin: statusNotInclude };
+        } else if (status) {
+            filter.status = { $in: status };
+        } else if (statusNotInclude) {
+            filter.status = { $nin: statusNotInclude };
+        }
+
+        if (bidManagerStatus) {
+            filter.bidManagerStatus = { $in: bidManagerStatus };
+        }
+
+        if (UKWriten) {
+            let projectIds = await summaryQuestionModel.aggregate([
+                {
+                    $match: {
+                        summaryQuestionFor: "UKWriter"
+                    }
+                },
+                {
+                    $group: {
+                        _id: "$projectId",
+                        projectIds: { $addToSet: "$projectId" }
+                    }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        projectIds: 1
+                    }
+                }
+            ]);
+            projectIds = projectIds.flatMap((item: any) => item.projectIds);
+            projectIds = [...new Set(projectIds)];
+
+            filter._id = { $in: projectIds }
+        }
+
+        const bidStatuses = [
+            BidManagerStatus.InSolution,
+            BidManagerStatus.WaitingForResult,
+            BidManagerStatus.Awarded,
+            BidManagerStatus.NotAwarded
+        ];
+
+        const hasMatchingStatus = bidManagerStatus?.some((status: string) =>
+            bidStatuses.includes(status)
+        );
+
+        if (supplierId) {
+            if (hasMatchingStatus) {
+                filter.selectedUserIds = {
+                    $elemMatch: {
+                        userId: { $in: supplierId },
+                        isSelected: true
+                    }
+                };
+            }
+        }
+
+        if (selectedSupplier) {
+            filter.select = {
+                $elemMatch: {
+                    $exists: true,
+                    $ne: null
+                }
+            };
+        }
+
+        if (supplierStatus) {
+            const userId = req.user.id.toString();
+            filter.select = {
+                $elemMatch: {
+                    supplierId: userId,
+                    supplierStatus: supplierStatus,
+                }
+            };
+        }
+        if (workInProgress) {
+            filter.select = {
+                $elemMatch: {
+                    supplierId: { $in: [req.user.id] },
+                    supplierStatus: { $exists: true, $ne: null }
+                }
+            };
+        }
+
+        if (appointed) {
+            const tasks = await taskModel
+                .find({
+                    'assignTo.userId': appointed,
+                })
+                .populate({
+                    path: 'project',
+                    // match: { bidManagerStatus: BidManagerStatus.Awaiting },
+                    select: 'bidManagerStatus',
+                })
+                .lean();
+
+            const projectIds = tasks
+                .filter(task => task.project)
+                .map(task => task.project._id);
+            filter._id = { $in: projectIds };
+        }
+        if (notAppointed) {
+            const pipeline: any = [
+                {
+                    $match: {
+                        project: { $ne: null },
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$assignTo',
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+                {
+                    $addFields: {
+                        'assignTo.userId': { $toObjectId: '$assignTo.userId' },
+                    },
+                },
+                {
+                    $lookup: {
+                        from: 'users',
+                        localField: 'assignTo.userId',
+                        foreignField: '_id',
+                        as: 'userDetails',
+                    },
+                },
+                {
+                    $unwind: {
+                        path: '$userDetails',
+                        preserveNullAndEmptyArrays: true,
+                    },
+                },
+            ];
+
+            if (
+                req.user?.role === userRoles.FeasibilityAdmin ||
+                req.user?.role === userRoles.FeasibilityUser ||
+                req.user?.role === userRoles.ProjectManager ||
+                req.user?.role === userRoles.ProcessManagerAdmin
+            ) {
+                pipeline.push({
+                    $match: {
+                        'userDetails.role': req.user.role,
+                    },
+                });
+            }
+
+            pipeline.push({
+                $project: {
+                    project: 1,
+                    userDetails: 1,
+                },
+            });
+
+            const projectIds = await taskModel.aggregate(pipeline);
+
+            const projectIdsArray = projectIds
+                .map(task => task.project?.toString())
+                .filter(Boolean);
+
+            if (projectIdsArray.length > 0) {
+                filter._id = { $nin: projectIdsArray };
+            }
+        }
+        if (BidManagerAppointed) {
+            filter.appointedBidManager = { $elemMatch: { $eq: BidManagerAppointed } };
+        }
+
+        // Filter by assigned bid manager ID
+        if (assignBidManagerId) {
+            // Convert to array if it's a single value or split comma-separated values
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
+            const tasks = await taskModel.find({
+                'assignTo.userId': { $in: bidManagerIds },
+            }).select('project assignTo');
+
+            // Filter tasks to only include those where the first assignee is one of the specified bid managers
+            const filteredTasks = tasks.filter(task => {
+                if (task.assignTo && task.assignTo.length > 0) {
+                    const firstAssigneeId = task.assignTo[0].userId?.toString();
+                    return bidManagerIds.includes(firstAssigneeId);
+                }
+                return false;
+            });
+
+            // Extract project IDs from filtered tasks
+            const projectIds = filteredTasks.map(task => task.project);
+
+            // Add to filter
+            if (projectIds.length > 0) {
+                if (filter._id) {
+                    // If _id filter already exists, use $and to combine them
+                    filter = {
+                        $and: [
+                            filter,
+                            { _id: { $in: projectIds } }
+                        ]
+                    };
+                } else {
+                    filter._id = { $in: projectIds };
+                }
+            } else {
+                // If no projects found, return empty result
+                return res.status(200).json({
+                    message: "projects fetch success",
+                    status: true,
+                    data: {
+                        data: [],
+                        meta_data: {
+                            page: req.pagination?.page,
+                            items: 0,
+                            page_size: req.pagination?.limit,
+                            pages: 0
+                        }
+                    }
+                });
+            }
+        }
+        if (feasibilityReview) {
+            filter.feasibilityStatus = { $ne: null };
+        }
+        if (adminReview) {
+            // filter.adminStatus = { $ne: null };
+            // if (adminReview === "Fail") {
+            //     filter.status = projectStatus.Fail
+            // } else if (adminReview === "Dropped after feasibility") {
+            //     filter.bidManagerStatus = BidManagerStatus.DroppedAfterFeasibility
+            // } else if (adminReview === "Nosuppliermatched") {
+            //     filter.bidManagerStatus = BidManagerStatus.Nosuppliermatched
+            // }
+            filter.adminStatus = adminReview
+        }
+        if (notAppointedToBidManager) {
+            filter.$or = [
+                { appointedBidManager: { $exists: true, $size: 0 } },
+                { appointedBidManager: null }
+            ];
+        }
+        if (myList) {
+            filter.myList = { $elemMatch: { $eq: myList } }
+        }
+        if (categorisation || categorisation === "") {
+            filter.categorisation = categorisation
+        }
+        if (notRelatedDashboard == "true") {
+            filter.status = { $ne: projectStatus.NotReleted };
+        }
+        const count = await projectModel.countDocuments(filter);
+        let projects: any = await projectModel.find(filter)
+            .limit(req.pagination?.limit as number)
+            .skip(req.pagination?.skip as number)
+            .sort(sort)
+            .populate('sortListUserId')
+            .populate({
+                path: 'selectedUserIds.userId',
+                select: '_id name'
+            })
+            .populate({
+                path: 'interestedSuppliers',
+                select: '_id name attendee'
+            });
+        // .lean();
+
+        if (categorygroup) {
+            projects = projects.map((project: any) => {
+                const totalCount = categorygroup
+                    .filter((item: any) =>
+                        project.category.some((categoryId: any) => categoryId === item._id)
+                    )
+                    .reduce((sum: number, item: any) => sum + (item.count || 0), 0);
+                const result = project
+                result._doc.matchedCaseStudy = totalCount || 0
+
+                return result
+            })
+        }
+        if (req.user?.role === userRoles.SupplierAdmin || req.user?.role === userRoles.SupplierUser) {
+            projects = await Promise.all(
+                projects.map((project: any) => {
+                    const index = project.select.findIndex((item: any) =>
+                        new mongoose.Types.ObjectId(item.supplierId).equals(req.user.id)
+                    );
+                    const expiredIndex = project.expiredData.findIndex((item: any) =>
+                        item.supplierId.toString() === req.user.id
+                    );
+                    let isExpired = true;
+                    if (expiredIndex !== -1) {
+                        isExpired = new Date(project.expiredData[expiredIndex].date) < new Date();
+                    }
+                    project._doc.supplierStatus = project.select[index]?.supplierStatus || null;
+                    project._doc.isExpired = isExpired;
+                    return project
+                    // return { ...project._doc, supplierStatus: project.select[index]?.supplierStatus || null, isExpired }
+                }))
+        }
+
+        if (req.user?.role === userRoles.ProjectManager || req.user?.role === userRoles.FeasibilityAdmin || req.user?.role === userRoles.ProcessManagerAdmin) {
+            projects = await Promise.all(
+                projects.map(async (project: any) => {
+                    const categories = Array.isArray(project.category)
+                        ? project.category : project.category ? [project.category] : [];
+
+
+                    const result = await caseStudy.aggregate([
+                        { $match: { category: { $in: categories } } },
+                        { $group: { _id: "$userId" } },
+                        { $group: { _id: null, distinctUserCount: { $sum: 1 } } }
+                    ]);
+                    project._doc.matchedSupplierCount = result.length > 0 ? result[0].distinctUserCount : 0;
+                    return project;
+                })
+            );
+        }
+
+        projects = await Promise.all(
+            projects.map(async (project: any) => {
+                if (project.statusHistory && project.statusHistory.length > 0) {
+                    project.statusHistory.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                    const latestStatus = project.statusHistory.at(-1);
+
+                    if (latestStatus?.userId) {
+                        const user = await userModel
+                            .findById(latestStatus.userId)
+                            .select("name email role mobileNumber companyName");
+
+                        project._doc.statusChangeUser = user;
+                    } else {
+                        project._doc.statusChangeUser = null;
+
+                    }
+                }
+                else {
+                    project._doc.statusChangeUser = null;
+                }
+                return project;
+            })
+        );
+        projects = await Promise.all(
+            projects.map(async (project: any) => {
+                const bidlatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either ProjectManager or ProcessManagerAdmin
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+
+                const feasibilitylatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.FeasibilityUser // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+                let assignBidmanager: any = [];
+                let assignFeasibilityUser: any = [];
+                if (bidlatestTask.length > 0) {
+
+                    assignBidmanager = [
+                        {
+                            _id: bidlatestTask[0].userDetails._id,
+                            name: bidlatestTask[0].userDetails.name,
+                            email: bidlatestTask[0].userDetails.email,
+                            role: bidlatestTask[0].userDetails.role,
+                            dueDate: bidlatestTask[0].dueDate
+                        }
+                    ];
+                }
+                if (feasibilitylatestTask.length > 0) {
+
+                    assignFeasibilityUser = [
+                        {
+                            _id: feasibilitylatestTask[0].userDetails._id,
+                            name: feasibilitylatestTask[0].userDetails.name,
+                            email: feasibilitylatestTask[0].userDetails.email,
+                            role: feasibilitylatestTask[0].userDetails.role,
+                            dueDate: feasibilitylatestTask[0].dueDate
+                        }
+                    ];
+                }
+                project._doc.assignBidmanager = assignBidmanager;
+                project._doc.assignFeasibilityUser = assignFeasibilityUser;
+
+                return project;
+            })
+        );
+        projects = await Promise.all(
+            projects.map(async (project: any) => {
+                const bidlatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": { $in: [userRoles.ProjectManager, userRoles.ProcessManagerAdmin] } // Check if the role matches either
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            comments: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+
+                const feasibilitylatestTask = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.FeasibilityUser // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+                let assignBidmanager: any = [];
+                let assignFeasibilityUser: any = [];
+                let task: any = {}
+                if (bidlatestTask.length > 0) {
+
+                    assignBidmanager = [
+                        {
+                            _id: bidlatestTask[0].userDetails._id,
+                            name: bidlatestTask[0].userDetails.name,
+                            email: bidlatestTask[0].userDetails.email,
+                            role: bidlatestTask[0].userDetails.role,
+                            dueDate: bidlatestTask[0].dueDate
+                        }
+                    ];
+
+                    task = bidlatestTask[0]
+                    let userIds: any = [];
+
+                    task.comments.forEach((obj: any) => {
+                        userIds.push(obj.userId)
+                    });
+                    if (userIds.length > 0) {
+                        const users = await userModel.find({ _id: { $in: userIds } }, 'name email role')
+                        const usersMap = users.reduce((map: any, user: any) => {
+                            map[user._id] = user;
+                            return map;
+                        }, {});
+
+                        task.comments.sort((a: any, b: any) => {
+                            if (a.pinnedAt && b.pinnedAt) {
+                                return b.pinnedAt - a.pinnedAt;
+                            } else if (a.pinnedAt) {
+                                return -1;
+                            } else if (b.pinnedAt) {
+                                return 1;
+                            } else {
+                                return b.date - a.date;
+                            }
+                        });
+
+                        task.comments = task.comments.map((obj: any) => {
+                            const user = usersMap[obj.userId];
+                            if (user) {
+                                obj.userDetail = user;
+                            }
+                            return obj;
+                        });
+                    }
+                }
+                if (feasibilitylatestTask.length > 0) {
+
+                    assignFeasibilityUser = [
+                        {
+                            _id: feasibilitylatestTask[0].userDetails._id,
+                            name: feasibilitylatestTask[0].userDetails.name,
+                            email: feasibilitylatestTask[0].userDetails.email,
+                            role: feasibilitylatestTask[0].userDetails.role,
+                            dueDate: feasibilitylatestTask[0].dueDate
+                        }
+                    ];
+                }
+                project._doc.assignBidmanager = assignBidmanager;
+                project._doc.assignFeasibilityUser = assignFeasibilityUser;
+                project._doc.task = task;
+
+                return project;
+            })
+        );
+        // projects = projects.map((project: any) => {
+        //     const result = project.toObject ? project.toObject() : project;
+
+        //     const dueDate = new Date(project.dueDate);
+
+        //     result.isExpired = dueDate < new Date();
+
+        //     return result;
+        // });
+        let bidManagerCounts = [];
+
+        let bidManagers;
+
+        if (assignBidManagerId) {
+            // If filtering by specific bid managers, only get counts for those managers
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
+            bidManagers = await userModel.find({
+                _id: { $in: bidManagerIds },
+                role: userRoles.ProjectManager
+            }).select('_id name email');
+        } else {
+            bidManagers = await userModel.find({
+                role: userRoles.ProjectManager
+            }).select('_id name email');
+        }
+
+        // Get counts for each bid manager
+        bidManagerCounts = await Promise.all(
+            bidManagers.map(async (manager) => {
+                const tasks = await taskModel.find({
+                    'assignTo.userId': manager._id.toString()
+                }).select('project assignTo');
+
+                let projectIds;
+
+                // Only filter by first assignee if assignBidManagerId is provided
+                if (assignBidManagerId) {
+                    const filteredTasks = tasks.filter(task => {
+                        if (task.assignTo && task.assignTo.length > 0) {
+                            const firstAssigneeId = task.assignTo[0].userId?.toString();
+                            return firstAssigneeId === manager._id.toString();
+                        }
+                        return false;
+                    });
+
+                    projectIds = [...new Set(filteredTasks.map(task => task.project?.toString()))].filter(Boolean);
+                } else {
+                    projectIds = [...new Set(tasks.map(task => task.project?.toString()))].filter(Boolean);
+                }
+
+                // Create a base filter without the _id constraint from the original filter
+                const baseFilter = { ...filter };
+                if (baseFilter._id) {
+                    delete baseFilter._id;
+                }
+
+                let projectCount = 0;
+                if (projectIds.length > 0) {
+                    // Count projects for this manager that match the filter
+                    projectCount = await projectModel.countDocuments({
+                        _id: { $in: projectIds },
+                        ...baseFilter
+                    });
+                }
+
+                return {
+                    _id: manager._id,
+                    name: manager.name,
+                    email: manager.email,
+                    projectCount
+                };
+            })
+        );
+
+        // Get total interested count
+        const result = await projectModel.aggregate([
+            { $match: filter },
+            { $match: { 'interestedSuppliers': { $exists: true, $not: { $size: 0 } } } },
+            { $count: 'totalInterestedCount' }
+        ]);
+
+        const totalInterestedCount = result[0]?.totalInterestedCount || 0;
+
+        const nonAttendeeCount = await projectModel.countDocuments({
+            ...filter,
+            register_interest: true });
+
+        const attendeeCount = await projectModel.countDocuments({
+            ...filter,
+            interestedSuppliers: { $exists: true, $not: { $size: 0 } },
+            register_interest: false });
+
+        return res.status(200).json({
+            message: "projects fetch success",
+            status: true,
+            data: {
+                data: projects,
+                totalInterestedCount,
+                attendeeCount,
+                nonAttendeeCount,
+                meta_data: {
+                    page: req.pagination?.page,
+                    items: count,
+                    page_size: req.pagination?.limit,
+                    pages: Math.ceil(count / (req.pagination?.limit as number))
+                },
+                bidManagerCounts
+            }
+        });
+    } catch (err: any) {
+        console.error(err);
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export function areObjectsEqual(obj1: any, obj2: any): boolean {
+    if (obj1 === obj2) return true; // Same reference or value
+
+    if (typeof obj1 !== typeof obj2 || obj1 === null || obj2 === null) {
+        return false; // Different types or one is null
+    }
+
+    if (Array.isArray(obj1) && Array.isArray(obj2)) {
+        if (obj1.length !== obj2.length) return false;
+
+        return obj1.every((item, index) => areObjectsEqual(item, obj2[index]));
+    }
+
+    if (typeof obj1 === 'object') {
+        const keys1 = Object.keys(obj1);
+        const keys2 = Object.keys(obj2);
+
+        if (keys1.length !== keys2.length) return false;
+
+        return keys1.every(key => areObjectsEqual(obj1[key], obj2[key]));
+    }
+
+    return obj1 === obj2; // Compare primitive values
+}
+
+function areArraysEqual(arr1: any[], arr2: any[]): boolean {
+    // Check if lengths are the same
+    if (arr1.length !== arr2.length) {
+        return false;
+    }
+
+    // Check each element in the arrays
+    return arr1.every((element, index) => {
+        const otherElement = arr2[index];
+
+        // Handle nested objects or arrays
+        if (typeof element === "object" && typeof otherElement === "object") {
+            return JSON.stringify(element) === JSON.stringify(otherElement);
+        }
+
+        // Primitive comparison
+        return element === otherElement;
+    });
+}
+
+const formatDateIfNeeded = (value: any): string => {
+    if (!value) return "";
+
+    const date = new Date(value);
+    return date.toLocaleString("en-GB", {
+        timeZone: "Asia/Kolkata",
+        hour12: false
+    });
+};
+
+export const updateProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        let { projectName, category, industry, description, BOSID, publishDate, submission, link, periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType, website, mailID, clientType, clientName, supportingDocs, stages, noticeReference, CPVCodes, minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, waitingForResult, bidManagerStatus, BidWritingStatus, certifications, policy, eligibilityForm, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, droppedAfterFeasibilityStatusReason, chatGptLink, resultExpected } = req.body
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+
+        if (project.status !== status && status !== null && status !== undefined) {
+            if (status === projectStatus.Fail || status === projectStatus.NotReleted) {
+                project.adminStatus = status;
+                project.adminStatusDate = new Date();
+                status = undefined;
+            } else {
+                project.statusHistory.push({
+                    status,
+                    date: new Date(),
+                    userId: req.user.id,
+                })
+            }
+        }
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                project.adminStatus = bidManagerStatus;
+                project.adminStatusDate = new Date();
+                bidManagerStatus = undefined;
+            } else {
+                project.statusHistory.push({
+                    bidManagerStatus: project.bidManagerStatus,
+                    date: new Date(),
+                    userId: req.user.id,
+                });
+            }
+        }
+
+        const fieldsToUpdate = {
+            projectName, category, industry, description, BOSID, publishDate, submission, link,
+            periodOfContractStart, periodOfContractEnd, dueDate, bidsubmissiontime, projectType,
+            website, mailID, clientType, clientName, supportingDocs, noticeReference, CPVCodes,
+            minValue, maxValue, value, status, bidsubmissionhour, bidsubmissionminute, bidManagerStatus,
+            BidWritingStatus, eligibilityForm, waitingForResult, policy, bidManagerStatusComment, categorisation, loginID, password, linkToPortal, documentsLink, resultExpected
+        };
+
+        for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
+            const oldValue = project[field];
+            if (newValue !== undefined && newValue !== oldValue) {
+                let logEntry: any = {}
+                const isEmpty = (val: any) =>
+                    val === null ||
+                    val === undefined ||
+                    val === "" ||
+                    (Array.isArray(val) && val.length === 0) ||
+                    (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0);
+
+                if (field === "eligibilityForm" || field === "bidManagerStatusComment") {
+                    if (areObjectsEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                } else if (field === "category" || field === "industry") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>,
+                         ${!isEmpty(oldValue)
+                                ? `updated from ${oldValue} to ${newValue}`
+                                : `updated to ${newValue}`
+                            }`, userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                else if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
+                    if (oldValue === newValue) continue;
+
+                    const formattedOld = formatDateIfNeeded(oldValue);
+                    const formattedNew = formatDateIfNeeded(newValue);
+
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew}`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                else {
+                    if (Array.isArray(newValue) && Array.isArray(oldValue) && areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
+                            ? `updated from ${oldValue} to ${newValue}`
+                            : `updated to ${newValue}`
+                            }`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                project.logs = [logEntry, ...(project.logs || [])];
+                // project[field] = newValue;
+            }
+        }
+
+        project.projectName = projectName || project.projectName;
+        project.category = category || project.category;
+        project.industry = industry || project.industry;
+        project.description = description || project.description;
+        project.BOSID = BOSID || project.BOSID;
+        project.publishDate = publishDate || project.publishDate;
+        project.submission = submission || project.submission;
+        project.link = link || project.link;
+        project.periodOfContractStart = periodOfContractStart || project.periodOfContractStart;
+        project.periodOfContractEnd = periodOfContractEnd || project.periodOfContractEnd;
+        project.dueDate = dueDate || project.dueDate;
+        project.bidsubmissiontime = bidsubmissiontime || project.bidsubmissiontime;
+        project.projectType = projectType || project.projectType;
+        project.website = website || project.website;
+        project.mailID = mailID || project.mailID;
+        project.clientType = clientType || project.clientType;
+        project.clientName = clientName || project.clientName;
+        project.supportingDocs = supportingDocs || project.supportingDocs;
+        project.noticeReference = noticeReference || project.noticeReference;
+        project.CPVCodes = CPVCodes || project.CPVCodes;
+        project.minValue = minValue || project.minValue;
+        project.maxValue = maxValue || project.maxValue;
+        project.value = value || project.value;
+        project.status = status || project.status;
+        project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
+        project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        project.bidManagerStatus = bidManagerStatus || project.bidManagerStatus;
+        project.bidManagerStatusComment = bidManagerStatusComment || project.bidManagerStatusComment;
+        project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
+        project.eligibilityForm = eligibilityForm || project.eligibilityForm;
+        project.categorisation = categorisation || project.categorisation;
+        project.loginID = loginID !== undefined ? loginID : project.loginID;
+        project.password = password !== undefined ? password : project.password;
+        project.linkToPortal = linkToPortal || project.linkToPortal;
+        project.documentsLink = documentsLink || project.documentsLink;
+        project.chatGptLink = chatGptLink || project.chatGptLink;
+        project.resultExpected = resultExpected || project.resultExpected;
+
+        // project.projectName = projectName;
+        // project.category = category;
+        // project.industry = industry;
+        // project.description = description;
+        // project.BOSID = BOSID;
+        // project.publishDate = publishDate;
+        // project.submission = submission;
+        // project.link = link;
+        // project.periodOfContractStart = periodOfContractStart;
+        // project.periodOfContractEnd = periodOfContractEnd;
+        // project.dueDate = dueDate;
+        // project.bidsubmissiontime = bidsubmissiontime;
+        // project.projectType = projectType;
+        // project.website = website;
+        // project.mailID = mailID;
+        // project.clientType = clientType;
+        // project.clientName = clientName;
+        // project.supportingDocs = supportingDocs;
+        // project.noticeReference = noticeReference;
+        // project.CPVCodes = CPVCodes;
+        // project.minValue = minValue;
+        // project.maxValue = maxValue;
+        // project.value = value;
+        // project.status = status;
+        // project.bidsubmissionhour = bidsubmissionhour;
+        // project.bidsubmissionminute = bidsubmissionminute;
+        // project.bidManagerStatus = bidManagerStatus;
+        // project.bidManagerStatusComment = bidManagerStatusComment;
+        // project.BidWritingStatus = BidWritingStatus;
+        // project.eligibilityForm = eligibilityForm;
+        // project.categorisation = categorisation;
+        // project.loginID = loginID !== undefined ? loginID : project.loginID;
+        // project.password = password !== undefined ? password : project.password;
+        // project.linkToPortal = linkToPortal;
+        // project.documentsLink = documentsLink;
+        // project.chatGptLink = chatGptLink;
+
+        if (droppedAfterFeasibilityStatusReason?.length > 0) {
+            droppedAfterFeasibilityStatusReason = droppedAfterFeasibilityStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.droppedAfterFeasibilityStatusReason = [...droppedAfterFeasibilityStatusReason, ...project.droppedAfterFeasibilityStatusReason]
+        }
+        // project.policy = policy || project.policy;
+
+        if (waitingForResult === false || waitingForResult === true) {
+            project.waitingForResult = waitingForResult;
+        }
+
+        if (stages) {
+            project.stages = stages.map((obj: any) => {
+                return {
+                    text: obj.text,
+                    startDate: new Date(obj.startDate),
+                    endDate: new Date(obj.endDate)
+                }
+            });
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteProject = async (req: Request, res: Response) => {
+    try {
+        const id = req.params.id;
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const deleteproject = await projectModel.findByIdAndDelete(id);
+
+        return res.status(200).json({
+            message: "Project delete success",
+            status: true,
+            data: deleteproject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteProjectMultiple = async (req: Request, res: Response) => {
+    try {
+        await projectModel.deleteMany({});
+
+        return res.status(200).json({
+            message: "Projects deleted successfully",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const sortList = async (req: any, res: Response) => {
+    try {
+        const { userIds, projectId } = req.body;
+        const { isMailSend } = req.query;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+        const logs = [];
+
+        // Get bid manager data
+        let bidManagerData = null;
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+            bidManagerData = bidlatestTask[0].userDetails;
+        }
+
+        for (const userId of userIds) {
+            if (!project.sortListUserId.includes(userId)) {
+                project.sortListUserId.push(userId);
+
+                // const alreadyExist = project.selectedUserIds?.find((u: any) => u.userId.toString() === userId.toString());
+
+                // if (!alreadyExist) {
+                //     project.selectedUserIds.push({ userId, isSelected: false });
+                // }
+                const user: any = await userModel.findById(userId);
+                const logEntry = {
+                    log: `${user.name} was sortlisted by <strong>${req.user?.name}</strong> for the project: ${project.projectName}.`,
+                    userId: req.user._id,
+                    date: new Date(),
+                    type: "timeBased"
+                };
+                logs.push(logEntry);
+
+                // Send shortlist email (Mail 1) to all POC emails
+                if (user && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                    user.pocDetails.forEach((poc: any) => {
+                        if (poc.email) {
+                            sendShortlistMail(poc.email, user.name, project, bidManagerData)
+                                .then(() => console.log(`Shortlist email sent to POC ${poc.email}`))
+                                .catch(err => console.log(`Error sending shortlist email to POC ${poc.email}:`, err));
+                        }
+                    });
+                } else if (user && isMailSend === 'true') {
+                    console.log(`No POC details found for user ${user.name}`);
+                }
+            }
+        }
+        project.logs = [...(logs || []), ...(project.logs || [])];
+        project.save();
+
+        return res.status(200).json({
+            message: "Project sortlist successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const applyProject = async (req: any, res: Response) => {
+    try {
+        const { userId, projectId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        if (!project.applyUserId.includes(userId)) {
+            project.applyUserId = [...project.applyUserId, userId];
+
+            const user: any = await userModel.findById(userId);
+            const logEntry = {
+                log: `<strong>${user.name}</strong> applied for the project: ${project.projectName}.`,
+                userId: userId,
+                date: new Date(),
+                type: "timeBased"
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
+        }
+        project.save();
+
+        return res.status(200).json({
+            message: "Project apply successfully",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataSupplierAdmin = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id
+        const user = await userModel.findById(userId)
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const categorygroup = (await caseStudy.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(req.user.id),
+                    verify: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
+            }
+        ])).reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+        }, {});
+
+        const categorygroupAll = (await caseStudy.aggregate([
+            {
+                $match: {
+                    userId: new mongoose.Types.ObjectId(req.user.id),
+                    verify: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$category",
+                    count: { $sum: 1 }
+                }
+            }
+        ])).map(item => item._id)
+        const date = new Date();
+        const totalProjectValueAndCountMatch = await projectModel.aggregate([
+            {
+                $match: {
+                    category: { $elemMatch: { $in: categorygroupAll } },
+                    // dueDate: { $gte: date },
+                    status: projectStatus.Passed
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: "$maxValue" },
+                    projectCount: { $sum: 1 }
+                }
+            }
+        ]);
+        const totalProjectValueAndCount = await projectModel.aggregate([
+            // {
+            //     $match: {
+            //         status: projectStatus.Passed
+            //     }
+            // },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: { $sum: "$maxValue" },
+                    projectCount: { $sum: 1 }
+                }
+            }
+        ]);
+        // const totalProjectValueAndCountInCategory = await projectModel.aggregate([
+        //     {
+        //         $match: {
+        //             category: { $elemMatch: { $in: categorygroupAll } },
+        //             status: projectStatus.Passed
+        //         }
+        //     },
+        //     {
+        //         $group: {
+        //             _id: null,
+        //             totalValue: { $sum: "$maxValue" },
+        //             projectCount: { $sum: 1 }
+        //         }
+        //     }
+        // ]);
+        // console.log(totalProjectValueAndCountInCategory, "totalProjectValueAndCountInCategory")
+        const result = totalProjectValueAndCount[0] || { totalValue: 0, projectCount: 0 };
+        const result1 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
+        const result2 = totalProjectValueAndCountMatch[0] || { totalValue: 0, projectCount: 0 };
+
+        // const projects = await projectModel.find({ category: { $in: categorygroupAll }, status: "Passed" })
+        const projects = await projectModel.find({ status: { $in: ["Passed", "WaitingForResult"] } })
+        const responseData = {
+            projectCount: {
+                totalProjects: result.projectCount,
+                totalProjectInCategory: result2.projectCount,
+                matchedProjects: result1.projectCount,
+                totalSubmit: 0,
+                totalAwarded: 0,
+                totalNotAwarded: 0,
+                totalInSubmition: 0,
+                totalInSolution: 0,
+                totalInReview: 0,
+                totalExpired: 0,
+                totalpassed: 0,
+                totalWaitingForResult: 0,
+                //nre
+                sortListed: 0,
+                drop: 0,
+                UKExpertWritingsCount: 0,
+                UKExpertReviewCount: 0
+            },
+            projectValue: {
+                totalProjectValue: result.totalValue,
+                ProjectInCategoryValue: result2.totalValue,
+                matchedProjectsValue: result1.totalValue,
+                totalSubmitValue: 0,
+                totalAwardedValue: 0,
+                totalNotAwardedValue: 0,
+                totalpassedValue: 0,
+                totalWaitingForResult: 0,
+                //new
+                sortListedValue: 0,
+                dropValue: 0,
+                insolutionValue: 0,
+                inReviewValue: 0,
+                inSubmitionsValue: 0,
+                UKExpertWritingsValue: 0,
+                UKExpertReviewValue: 0
+            }
+        }
+        projects.forEach((project: any) => {
+            // responseData.projectValue.ProjectInCategoryValue += project.maxValue;
+            // if (Object.keys(categorygroup).includes(project.category)) {
+            //     responseData.projectCount.totalProjectInCategory
+            // }
+            // if (Object.keys(categorygroupAll).includes(project.category)) {
+            //     console.log(0 <= categorygroupAll[project.category])
+            //     if (0 <= categorygroupAll[project.category]) {
+            //         responseData.projectCount.matchedProjects++;
+            //         responseData.projectValue.matchedProjectsValue += project.maxValue;
+            //     }
+            // }
+            if (project.status === projectStatus.Submitted) {
+                responseData.projectCount.totalSubmit++;
+                responseData.projectValue.totalSubmitValue += project.maxValue;
+            }
+
+            if (project.status === projectStatus.Awarded) {
+                responseData.projectCount.totalAwarded++;
+                responseData.projectValue.totalAwardedValue += project.maxValue;
+            }
+            if (project.status === projectStatus.NotAwarded) {
+                responseData.projectCount.totalNotAwarded++;
+                responseData.projectValue.totalNotAwardedValue += project.maxValue;
+            }
+            if (project.status === projectStatus.Passed) {
+                responseData.projectCount.totalpassed++;
+                responseData.projectValue.totalpassedValue += project.maxValue;
+            }
+            if (project.status === projectStatus.InSubmission) {
+                responseData.projectCount.totalInSubmition++;
+                responseData.projectValue.inSubmitionsValue += project.maxValue;
+            }
+            if (project.status === projectStatus.InSolution) {
+                responseData.projectCount.totalInSolution++;
+                responseData.projectValue.insolutionValue += project.maxValue;
+
+            }
+            if (project.status === projectStatus.InReviewWestGate) {
+                responseData.projectCount.totalInReview++;
+                responseData.projectValue.inReviewValue += project.maxValue;
+            }
+            if (project.status === projectStatus.WaitingForResult) {
+                responseData.projectCount.totalWaitingForResult++;
+                responseData.projectValue.totalWaitingForResult += project.maxValue;
+            }
+            if (project.sortListUserId.some((id: any) => id.equals(new mongoose.Types.ObjectId(userId)))) {
+                responseData.projectCount.sortListed++;
+                responseData.projectValue.sortListedValue += project.maxValue;
+            }
+            if (project.dropUser.includes(new mongoose.Types.ObjectId(userId))) {
+                responseData.projectCount.drop++;
+                responseData.projectValue.dropValue += project.maxValue;
+            }
+        })
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataProjectManager = async (req: any, res: Response) => {
+    try {
+        const userId = req.user.id
+
+        const user = await userModel.findById(userId)
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            })
+        }
+
+        const projects = await projectModel.find({ category: { $in: user?.categoryList } })
+        const responseData = {
+            totalProjectsMatched: projects.length,
+            totalProjectsFinalized: 0,
+        }
+
+        projects.forEach(project => {
+            const userId = new mongoose.Types.ObjectId(req.user.id);
+            if (project?.finalizedById?.equals(userId)) {
+                responseData.totalProjectsFinalized++;
+            }
+
+        })
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateProjectForFeasibility = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        let { category, industry, bidsubmissiontime, clientDocument, status, statusComment, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, certifications, policy, failStatusReason, droppedAfterFeasibilityStatusReason, nosuppliermatchedStatusReason, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm, westGetDocument, updatedComment } = req.body
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+
+        if (project.status !== status && status !== null && status !== undefined) {
+            if (req.user?.role === userRoles.FeasibilityUser) {
+                project.feasibilityStatus = feasibilityStatus.feasibilityStatusChange;
+            }
+            if (status === projectStatus.Fail || status === projectStatus.NotReleted) {
+                project.adminStatus = status;
+                project.adminStatusDate = new Date();
+                status = undefined;
+            } else {
+                if (status === projectStatus.Passed) {
+                    project.bidManagerStatus = BidManagerStatus.Awaiting;
+                }
+                project.statusHistory.push({
+                    status,
+                    date: new Date(),
+                    userId: req.user.id,
+                })
+            }
+        }
+
+        if (project.bidManagerStatus !== bidManagerStatus && bidManagerStatus !== null && bidManagerStatus !== undefined) {
+            if (bidManagerStatus === BidManagerStatus.DroppedAfterFeasibility || bidManagerStatus === BidManagerStatus.Nosuppliermatched) {
+                project.adminStatus = bidManagerStatus;
+                project.adminStatusDate = new Date();
+                bidManagerStatus = undefined;
+            }
+        }
+
+        const fieldsToUpdate = {
+            category, industry, clientDocument, westGetDocument, status, failStatusImage, subContracting, subContractingfile, economicalPartnershipQueryFile, economicalPartnershipResponceFile, FeasibilityOtherDocuments, loginDetail, caseStudyRequired, policy, value, bidsubmissionhour, bidsubmissionminute, waitingForResult, comment, projectComment, bidManagerStatus, BidWritingStatus, eligibilityForm
+        };
+
+        for (const [field, newValue] of Object.entries(fieldsToUpdate)) {
+            const oldValue = project[field];
+            if (newValue !== undefined && newValue !== oldValue) {
+                let logEntry: any = {}
+
+                const isEmpty = (val: any) =>
+                    val === null ||
+                    val === undefined ||
+                    val === "" ||
+                    (Array.isArray(val) && val.length === 0) ||
+                    (typeof val === "object" && !Array.isArray(val) && Object.keys(val).length === 0);
+
+                if (field === "statusComment" || field === "clientDocument" || field === "westGetDocument" || field === "FeasibilityOtherDocuments") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                } else if (field === "failStatusImage" || field === "subContractingfile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipQueryFile" || field === "economicalPartnershipResponceFile") {
+                    if (areObjectsEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                } else if (field === "loginDetail" || field === "eligibilityForm" || field === "projectComment") {
+                    if (areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                else if (field === "periodOfContractStart" || field === "periodOfContractEnd" || field === "publishDate" || field === "dueDate" || field === "adminStatusDate") {
+                    if (oldValue === newValue) continue;
+
+                    const formattedOld = formatDateIfNeeded(oldValue);
+                    const formattedNew = formatDateIfNeeded(newValue);
+
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, updated from ${formattedOld} to ${formattedNew}`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                else if (updatedComment && field === "status") {
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>, ${!isEmpty(oldValue)
+                            ? `updated from ${oldValue} to ${newValue} - ${updatedComment}`
+                            : `updated to ${newValue} - ${updatedComment}`
+                            }`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                else if (field === "eligibilityForm" || field === "bidManagerStatusComment") {
+                    if (areObjectsEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "timeBased"
+                    };
+                }
+                else {
+                    if (Array.isArray(newValue) && Array.isArray(oldValue) && areArraysEqual(newValue, oldValue)) {
+                        continue;
+                    }
+                    logEntry = {
+                        log: `${field} was changed by <strong>${req.user?.name}</strong>,
+                        ${!isEmpty(oldValue)
+                                ? `updated from ${oldValue} to ${newValue}`
+                                : `updated to ${newValue}`
+                            }`,
+                        userId: req.user._id,
+                        date: new Date(),
+                        type: "projectBased"
+                    };
+                }
+                project.logs = [logEntry, ...(project.logs || [])];
+            }
+        }
+
+        project.category = category || project.category;
+        project.industry = industry || project.industry;
+        project.bidsubmissiontime = bidsubmissiontime || project.bidsubmissiontime;
+        project.clientDocument = clientDocument || project.clientDocument;
+        project.westGetDocument = westGetDocument || project.westGetDocument;
+        project.status = status || project.status;
+        project.statusComment = statusComment || project.statusComment;
+        project.failStatusImage = failStatusImage || project.failStatusImage;
+        project.subContractingfile = subContractingfile || project.subContractingfile;
+        project.economicalPartnershipQueryFile = economicalPartnershipQueryFile || project.economicalPartnershipQueryFile;
+        project.economicalPartnershipResponceFile = economicalPartnershipResponceFile || project.economicalPartnershipResponceFile;
+        project.FeasibilityOtherDocuments = FeasibilityOtherDocuments || project.FeasibilityOtherDocuments;
+        project.loginDetail = loginDetail || project.loginDetail;
+        project.caseStudyRequired = caseStudyRequired || project.caseStudyRequired;
+        // project.certifications = certifications || project.certifications;
+        project.eligibilityForm = eligibilityForm || project.eligibilityForm;
+        if (failStatusReason?.length > 0) {
+            failStatusReason = failStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.failStatusReason = [...failStatusReason, ...project.failStatusReason]
+        }
+        if (droppedAfterFeasibilityStatusReason?.length > 0) {
+            droppedAfterFeasibilityStatusReason = droppedAfterFeasibilityStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.droppedAfterFeasibilityStatusReason = [...droppedAfterFeasibilityStatusReason, ...project.droppedAfterFeasibilityStatusReason]
+        }
+        if (nosuppliermatchedStatusReason?.length > 0) {
+            nosuppliermatchedStatusReason = nosuppliermatchedStatusReason.map((item: any) => {
+                return {
+                    ...item,
+                    userId: req.user.id,
+                    date: new Date()
+                }
+            })
+            project.nosuppliermatchedStatusReason = [...nosuppliermatchedStatusReason, ...project.nosuppliermatchedStatusReason]
+        }
+        project.value = value || project.value;
+        project.bidsubmissionhour = bidsubmissionhour || project.bidsubmissionhour;
+        project.bidsubmissionminute = bidsubmissionminute || project.bidsubmissionminute;
+        project.comment = comment || project.comment;
+        project.projectComment = projectComment || project.projectComment;
+        project.bidManagerStatus = bidManagerStatus || project.bidManagerStatus;
+        project.BidWritingStatus = BidWritingStatus || project.BidWritingStatus;
+
+        if (subContracting === false || subContracting === true) {
+            project.subContracting = subContracting;
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const uploadFile = async (req: any, res: Response) => {
+    try {
+        let file
+        if (req.files?.length === 1) {
+            file = await uploadToBackblazeB2(req.files[0], "files")
+        } else if (req.files?.length > 1) {
+            file = await uploadMultipleFilesBackblazeB2(req.files, "files")
+        }
+
+        return res.status(200).json({
+            message: "file uploaded successfully",
+            status: true,
+            data: file
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteFiles = async (req: Request, res: Response) => {
+    try {
+
+        let { files } = req.body
+
+        files.forEach(async (file: { key: string }) => {
+            await deleteFromBackblazeB2(file)
+        });
+        // files = await deleteMultipleFromS3(files.map((file: { key: string }) => file.key))
+        return res.status(200).json({
+            message: "file deleted successfully",
+            status: true,
+            // data: files
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getSupplierAdminList = async (req: any, res: Response) => {
+    try {
+
+        const projectId = req.params.projectId;
+        const { supplierId } = req.query;
+
+        const project = await projectModel.findById(projectId, { category: 1, caseStudyRequired: 1 });
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const groupedData = await caseStudy.aggregate([
+            {
+                $match: {
+                    category: { $in: project.category }
+                }
+            },
+            { $group: { _id: "$userId", caseStudies: { $push: "$$ROOT" } } }
+        ]);
+
+        let userIds: any = []
+        groupedData.forEach(user => {
+            if (user.caseStudies.length > project.caseStudyRequired) {
+                userIds.push(user._id);
+            }
+        })
+        if (supplierId) {
+            const supplierObjectId = new mongoose.Types.ObjectId(supplierId);
+
+            if (userIds.some((id: any) => new mongoose.Types.ObjectId(id)?.equals(supplierObjectId))) {
+                userIds = [supplierObjectId];
+            } else {
+                userIds = [];
+            }
+        }
+        let users = await userModel.find({ _id: { $in: userIds } }).select({ password: 0 });
+
+        users = users.map((user: any) => {
+            return { ...user._doc, caseStudy: (groupedData.find(c => user._id.equals(c._id))).caseStudies }
+        })
+
+        return res.status(200).json({
+            message: "projects fetch success",
+            status: true,
+            data: users
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const updateProjectForProjectManager = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { select, finalizedId, dropUser } = req.body
+        const { isMailSend } = req.query;
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (select) {
+            let { supplierId } = select
+            if (!supplierId) {
+                return res.status(401).json({
+                    message: "supplierId required",
+                    status: true,
+                    data: null
+                });
+            }
+
+            supplierId = new mongoose.Types.ObjectId(supplierId)
+            if (!(project.select.some((select: any) => new mongoose.Types.ObjectId(select.supplierId)?.equals(supplierId)))) {
+                project.select.push(select);
+
+                const user: any = await userModel.findById(supplierId);
+                const logEntry = {
+                    log: `<strong>${user.name}</strong> is select for the project.`,
+                    userId: supplierId,
+                    date: new Date(),
+                    type: "timeBased"
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
+            }
+        }
+        if (finalizedId) {
+            project.finalizedId = finalizedId
+            project.finalizedById = req.user.id
+            // project.finalized = {
+            //     finalizedId,
+
+            // }
+            const user: any = await userModel.findById(finalizedId);
+            const logEntry = {
+                log: `<strong>${user.name}<strong> Won the project.`,
+                userId: finalizedId,
+                date: new Date(),
+                type: "timeBased"
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
+
+            project.status = projectStatus.Won
+            project.closedDate = new Date()
+        }
+        if (dropUser) {
+            let { userId, reason } = dropUser
+            userId = new mongoose.Types.ObjectId(userId)
+
+            // Get bid manager data for email using task-based approach
+            let bidManagerData = null;
+            const bidlatestTask = await taskModel.aggregate([
+                {
+                    $match: {
+                        project: project._id,
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: {
+                            $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                {
+                    $match: {
+                        "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $limit: 1
+                },
+                {
+                    $project: {
+                        project: 1,
+                        assignTo: 1,
+                        dueDate: 1,
+                        userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                    }
+                }
+            ]);
+
+            if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+                bidManagerData = bidlatestTask[0].userDetails;
+            }
+
+            if (!(project.dropUser.some((dropUser: any) => dropUser.userId.equals(userId)))) {
+                // project.dropUser.push({ userId, reason });
+                project.dropUser = [{ userId, reason: [{ comment: reason, date: new Date() }] }, ...(project.dropUser || [])]
+                const user: any = await userModel.findById(userId);
+                const logEntry = {
+                    log: `<strong>${user.name}</strong> is drop by ${req.user.name}`,
+                    userId: userId,
+                    date: new Date(),
+                    type: "timeBased"
+                };
+                project.logs = [logEntry, ...(project.logs || [])];
+
+                // Send shortlist comment email to all POC emails - when comment is added to shortlisted supplier
+                if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                    user.pocDetails.forEach((poc: any) => {
+                        if (poc.email) {
+                            sendShortlistCommentMail(poc.email, user.name, project, bidManagerData)
+                                .then(() => console.log(`Shortlist comment email sent to POC ${poc.email}`))
+                                .catch(err => console.log(`Error sending shortlist comment email to POC ${poc.email}:`, err));
+                        }
+                    });
+                } else if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
+                    console.log(`No POC details found for user ${user.name}`);
+                }
+            } else {
+                const existingDropUser = project.dropUser.find((dropUser: any) => dropUser.userId.equals(userId));
+                if (existingDropUser) {
+                    existingDropUser.reason.unshift({ comment: reason, date: new Date() });
+
+                    // Send shortlist comment email to all POC emails
+                    const user: any = await userModel.findById(userId);
+                    if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true' && user.pocDetails && user.pocDetails.length > 0) {
+                        user.pocDetails.forEach((poc: any) => {
+                            if (poc.email) {
+                                sendShortlistCommentMail(poc.email, user.name, project, bidManagerData)
+                                    .then(() => console.log(`Shortlist comment email sent to POC ${poc.email}`))
+                                    .catch(err => console.log(`Error sending shortlist comment email to POC ${poc.email}:`, err));
+                            }
+                        });
+                    } else if (user && project.sortListUserId.includes(userId.toString()) && isMailSend === 'true') {
+                        console.log(`No POC details found for user ${user.name}`);
+                    }
+                }
+                project.markModified('dropUser');
+            }
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataUKWriter = async (req: any, res: Response) => {
+    try {
+
+        let projectIds = await summaryQuestionModel.aggregate([
+            {
+                $match: {
+                    summaryQuestionFor: "UKWriter"
+                }
+            },
+            {
+                $group: {
+                    _id: "$projectId",
+                    projectIds: { $addToSet: "$projectId" }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    projectIds: 1
+                }
+            }
+        ]);
+        projectIds = projectIds.flatMap((item: any) => item.projectIds);
+        projectIds = [...new Set(projectIds)];
+
+        const projects = await projectModel.find({ _id: { $in: projectIds } })
+        const responseData = {
+            totalProjectsReviewed: projects.length,
+        }
+
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getSelectedUserDataUKWriter = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+        const { search } = req.query;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(40).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            })
+        }
+
+        let userData: any[] = [];
+
+        for (const pro of project?.select) {
+            const user = await userModel.findById(pro.supplierId).select({ password: 0, avatar: 0 });
+            userData.push({ ...pro, supplierId: user });
+        }
+
+        if (search) {
+            userData = userData.filter(user => {
+                if (user?.supplierId?._id.toString() === search || user?.supplierId?.name?.includes(search)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            });
+        }
+        return res.status(200).json({
+            message: "user data fetch success",
+            status: true,
+            data: userData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getDashboardDataProjectCoOrdinator = async (req: any, res: Response) => {
+    try {
+        const projects = await projectModel.countDocuments({ status: projectStatus.Won })
+
+
+        const responseData = {
+            totalProjects: projects,
+        }
+
+        return res.status(200).json({
+            message: "Dashboard data fetch success",
+            status: true,
+            data: responseData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getLatestProject = async (req: any, res: Response) => {
+    try {
+        const projects = await projectModel.find().sort({ createdAt: -1 }).limit(10)
+
+        return res.status(200).json({
+            message: "project fetch success",
+            status: true,
+            data: projects
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const addProjectStatusForSupplier = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId, supplierStatus } = req.body
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        project.select = project.select.map(select => {
+            if (select.supplierId === supplierId) {
+                return {
+                    ...select,
+                    supplierStatus
+                }
+            } else {
+                return select
+            }
+        })
+
+        const updateProject = await project.save();
+        return res.status(200).json({
+            message: "status add project successfully",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const mailSend = async (req: Request, res: Response) => {
+    try {
+        const { projectName, BOSID } = req.body
+
+        if (!projectName && !BOSID) {
+            return res.status(200).json({
+                message: "Please pass a project name and a BOSID",
+                status: false,
+                data: null
+            });
+        }
+
+        mailForFeasibleTimeline(process.env.MAILSEND_EMAIL as string, req.body).then(data => console.log(data)).catch(err => console.log(err));
+
+        return res.status(200).json({
+            message: "Mail send success",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const newProjectAddMail = async (req: Request, res: Response) => {
+    try {
+        const { SupplierName } = req.body
+
+        if (SupplierName) {
+            return res.status(200).json({
+                message: "Please pass Supplier Name",
+                status: false,
+                data: null
+            });
+        }
+
+        const recivermail = [
+            {
+                email: 'arjun@runtime-solutions.com',
+                supplierName: "Runtime Solutions"
+            },
+            {
+                email: 'anand.jha@nileegames.com',
+                supplierName: "Nilee Games and Future Technologiees Pvt. Ltd"
+            },
+            {
+                email: 'adarsh@softprolang.com',
+                supplierName: "SoftProlong - Software Development Company"
+            },
+            {
+                email: 'pratik@thecybertechsolution.com',
+                supplierName: "Cyber Tech Solutions"
+            },
+            {
+                email: 'hello@someshwara.com/ basavaraj@someshwara.com',
+                supplierName: "Someshwara Software"
+            },
+            {
+                email: 'aashutosh@androidblaze.in',
+                supplierName: "ASAG Androapps Technology Pvt. Ltd."
+            },
+            {
+                email: 'collinitsolution@gmail.com',
+                supplierName: "Collin It Solution"
+            },
+            {
+                email: 'pshrotriya@splendornet.com',
+                supplierName: "SplendorNet"
+            },
+            {
+                email: 'tanmay.samal@alptechsoftware.com',
+                supplierName: "Alptech Software Solutions LLP"
+            },
+            {
+                email: 'hr@svapps.in',
+                supplierName: "SVAPPS SOFT SOLUTIONS PVT. LTD."
+            },
+            {
+                email: 'info@emergeflow.com',
+                supplierName: "EmergeFlow Technologies"
+            },
+            {
+                email: 'vidyadhari@compileinfy.com',
+                supplierName: "Compileinfy Technology Solutions LLP"
+            },
+            {
+                email: 'baskarraj@Multimise.com',
+                supplierName: "Multimise (MITS)"
+            },
+            {
+                email: 'letstalk@jscreationsnent.com',
+                supplierName: "JS CREATIONS AND ENTERTAINMENT"
+            },
+            {
+                email: 'shubham@thefinansol.com',
+                supplierName: "Infinevo Tech Pvt. Ltd. (TheFinansol)"
+            },
+            {
+                email: 'info@Posistrength.com',
+                supplierName: "Posistrength Software Solution Pvt.Ltd."
+            },
+            {
+                email: 'varun@khoslatech.com',
+                supplierName: "khosla tech"
+            },
+            {
+                email: 'mukhtar@ssmaktak.com',
+                supplierName: "SSMAK"
+            },
+            {
+                email: 'sudhir@openlx.com',
+                supplierName: "OpenLX(reminder at eve)"
+            }
+        ]
+
+        // const recivermail = [
+        //     {
+        //         email: 'jeel.tadhani11@gmail.com',
+        //         supplierName: "Jeel Tadhani"
+        //     },
+        //     {
+        //         email: 'jeeltadhani2003@gmail.com',
+        //         supplierName: "jeel patel"
+        //     }
+        // ]
+        for (const data of recivermail) {
+            await mailForNewProject(data.email, data)
+                .then(() => console.log(`Mail sent successfully to ${data.email}`))
+                .catch(err => console.error(`Error sending mail to ${data.email}:`, err));
+        }
+
+        return res.status(200).json({
+            message: "Mails send successfully",
+            status: true,
+            data: null
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getProjectCountAndValueBasedOnStatus = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, expired, categorisation, assignBidManagerId } = req.query;
+
+        let createdAtFilter: any = {};
+
+        if (startDate && endDate) {
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            end.setHours(23, 59, 59, 999);
+
+            createdAtFilter = {
+                publishDate: {
+                    $gte: start,
+                    $lte: end
+                }
+            };
+        }
+        if (!expired) {
+            const date = new Date();
+            createdAtFilter.dueDate = { $gte: date }
+        }
+        if (categorisation) {
+            createdAtFilter.categorisation = categorisation
+        }
+
+        let projectIds: any[] = [];
+        if (assignBidManagerId) {
+            const bidManagerIds = Array.isArray(assignBidManagerId)
+                ? assignBidManagerId
+                : assignBidManagerId.includes(',')
+                    ? assignBidManagerId.split(',').map((id: any) => id.trim())
+                    : [assignBidManagerId];
+
+            const tasks = await taskModel.find({
+                'assignTo.userId': { $in: bidManagerIds },
+            }).select('project assignTo');
+
+            const filteredTasks = tasks.filter(task => {
+                if (task.assignTo && task.assignTo.length > 0) {
+                    const firstAssigneeId = task.assignTo[0].userId?.toString();
+                    return bidManagerIds.includes(firstAssigneeId);
+                }
+                return false;
+            });
+
+            // Extract project IDs from filtered tasks
+            projectIds = filteredTasks.map(task => task.project);
+
+            if (projectIds.length > 0) {
+                createdAtFilter._id = { $in: projectIds };
+            } else {
+                // If no projects found, return empty result
+                return res.status(200).json({
+                    message: "data fetch success",
+                    status: true,
+                    data: {
+                        FeasibilityStatusCount: {
+                            "Awaiting": 0,
+                            "InProgress": 0,
+                            "InHold": 0,
+                            "DocumentsNotFound": 0,
+                            "Passed": 0,
+                            "Fail": 0,
+                            "Not Releted": 0
+                        },
+                        FeasibilityStatusValue: {
+                            "Awaiting": 0,
+                            "InProgress": 0,
+                            "InHold": 0,
+                            "DocumentsNotFound": 0,
+                            "Passed": 0,
+                            "Fail": 0,
+                            "Not Releted": 0
+                        },
+                        BidStatusCount: {
+                            //"Shortlisted": 0,
+                            "Awaiting": 0,
+                            "Query Raised": 0,
+                            "Go-NoGoStage1": 0,
+                            "SupplierConfirmation": 0,
+                            "Go-NoGoStage2": 0,
+                            "InSolution": 0,
+                            "WaitingForResult": 0,
+                            "Awarded": 0,
+                            "NotAwarded": 0,
+                            "Dropped after feasibility": 0,
+                            "Nosuppliermatched": 0,
+                        },
+                        BidStatusValue: {
+                            //"Shortlisted": 0,
+                            "Awaiting": 0,
+                            "Query Raised": 0,
+                            "Go-NoGoStage1": 0,
+                            "SupplierConfirmation": 0,
+                            "Go-NoGoStage2": 0,
+                            "InSolution": 0,
+                            "WaitingForResult": 0,
+                            "Awarded": 0,
+                            "NotAwarded": 0,
+                            "Dropped after feasibility": 0,
+                            "Nosuppliermatched": 0,
+                        }
+                    }
+                });
+            }
+        }
+
+        const projects = await projectModel.find(createdAtFilter).select({ status: 1, maxValue: 1, category: 1, sortListUserId: 1, bidManagerStatus: 1 });
+        let data: any = {
+            FeasibilityStatusCount: {
+                "Awaiting": 0,
+                "InProgress": 0,
+                "InHold": 0,
+                "DocumentsNotFound": 0,
+                "Passed": 0,
+                "Fail": 0,
+                "Not Releted": 0
+            },
+            FeasibilityStatusValue: {
+                "Awaiting": 0,
+                "InProgress": 0,
+                "InHold": 0,
+                "DocumentsNotFound": 0,
+                "Passed": 0,
+                "Fail": 0,
+                "Not Releted": 0
+            },
+            BidStatusCount: {
+                //"Shortlisted": 0,
+                "Awaiting": 0,
+                "Query Raised": 0,
+                "Go-NoGoStage1": 0,
+                "SupplierConfirmation": 0,
+                "Go-NoGoStage2": 0,
+                "InSolution": 0,
+                "WaitingForResult": 0,
+                "Awarded": 0,
+                "NotAwarded": 0,
+                "Dropped after feasibility": 0,
+                "Nosuppliermatched": 0,
+            },
+            BidStatusValue: {
+                //"Shortlisted": 0,
+                "Awaiting": 0,
+                "Query Raised": 0,
+                "Go-NoGoStage1": 0,
+                "SupplierConfirmation": 0,
+                "Go-NoGoStage2": 0,
+                "InSolution": 0,
+                "WaitingForResult": 0,
+                "Awarded": 0,
+                "NotAwarded": 0,
+                "Dropped after feasibility": 0,
+                "Nosuppliermatched": 0,
+            },
+        };
+
+        projects.forEach((project: any) => {
+
+            if (data.FeasibilityStatusCount[project.status] >= 0) {
+                data.FeasibilityStatusCount[project.status]++;
+                data.FeasibilityStatusValue[project.status] += project.maxValue;
+            }
+
+            if (project.status === projectStatus.Passed) {
+                if (project.bidManagerStatus in data.BidStatusCount) {
+                    data.BidStatusCount[project.bidManagerStatus]++;
+                    data.BidStatusValue[project.bidManagerStatus] += project.maxValue;
+                }
+
+                // if (project.sortListUserId.length > 0) {
+                //     data.BidStatusCount['Shortlisted']++
+                //     data.BidStatusValue.Shortlisted += project.maxValue
+                // }
+            }
+
+        })
+
+        return res.status(200).json({
+            message: "data fetch success",
+            status: true,
+            data: data
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const appointUserToProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userId } = req.body;
+
+        if (!Array.isArray(userId) || userId.length === 0) {
+            return res.status(400).json({
+                message: "Invalid input: userId must be a non-empty array",
+                status: false,
+                data: null,
+            });
+        }
+
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        const newUserIds = userId.filter((userId: string) =>
+            !project.appointedUserId.some((appointedId: mongoose.Types.ObjectId) =>
+                appointedId.equals(new mongoose.Types.ObjectId(userId))
+            )
+        );
+
+
+        if (newUserIds.length > 0) {
+            project.appointedUserId.push(...newUserIds);
+
+            const updatedProject = await project.save();
+
+            return res.status(200).json({
+                message: "Users appointed successfully",
+                status: true,
+                data: updatedProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "All provided users are already appointed to this project",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null,
+        });
+    }
+};
+
+export const appointBidManagerToProject = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userIds } = req.body;
+
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+            return res.status(400).json({
+                message: "Invalid input: userIds must be a non-empty array",
+                status: false,
+                data: null,
+            });
+        }
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        const newUserIds = userIds.filter((userId: string) =>
+            !project.appointedBidManager.some((appointedId: mongoose.Types.ObjectId) =>
+                appointedId.equals(new mongoose.Types.ObjectId(userId))
+            )
+        );
+
+
+        if (newUserIds.length > 0) {
+            project.appointedBidManager.push(...newUserIds);
+
+            const updatedProject = await project.save();
+
+            return res.status(200).json({
+                message: "BID-Managers appointed successfully",
+                status: true,
+                data: updatedProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "All provided BID-Managers are already appointed to this project",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null,
+        });
+    }
+};
+
+export const approveOrRejectFeasibilityStatus = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { action } = req.body
+
+        const project: any = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (action === feasibilityStatus.approve) {
+            project.feasibilityStatus = null;
+        } else {
+            project.feasibilityStatus = null;
+            project.status = projectStatus.Inprogress;
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const getProjectLogs = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+        const logType = req.query.type;
+
+        const project: any = await projectModel.findById(projectId);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+
+        let logs: any = [];
+        if (req.user?.role === userRoles.Admin || req.user?.role === userRoles.ProcessManagerAdmin || req.user?.role === userRoles.FeasibilityAdmin) {
+            logs = project.logs;
+        } else if (req.user?.role === userRoles.FeasibilityUser) {
+            const isUserAppointed = project.appointedUserId.some((userId: any) => userId.equals(req.user._id));
+            if (isUserAppointed) {
+                logs = project.logs;
+            }
+        } else if (req.user?.role === userRoles.ProjectManager) {
+            const isUserAppointed = project.appointedBidManager.some((userId: any) => userId.equals(req.user._id));
+
+            if (isUserAppointed) {
+                logs = project.logs;
+            }
+        }
+
+        if (logType === "projectBased" || logType === "timeBased") {
+            logs = logs.filter((log: any) => log.type === logType);
+        }
+
+        const formattedLogs = logs
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        return res.status(200).json({
+            message: "Project Logs fatch successfully",
+            status: true,
+            data: formattedLogs
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const addProjectToMylist = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { userId } = req.body;
+
+        const project = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null,
+            });
+        }
+
+        const isAlreadyAppointed = project.myList.some((appointedId: mongoose.Types.ObjectId) =>
+            appointedId.equals(new mongoose.Types.ObjectId(userId))
+        )
+        if (!isAlreadyAppointed) {
+            project.myList.push(userId);
+            project.bidManagerStatus = projectStatus1.ToAction;
+            const updatedProject = await project.save();
+
+            return res.status(200).json({
+                message: "Project successfully added to my list",
+                status: true,
+                data: updatedProject,
+            });
+        } else {
+            return res.status(400).json({
+                message: "Project already in my list",
+                status: false,
+                data: null,
+            });
+        }
+    } catch (err: any) {
+        console.error(err);
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+interface FailStatusReason {
+    tag: string;
+    comment: string;
+}
+
+interface Project {
+    _id: string;
+    projectName: string;
+    status: string;
+    bidManagerStatus: string;
+    failStatusReason: FailStatusReason;
+}
+
+interface DataItem {
+    projectCount: number;
+    projects: Record<string, Project[]>; // A dictionary of project arrays keyed by strings
+    tag: string;
+}
+
+type FilterDataByKeyword = (data: DataItem[], keyword: string) => DataItem[];
+
+const filterDataByKeyword: FilterDataByKeyword = (data, keyword) => {
+    const lowerCaseKeyword = keyword.toLowerCase();
+
+    return data
+        .map(item => {
+            const filteredProjects = Object.entries(item.projects).reduce((acc, [key, value]) => {
+                if (key.toLowerCase().includes(lowerCaseKeyword)) {
+                    acc[key] = value;
+                }
+                return acc;
+            }, {} as Record<string, Project[]>);
+
+            if (Object.keys(filteredProjects).length > 0) {
+                return {
+                    ...item,
+                    projects: filteredProjects,
+                    projectCount: Object.values(filteredProjects).flat().length,
+                };
+            }
+            return null;
+        })
+        .filter((item): item is DataItem => item !== null);
+};
+
+const updateProjectCountsByUniqueId = (data: DataItem[]): DataItem[] => {
+    return data.map(item => {
+        const uniqueProjectIds = new Set<string>();
+
+        Object.values(item.projects).forEach(projectArray => {
+            projectArray.forEach(project => {
+                uniqueProjectIds.add(project._id.toString());
+            });
+        });
+
+        return {
+            ...item,
+            projectCount: uniqueProjectIds.size,
+        };
+    });
+};
+const updateProjectCountsByUniqueId1 = (data: any): any => {
+    return data.map((item: any) => {
+        const uniqueProjectIds = new Set<string>();
+
+        // Directly iterate over projects array
+        item.projects.forEach((project: any) => {
+            uniqueProjectIds.add(project._id.toString());
+        });
+
+        return {
+            ...item,
+            projectCount: uniqueProjectIds.size, // Update project count
+        };
+    });
+};
+
+
+async function processData(Data: any[]) {
+    for (const data of Data) {
+        for (const [key, value] of Object.entries<any[]>(data.projects)) {
+            //console.log("Key (Name):", key);
+
+            for (const project of value) {
+                const bidlatestTask: any[] = await taskModel.aggregate([
+                    {
+                        $match: {
+                            project: project._id,
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                        }
+                    },
+                    {
+                        $addFields: {
+                            firstAssignToUserId: {
+                                $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "firstAssignToUserId",
+                            foreignField: "_id",
+                            as: "userDetails"
+                        }
+                    },
+                    {
+                        $match: {
+                            "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                        }
+                    },
+                    {
+                        $sort: { createdAt: -1 }
+                    },
+                    {
+                        $limit: 1
+                    },
+                    {
+                        $project: {
+                            project: 1,
+                            assignTo: 1,
+                            dueDate: 1,
+                            userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                        }
+                    }
+                ]);
+
+                let assignBidmanager: any = null;
+                if (bidlatestTask.length > 0) {
+                    assignBidmanager = {
+                        _id: bidlatestTask[0].userDetails?._id,
+                        name: bidlatestTask[0].userDetails?.name,
+                        email: bidlatestTask[0].userDetails?.email,
+                        role: bidlatestTask[0].userDetails?.role,
+                        dueDate: bidlatestTask[0]?.dueDate
+                    };
+                }
+
+                project.assignBidManager = assignBidmanager;
+            }
+        }
+    }
+}
+
+async function processData1(Data: any[]) {
+    for (const data of Data) {
+        await Promise.all(data.projects.map(async (project: any) => {
+            const bidlatestTask: any[] = await taskModel.aggregate([
+                {
+                    $match: {
+                        project: project._id,
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                    }
+                },
+                {
+                    $addFields: {
+                        firstAssignToUserId: {
+                            $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                        }
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "firstAssignToUserId",
+                        foreignField: "_id",
+                        as: "userDetails"
+                    }
+                },
+                {
+                    $match: {
+                        "userDetails.role": userRoles.ProjectManager
+                    }
+                },
+                {
+                    $sort: { createdAt: -1 }
+                },
+                {
+                    $limit: 1
+                },
+                {
+                    $project: {
+                        project: 1,
+                        assignTo: 1,
+                        dueDate: 1,
+                        userDetails: { $arrayElemAt: ["$userDetails", 0] } // Get first userDetails object
+                    }
+                }
+            ]);
+
+            project.assignBidManager = bidlatestTask.length > 0 ? {
+                _id: bidlatestTask[0].userDetails?._id,
+                name: bidlatestTask[0].userDetails?.name,
+                email: bidlatestTask[0].userDetails?.email,
+                role: bidlatestTask[0].userDetails?.role,
+                dueDate: bidlatestTask[0]?.dueDate
+            } : null;
+        }));
+    }
+}
+
+export const getGapAnalysisData = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
+
+        let createdAtFilter: any = {
+            status: projectStatus.Fail
+        };
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                ...createdAtFilter,
+                publishDate: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                },
+            };
+        }
+
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
+
+        if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
+
+        let Data: any = await projectModel.aggregate([
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$failStatusReason',
+            },
+            {
+                $group: {
+                    _id: {
+                        tag: '$failStatusReason.tag',
+                        comment: '$failStatusReason.comment',
+                    },
+                    projects: {
+                        $push: {
+                            _id: '$_id',
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                            failStatusReason: '$failStatusReason',
+                            categorisation: '$categorisation',
+                        },
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: '$_id.tag',
+                    projectCount: { $sum: { $size: '$projects' } },
+                    projects: {
+                        $push: {
+                            k: '$_id.comment',
+                            v: '$projects',
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    projects: { $arrayToObject: '$projects' },
+                },
+            },
+            {
+                $project: {
+                    tag: '$_id',
+                    projectCount: 1,
+                    projects: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ]);
+
+        await processData(Data);
+        let filteredData = []
+        if (keyword) {
+            filteredData = filterDataByKeyword(Data, keyword);
+        } else {
+            filteredData = Data;
+        }
+
+        if (filteredData.length > 0) {
+            filteredData = updateProjectCountsByUniqueId(filteredData);
+        }
+
+        return res.status(200).json({
+            message: "Gap analysis data fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const getGapAnalysisDataDroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
+
+        let createdAtFilter: any = {
+            bidManagerStatus: BidManagerStatus.DroppedAfterFeasibility
+        };
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                ...createdAtFilter,
+                publishDate: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                },
+            };
+        }
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
+
+        // Filter by projectType (Multiple values supported)
+        if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
+
+        // aggregation pipeline with database-level operations
+        const aggregationPipeline: any[] = [
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$droppedAfterFeasibilityStatusReason',
+            },
+            // Add keyword filtering at database level if provided
+            ...(keyword ? [{
+                $match: {
+                    'droppedAfterFeasibilityStatusReason.comment': { $regex: keyword, $options: 'i' }
+                }
+            }] : []),
+            {
+                $group: {
+                    _id: {
+                        tag: '$droppedAfterFeasibilityStatusReason.tag',
+                        comment: '$droppedAfterFeasibilityStatusReason.comment',
+                    },
+                    projects: {
+                        $push: {
+                            _id: '$_id',
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                            droppedAfterFeasibilityStatusReason: '$droppedAfterFeasibilityStatusReason',
+                            categorisation: '$categorisation'
+                        },
+                    },
+                },
+            },
+            // Add project manager lookup in aggregation pipeline
+            {
+                $lookup: {
+                    from: "tasks",
+                    let: { projectIds: "$projects._id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$project", "$$projectIds"] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignToUserId: {
+                                    $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "firstAssignToUserId",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        {
+                            $match: {
+                                "userDetails.role": userRoles.ProjectManager
+                            }
+                        },
+                        {
+                            $sort: { createdAt: -1 }
+                        },
+                        {
+                            $group: {
+                                _id: "$project",
+                                latestTask: { $first: "$$ROOT" }
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                assignBidManager: {
+                                    $let: {
+                                        vars: { user: { $arrayElemAt: ["$latestTask.userDetails", 0] } },
+                                        in: {
+                                            _id: "$$user._id",
+                                            name: "$$user.name",
+                                            email: "$$user.email",
+                                            role: "$$user.role",
+                                            dueDate: "$latestTask.dueDate"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    as: "taskDetails"
+                }
+            },
+            // Attach project manager details efficiently
+            {
+                $addFields: {
+                    projects: {
+                        $map: {
+                            input: "$projects",
+                            as: "project",
+                            in: {
+                                $mergeObjects: [
+                                    "$$project",
+                                    {
+                                        assignBidManager: {
+                                            $let: {
+                                                vars: {
+                                                    taskDetail: {
+                                                        $arrayElemAt: [
+                                                            {
+                                                                $filter: {
+                                                                    input: "$taskDetails",
+                                                                    cond: { $eq: ["$$this._id", "$$project._id"] }
+                                                                }
+                                                            },
+                                                            0
+                                                        ]
+                                                    }
+                                                },
+                                                in: "$$taskDetail.assignBidManager"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id.tag',
+                    projectCount: { $sum: { $size: '$projects' } },
+                    projects: {
+                        $push: {
+                            k: '$_id.comment',
+                            v: '$projects',
+                        },
+                    },
+                },
+            },
+            {
+                $addFields: {
+                    projects: { $arrayToObject: '$projects' },
+                },
+            },
+            {
+                $project: {
+                    tag: '$_id',
+                    projectCount: 1,
+                    projects: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ];
+
+        let Data: any = await projectModel.aggregate(aggregationPipeline);
+
+        // Apply keyword filtering if not already done at database level
+        let filteredData = []
+        if (keyword) {
+            filteredData = filterDataByKeyword(Data, keyword);
+        } else {
+            filteredData = Data;
+        }
+
+        if (filteredData.length > 0) {
+            filteredData = updateProjectCountsByUniqueId(filteredData);
+        }
+
+        return res.status(200).json({
+            message: "Gap analysis data fetched successfully",
+            status: true,
+            data: filteredData
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const getGapAnalysisDatanosuppliermatchedStatusReason = async (req: any, res: Response) => {
+    try {
+        const { startDate, endDate, keyword, categorisation, projectType } = req.query;
+        const limit = req.pagination?.limit as number || 10;
+        const skip = req.pagination?.skip as number || 0; 
+        let createdAtFilter: any = {
+            bidManagerStatus: BidManagerStatus.Nosuppliermatched
+        };
+
+        if (startDate && endDate) {
+            createdAtFilter = {
+                ...createdAtFilter,
+                publishDate: {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate)
+                },
+            };
+        }
+        if (categorisation || categorisation === "") {
+            createdAtFilter.categorisation = categorisation
+        }
+
+        // Filter by projectType (Multiple values supported)
+        if (projectType) {
+            const projectTypeArray = Array.isArray(projectType) ? projectType : [projectType];
+            createdAtFilter.projectType = { $in: projectTypeArray };
+        }
+
+        // Optimized aggregation pipeline with database-level operations
+        const aggregationPipeline: any[] = [
+            {
+                $match: createdAtFilter,
+            },
+            {
+                $unwind: '$bidManagerStatusComment',
+            },
+            // Add keyword filtering at database level if provided
+            ...(keyword ? [{
+                $match: {
+                    projectName: { $regex: keyword, $options: 'i' }
+                }
+            }] : []),
+            {
+                $group: {
+                    _id: '$bidManagerStatusComment.comment',
+                    projectCount: { $sum: 1 },
+                    projects: {
+                        $push: {
+                            _id: '$_id',
+                            projectName: '$projectName',
+                            status: '$status',
+                            bidManagerStatus: '$bidManagerStatus',
+                            bidManagerStatusComment: '$bidManagerStatusComment',
+                            categorisation: '$categorisation'
+                        },
+                    },
+                },
+            },
+            // Add project manager lookup in aggregation pipeline
+            {
+                $lookup: {
+                    from: "tasks",
+                    let: { projectIds: "$projects._id" },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: { $in: ["$project", "$$projectIds"] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                            }
+                        },
+                        {
+                            $addFields: {
+                                firstAssignToUserId: {
+                                    $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                                }
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "users",
+                                localField: "firstAssignToUserId",
+                                foreignField: "_id",
+                                as: "userDetails"
+                            }
+                        },
+                        {
+                            $match: {
+                                "userDetails.role": userRoles.ProjectManager
+                            }
+                        },
+                        {
+                            $sort: { createdAt: -1 }
+                        },
+                        {
+                            $group: {
+                                _id: "$project",
+                                latestTask: { $first: "$$ROOT" }
+                            }
+                        },
+                        {
+                            $project: {
+                                _id: 1,
+                                projectManager: {
+                                    $let: {
+                                        vars: { user: { $arrayElemAt: ["$latestTask.userDetails", 0] } },
+                                        in: {
+                                            _id: "$$user._id",
+                                            name: "$$user.name",
+                                            email: "$$user.email",
+                                            role: "$$user.role"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ],
+                    as: "taskDetails"
+                }
+            },
+            // Attach project manager details efficiently
+            {
+                $addFields: {
+                    projects: {
+                        $map: {
+                            input: "$projects",
+                            as: "project",
+                            in: {
+                                $mergeObjects: [
+                                    "$$project",
+                                    {
+                                        assignBidManager: {
+                                            $let: {
+                                                vars: {
+                                                    taskDetail: {
+                                                        $arrayElemAt: [
+                                                            {
+                                                                $filter: {
+                                                                    input: "$taskDetails",
+                                                                    cond: { $eq: ["$$this._id", "$$project._id"] }
+                                                                }
+                                                            },
+                                                            0
+                                                        ]
+                                                    }
+                                                },
+                                                in: "$$taskDetail.projectManager"
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    comment: '$_id',
+                    projectCount: 1,
+                    projects: 1,
+                    _id: 0,
+                },
+            },
+            {
+                $sort: { projectCount: -1 },
+            },
+        ];
+
+        // Execute parallel queries for count and paginated data
+        const [countResult, paginatedData] = await Promise.all([
+            // Get total count
+            projectModel.aggregate([
+                ...aggregationPipeline,
+                { $count: "total" }
+            ]),
+            // Get paginated data
+            projectModel.aggregate([
+                ...aggregationPipeline,
+                { $skip: skip },
+                { $limit: limit }
+            ])
+        ]);
+
+        // Process unique project counts efficiently
+        let Data = paginatedData;
+        if (Data.length > 0) {
+            Data = Data.map((item: any) => {
+                const uniqueProjectIds = new Set<string>();
+                item.projects.forEach((project: any) => {
+                    uniqueProjectIds.add(project._id.toString());
+                });
+
+                return {
+                    ...item,
+                    projectCount: uniqueProjectIds.size,
+                };
+            });
+        }
+
+        const totalItems = countResult[0]?.total || 0;
+
+        return res.status(200).json({
+            message: "Gap analysis data fetched successfully",
+            status: true,
+            data: Data,
+            meta_data: {
+                page: req.pagination?.page || 1,
+                items: totalItems,
+                page_size: limit,
+                pages: Math.ceil(totalItems / limit)
+            }
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const approveOrRejectByAdmin = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { action, comment } = req.body
+
+        const project: any = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'project not found',
+                status: false,
+                data: null
+            })
+        }
+        if (action === feasibilityStatus.approve) {
+            if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted || adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
+                await taskModel.updateMany({ project: project._id }, { $set: { status: taskStatus.Completed } });
+            }
+
+            if (project.adminStatus === adminStatus.DroppedAfterFeasibility || project.adminStatus === adminStatus.Nosuppliermatched) {
+                project.bidManagerStatus = project.adminStatus;
+            } else if (project.adminStatus === adminStatus.Fail || project.adminStatus === adminStatus.NotReleted) {
+                project.status = project.adminStatus;
+                project.statusHistory.push({
+                    status: project.adminStatus,
+                    date: new Date(),
+                    userId: null,
+                })
+            }
+            project.adminStatus = null;
+            project.adminStatusDate = null;
+        } else if (action === feasibilityStatus.reject) {
+            // Add comment to logs when admin rejects
+            if (comment) {
+                project.adminStatusComment = {
+                    action: 'Reject',
+                    comment: comment,
+                    userId: req.user?.id || null,
+                    timestamp: new Date()
+                };
+            }
+            project.adminStatus = null;
+            project.adminStatusDate = null;
+        } else {
+            project.adminStatus = null;
+            project.adminStatusDate = null;
+        }
+
+        const updateProject = await project.save();
+
+        return res.status(200).json({
+            message: "Project update success",
+            status: true,
+            data: updateProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const deleteAdminStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+
+        const project = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: 'Project not found',
+                status: false,
+                data: null
+            });
+        }
+
+        // Remove the comment
+        project.adminStatusComment = null;
+        await project.save();
+
+        return res.status(200).json({
+            message: "Admin status comment deleted successfully",
+            status: true,
+            data: project
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { statusComment } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.statusComment.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(statusComment)
+        );
+        if (index === -1) {
+            delete statusComment.userDetails;
+            index = project.statusComment.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(statusComment)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "Status comment not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.statusComment.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "Status comment deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+export const deleteProjectFailStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { failStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.failStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(failStatusReason)
+        );
+        if (index === -1) {
+            delete failStatusReason.userDetails;
+            index = project.failStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(failStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "failStatusReason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.failStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "failStatusReason deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectBidStatusComment = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { bidManagerStatusComment } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.bidManagerStatusComment.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(bidManagerStatusComment)
+        );
+        if (index === -1) {
+            delete bidManagerStatusComment.userDetails;
+            index = project.bidManagerStatusComment.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(bidManagerStatusComment)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "bidManager Status Comment not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.bidManagerStatusComment.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "bidManager Status Comment deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectdroppedAfterFeasibilityStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { droppedAfterFeasibilityStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.droppedAfterFeasibilityStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(droppedAfterFeasibilityStatusReason)
+        );
+        if (index === -1) {
+            delete droppedAfterFeasibilityStatusReason.userDetails;
+            index = project.droppedAfterFeasibilityStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(droppedAfterFeasibilityStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "droppedAfterFeasibility Status Reason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.droppedAfterFeasibilityStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "droppedAfterFeasibility Status Reason deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteProjectnosuppliermatchedStatusReason = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+        const { nosuppliermatchedStatusReason } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+        let index = project.nosuppliermatchedStatusReason.findIndex((comment: any) =>
+            JSON.stringify(comment) === JSON.stringify(nosuppliermatchedStatusReason)
+        );
+        if (index === -1) {
+            delete nosuppliermatchedStatusReason.userDetails;
+            index = project.nosuppliermatchedStatusReason.findIndex((comment: any) =>
+                JSON.stringify(comment) === JSON.stringify(nosuppliermatchedStatusReason)
+            );
+        }
+        if (index === -1) {
+            return res.status(404).json({
+                message: "Nosuppliermatched Status Reason not found",
+                status: false,
+                data: null
+            });
+        }
+
+        project.nosuppliermatchedStatusReason.splice(index, 1);
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "Nosuppliermatched Status Reason deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const deleteDocument = async (req: any, res: Response) => {
+    try {
+        const id = req.params.id;
+
+        const { name, type } = req.body;
+
+        const project: any = await projectModel.findById(id);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        if (type == "clientDocument") {
+            project.clientDocument = project.clientDocument?.filter((element: any) => element.name.trim() !== name?.trim());
+        }
+
+        if (type == "westgateDocument") {
+            project.westGetDocument = project.westGetDocument?.filter((element: any) => element.name.trim() !== name?.trim());
+        }
+
+        const updatedProject = await project.save();
+
+        return res.status(200).json({
+            message: "Document deleted successfully",
+            status: true,
+            data: updatedProject
+        });
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+}
+
+export const removeFromSortList = async (req: any, res: Response) => {
+    try {
+        const { userId, projectId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const index = project.sortListUserId.indexOf(userId);
+        if (index > -1) {
+            project.sortListUserId.splice(index, 1);
+
+            // Also remove from selectedUserIds
+            project.set('selectedUserIds', project.selectedUserIds.filter((u: any) => u.userId.toString() !== userId.toString()));
+
+            const user: any = await userModel.findById(userId);
+            const logEntry = {
+                log: `<strong>${req.user?.name}</strong> removed <strong>${user?.name}</strong> from the shortlist for the project: <strong>${project.projectName}</strong>.`,
+                userId: req.user._id,
+                date: new Date(),
+                type: "timeBased"
+            };
+            project.logs = [logEntry, ...(project.logs || [])];
+
+            await project.save();
+        }
+
+        return res.status(200).json({
+            message: "User removed from sortlist successfully",
+            status: true
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+export const selectUserForProject = async (req: any, res: Response) => {
+    try {
+        const { projectId, userId, isSelected } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const user: any = await userModel.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found",
+                status: false,
+                data: null
+            });
+        }
+
+        const selectedUser = project.selectedUserIds.find(
+            (u: any) => u.userId?.toString() === userId.toString()
+        );
+
+        const logs = [];
+
+        if (isSelected) {
+            const alreadySelected = project.selectedUserIds.find(
+                (u: any) => u.isSelected === true && u.userId?.toString() !== userId.toString()
+            );
+
+            if (alreadySelected) {
+                return res.status(400).json({
+                    message: "Another Supplier is already selected for this project.",
+                    status: false
+                });
+            }
+            if (!selectedUser) {
+                project.selectedUserIds.push({ userId, isSelected: true });
+            } else {
+                selectedUser.isSelected = isSelected;
+            }
+        }
+        else {
+            project.selectedUserIds.pull({ userId });
+        }
+
+        await project.save();
+
+        return res.status(200).json({
+            message: isSelected ? "User selected for project" : "User unselected from project",
+            status: true
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+
+// Combined Register/Unregister Interest API for Suppliers
+export const registerInterest = async (req: any, res: Response) => {
+    try {
+        const { id } = req.params; // project id
+        const { interested } = req.body; // true / false
+        const userId = req.user._id;
+        const userRole = req.user.role;
+
+        if (typeof interested !== 'boolean') {
+            return res.status(400).json({
+                message: "Please provide 'interested' as true or false",
+                status: false
+            });
+        }
+
+        if (userRole !== 'SupplierAdmin') {
+            return res.status(403).json({
+                message: "Only suppliers can register interest in projects",
+                status: false
+            });
+        }
+
+        const project = await projectModel.findById(id);
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false
+            });
+        }
+
+        // Check if supplier already registered interest
+        const alreadyInterested = project.interestedSuppliers?.some(
+            (supplier: any) => supplier.supplierId?.toString() === userId.toString()
+        ) || false;
+        const user = await userModel.findById(userId);
+
+        const determineRegisterInterest = (suppliers: typeof project.interestedSuppliers): boolean => {
+            if (suppliers.length === 0) {
+                return false;
+            }
+            // agar sabhi suppliers ka attendee true hai
+            const allAttendee = suppliers.every(s => s?.attendee === true);
+            if (allAttendee) {
+                return false;
+            }
+            return true;
+        };
+
+        if (interested) {
+            // Register interest
+            if (alreadyInterested) {
+                return res.status(400).json({
+                    message: "You have already registered interest in this project",
+                    status: false
+                });
+            }
+
+            // Add interest
+            project.interestedSuppliers.push({
+                supplierId: userId,
+                attendee: false,
+                comment: "",
+                interestedAt: new Date(),
+                attendeeUpdatedAt: null
+            });
+            project.register_interest = determineRegisterInterest(project.interestedSuppliers);
+
+
+            // // Add log entry
+            // const logEntry = {
+            //     log: `<strong>${user?.name}</strong> registered interest in the project: ${project.projectName}.`,
+            //     userId: userId,
+            //     date: new Date(),
+            //     type: "timeBased"
+            // };
+            // project.logs = [logEntry, ...(project.logs || [])];
+
+            await project.save();
+
+            return res.status(200).json({
+                message: "Interest registered successfully",
+                status: true,
+                data: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest,
+                    isInterested: true
+                }
+            });
+        } else {
+            // Unregister interest
+            if (!alreadyInterested) {
+                return res.status(400).json({
+                    message: "You have not registered interest in this project",
+                    status: false
+                });
+            }
+
+            // Remove interest
+            for (let i = project.interestedSuppliers.length - 1; i >= 0; i--) {
+                if (project.interestedSuppliers[i]?.supplierId?.toString() === userId.toString()) {
+                    project.interestedSuppliers.splice(i, 1);
+                }
+            }
+
+            // Update register_interest flag
+            project.register_interest = determineRegisterInterest(project.interestedSuppliers);
+
+            await project.save();
+
+            return res.status(200).json({
+                message: "Interest removed successfully",
+                status: true,
+                data: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest,
+                    isInterested: false
+                }
+            });
+        }
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false
+        });
+    }
+};
+
+export const updateAttendeeStatus = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId, attendee, comment } = req.body;
+        const { isMailSend } = req.query;
+
+        if (typeof attendee !== 'boolean') {
+            return res.status(400).json({ message: "'attendee' must be true or false", status: false });
+        }
+
+        if (!comment || typeof comment !== 'string' || comment.trim() === '') {
+            return res.status(400).json({ message: "Comment is required", status: false });
+        }
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierEntry = project.interestedSuppliers.find(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (!supplierEntry) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        supplierEntry.attendee = attendee;
+        supplierEntry.comment = comment.trim();
+        supplierEntry.attendeeUpdatedAt = new Date();
+
+        // Check if any supplier has attendee == false
+        const stillPending = project.interestedSuppliers.some((entry: any) => entry.attendee === false);
+        project.register_interest = stillPending;
+
+        await project.save();
+
+        // Send registered interest comment email
+        const supplier = await userModel.findById(supplierId).select('name email companyName pocDetails');
+        let bidManagerData = null;
+        const bidlatestTask = await taskModel.aggregate([
+            {
+                $match: {
+                    project: project._id,
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignTo: { $arrayElemAt: ["$assignTo", 0] }
+                }
+            },
+            {
+                $addFields: {
+                    firstAssignToUserId: {
+                        $convert: { input: "$firstAssignTo.userId", to: "objectId", onError: null, onNull: null }
+                    }
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "firstAssignToUserId",
+                    foreignField: "_id",
+                    as: "userDetails"
+                }
+            },
+            {
+                $match: {
+                    "userDetails.role": userRoles.ProjectManager // Check if the role matches
+                }
+            },
+            {
+                $sort: { createdAt: -1 }
+            },
+            {
+                $limit: 1
+            },
+            {
+                $project: {
+                    project: 1,
+                    assignTo: 1,
+                    dueDate: 1,
+                    userDetails: { $arrayElemAt: ["$userDetails", 0] } // Only include the first userDetails object
+                }
+            }
+        ]);
+
+        if (bidlatestTask && bidlatestTask.length > 0 && bidlatestTask[0].userDetails) {
+            bidManagerData = bidlatestTask[0].userDetails;
+        }
+
+        if (supplier && isMailSend === 'true' && supplier.pocDetails && supplier.pocDetails.length > 0) {
+            supplier.pocDetails.forEach((poc: any) => {
+                if (poc.email) {
+                    sendRegisteredInterestCommentMail(poc.email, supplier.name || 'Supplier', project, bidManagerData)
+                        .then(() => console.log(`Registered interest comment email sent to POC ${poc.email}`))
+                        .catch(err => console.log(`Error sending registered interest comment email to POC ${poc.email}:`, err));
+                }
+            });
+        } else if (supplier && isMailSend === 'true') {
+            console.log(`No POC details found for supplier ${supplier.name}`);
+        }
+
+        return res.status(200).json({
+            message: `Attendee status updated`,
+            status: true,
+            data: {
+                projectId: project._id,
+                register_interest: project.register_interest,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Delete comment from attendee status
+export const deleteAttendeeComment = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierEntry = project.interestedSuppliers.find(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (!supplierEntry) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        supplierEntry.comment = "";
+        supplierEntry.attendeeUpdatedAt = new Date();
+
+        await project.save();
+
+        return res.status(200).json({
+            message: "Comment deleted successfully",
+            status: true,
+            data: {
+                projectId: project._id,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Remove interested supplier from project
+export const removeInterestedSupplier = async (req: any, res: Response) => {
+    try {
+        const { projectId, supplierId } = req.body;
+
+        const project = await projectModel.findById(projectId);
+        if (!project) return res.status(404).json({ message: "Project not found", status: false });
+
+        const supplierIndex = project.interestedSuppliers.findIndex(
+            (entry: any) => entry.supplierId.toString() === supplierId.toString()
+        );
+
+        if (supplierIndex === -1) {
+            return res.status(404).json({ message: "Supplier not found in interest list", status: false });
+        }
+
+        // Remove supplier from interestedSuppliers array
+        project.interestedSuppliers.splice(supplierIndex, 1);
+
+        // Update register_interest flag based on remaining suppliers
+        const stillPending = project.interestedSuppliers.some((entry: any) => entry.attendee === false);
+        project.register_interest = stillPending;
+
+
+        await project.save();
+
+        return res.status(200).json({
+            message: "Supplier removed from interest list successfully",
+            status: true,
+            data: {
+                projectId: project._id,
+                register_interest: project.register_interest,
+                interestedSuppliers: project.interestedSuppliers
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Get projects where supplier has shown interest
+export const getProjectsBySupplierInterest = async (req: any, res: Response) => {
+    try {
+        const { supplierId, keyword } = req.query;
+        const { limit = 10, skip = 0 } = req.pagination || {};
+
+        if (!supplierId) {
+            return res.status(400).json({ message: "Supplier ID is required", status: false });
+        }
+
+        let filter: any = {
+            "interestedSuppliers.supplierId": supplierId
+        };
+
+        if (keyword) {
+            const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            const regex = { $regex: safeKeyword, $options: "i" };
+
+            filter.$or = [
+                { projectName: regex },
+                { clientName: regex },
+                { BOSID: regex },
+                { website: regex },
+                { noticeReference: regex }
+            ];
+        }
+        // Get total count
+        const totalCount = await projectModel.countDocuments(filter);
+
+        // Get projects with pagination
+        const projects = await projectModel.find(filter)
+        .select('projectName status bidManagerStatus categorisation BOSID clientName maxValue category industry projectType createdAt interestedSuppliers')
+        .skip(skip)
+        .limit(limit)
+        .sort({ createdAt: -1 })
+        .lean();
+
+        // Add supplier-specific interest details to each project
+        const projectsWithInterestDetails = projects.map(project => {
+            const supplierInterest = project.interestedSuppliers.find(
+                (entry: any) => entry.supplierId.toString() === supplierId.toString()
+            );
+
+            return {
+                ...project,
+                supplierInterestDetails: {
+                    attendee: supplierInterest?.attendee || false,
+                    comment: supplierInterest?.comment || "",
+                    interestedAt: supplierInterest?.interestedAt || null,
+                    attendeeUpdatedAt: supplierInterest?.attendeeUpdatedAt || null
+                }
+            };
+        });
+
+        return res.status(200).json({
+            message: "Projects fetched successfully",
+            status: true,
+            data: projectsWithInterestDetails,
+            meta_data: {
+                page: Math.floor(skip / limit) + 1,
+                items: totalCount,
+                page_size: limit,
+                pages: Math.ceil(totalCount / limit)
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// Get list of suppliers who have registered interest in projects
+export const getInterestedSuppliers = async (req: any, res: Response) => {
+    try {
+        const { projectId } = req.params;
+        const { page = 1, limit = 10 } = req.query;
+
+        // Validate ObjectId format
+        if (!projectId || !projectId.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({
+                message: "Invalid project ID format",
+                status: false
+            });
+        }
+
+        // Find the project
+        const project = await projectModel.findById(projectId);
+
+        if (!project) {
+            return res.status(404).json({
+                message: "Project not found",
+                status: false
+            });
+        }
+
+        // Check if project has register_interest = true
+        if (!project.register_interest) {
+            return res.status(200).json({
+                message: "No suppliers have registered interest in this project",
+                status: true,
+                data: {
+                    suppliers: [],
+                    total: 0,
+                    meta_data: {
+                        page: parseInt(page),
+                        items: 0,
+                        page_size: parseInt(limit),
+                        pages: 0
+                    }
+                }
+            });
+        }
+
+        // Get supplier IDs from interestedSuppliers array (no attendees)
+        const interestedSupplierIds = project.interestedSuppliers
+            ?.filter((supplier: any) => supplier.attendee === false)
+            ?.map((supplier: any) => supplier.supplierId) || [];
+
+        if (interestedSupplierIds.length === 0) {
+            return res.status(200).json({
+                message: "No suppliers have registered interest in this project",
+                status: true,
+                data: {
+                    suppliers: [],
+                    total: 0,
+                    meta_data: {
+                        page: parseInt(page),
+                        items: 0,
+                        page_size: parseInt(limit),
+                        pages: 0
+                    }
+                }
+            });
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = interestedSupplierIds.length;
+        const totalPages = Math.ceil(total / parseInt(limit));
+
+        // Get paginated supplier IDs
+        const paginatedSupplierIds = interestedSupplierIds.slice(skip, skip + parseInt(limit));
+
+        const suppliers = await userModel.find({
+            _id: { $in: paginatedSupplierIds },
+            active: true
+        }).select('_id name email phone expertise expertiseICanDo technologies languages active createdAt');
+
+        // Add additional project-related info to each supplier
+        const suppliersWithDetails = suppliers.map(supplier => {
+            return {
+                ...supplier.toObject(),
+                projectInterest: {
+                    projectId: project._id,
+                    projectName: project.projectName,
+                    registeredAt: project.updatedAt,
+                    isInterested: true
+                }
+            };
+        });
+
+        return res.status(200).json({
+            message: "Interested suppliers fetched successfully",
+            status: true,
+            data: {
+                project: {
+                    _id: project._id,
+                    projectName: project.projectName,
+                    register_interest: project.register_interest
+                },
+                suppliers: suppliersWithDetails,
+                total: total,
+                meta_data: {
+                    page: parseInt(page),
+                    items: total,
+                    page_size: parseInt(limit),
+                    pages: totalPages
+                }
+            }
+        });
+
+    } catch (err: any) {
+        return res.status(500).json({
+            message: err.message,
+            status: false,
+            data: null
+        });
+    }
+};
+
+// POST /projects/:id/minimal-requirement
+export const addOrUpdateMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const { text, description } = req.body;
+        const projectId = req.params.id;
+        const userId = req.user._id; // supplier admin
+
+        const project = await projectModel.findByIdAndUpdate(
+            projectId,
+            {
+                $set: {
+                    "minimalRequirement.text": text,
+                    "minimalRequirement.description": description
+                },
+                $setOnInsert: {
+                    "minimalRequirement.createdBy": userId,
+                    "minimalRequirement.createdAt": new Date()
+                }
+            },
+            { new: true, upsert: false }
+        );
+
+        return res.status(200).json({
+            message: "Requiment created successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// GET /projects/:id/minimal-requirement
+export const getMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const project = await projectModel.findById(req.params.id)
+            .select("minimalRequirement supplierResponses")
+            .populate("minimalRequirement.createdBy supplierResponses.supplierId", "name email");
+
+        return res.status(200).json({
+            message: "Data fetched successfully",
+            status: true,
+            data: project,
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// DELETE /projects/:id/minimal-requirement
+export const deleteMinimalRequirement = async (req: any, res: Response) => {
+    try {
+        const projectId = req.params.id;
+
+        const project = await projectModel.findByIdAndUpdate(
+            projectId,
+            { $unset: { minimalRequirement: "" }, $set: { supplierResponses: [] } },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            message: "Minimal requirement deleted",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+// POST /projects/:id/minimal-requirement/respond
+export const addOrUpdateSupplierResponse = async (req: any, res: Response) => {
+    try {
+        const { status } = req.body; // "approved" or "rejected"
+        const projectId = req.params.id;
+        const supplierId = req.user._id; // supplier role
+
+        const project = await projectModel.findOneAndUpdate(
+            { _id: projectId, "supplierResponses.supplierId": supplierId },
+            {
+                $set: {
+                    "supplierResponses.$.status": status,
+                    "supplierResponses.$.respondedAt": new Date()
+                }
+            },
+            { new: true }
+        );
+
+        // if no existing response, push a new one
+        if (!project) {
+            await projectModel.findByIdAndUpdate(
+                projectId,
+                {
+                    $push: {
+                        supplierResponses: {
+                            supplierId,
+                            status,
+                            respondedAt: new Date()
+                        }
+                    }
+                },
+                { new: true }
+            );
+        }
+
+        return res.status(200).json({
+            message: "Supplier's response added successfully",
+            status: true
+        });
+    } catch (err: any) {
+        return res.status(500).json({ message: err.message, status: false });
+    }
+};
+
+export const searchProjectsByName = async (req: Request, res: Response) => {
+  try {
+    const { keyword } = req.query;
+
+    if (!keyword || typeof keyword !== "string") {
+      return res.status(400).json({
+        status: false,
+        message: "Please provide a keyword to search",
+      });
+    }
+
+    // Escape special regex characters
+    const safeKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    // Search by projectName using case-insensitive regex
+    const projects = await projectModel
+      .find({ projectName: { $regex: safeKeyword, $options: "i" } })
+      .select("projectName BOSID createdAt publishDate")
+      .sort({ createdAt: -1 }) // newest first
+      .limit(20) // optional limit for performance
+      .lean();
+
+    return res.status(200).json({
+      status: true,
+      message: "Projects fetched successfully",
+      data: projects,
+    });
+  } catch (err: any) {
+    return res.status(500).json({
+      status: false,
+      message: err.message,
+    });
+  }
+};
