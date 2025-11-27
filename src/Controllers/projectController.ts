@@ -798,6 +798,7 @@ export const getProjects = async (req: any, res: Response) => {
 
         if(attended == 'true') {
             filter.register_interest = false;
+            filter.interestedSuppliers = { $exists: true, $not: { $size: 0 } };
             sort = { register_interest: 1, publishDate: -1, createdAt: -1 };
         }
 
@@ -1751,6 +1752,7 @@ export const getProjects = async (req: any, res: Response) => {
 
         const attendeeCount = await projectModel.countDocuments({
             ...filter,
+            interestedSuppliers: { $exists: true, $not: { $size: 0 } },
             register_interest: false });
 
         return res.status(200).json({
