@@ -1667,6 +1667,16 @@ export const getProjects = async (req: any, res: Response) => {
 
         //     return result;
         // });
+
+        projects = projects.map((project: any) => {
+            const minimalReq = project.minimalRequirement;
+            project._doc.minimalReqAdded = !!(
+                minimalReq &&
+                (minimalReq.text || minimalReq.description || minimalReq.createdAt)
+            );
+            return project;
+        });
+
         let bidManagerCounts = [];
 
         let bidManagers;
